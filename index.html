@@ -244,7 +244,7 @@
   <div id="win-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-icon">🏆</div>
-      <h2 class="modal-title">Победа!</h2>
+      <h2 id="modal-win-title" class="modal-title">Победа!</h2>
       <p id="modal-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Головоломка успешно решена!</p>
       
       <div class="modal-stats">
@@ -253,6 +253,12 @@
         <div class="modal-stat-row"><span>Очки:</span><span id="modal-score" style="color:#38bdf8;">0</span></div>
         <div class="modal-stat-row"><span>Макс. комбо:</span><span id="modal-combo">x1</span></div>
         <div class="modal-stat-row"><span>Ошибки:</span><span id="modal-mistakes">0</span></div>
+      </div>
+
+      <!-- Pulse Run Stage Upgrade Section -->
+      <div id="run-stage-upgrade" class="run-upgrade-box hidden">
+        <div class="section-title" style="margin-bottom: 6px;">⚡ Выберите усиление для Этапа <span id="next-stage-num">2</span>:</div>
+        <div id="run-perks-draft" class="perks-list" style="max-height: 210px; overflow-y: auto;"></div>
       </div>
 
       <!-- Daily Share Button (Wordle Style) -->
@@ -274,7 +280,7 @@
     <div class="modal-card">
       <div class="modal-icon">💔</div>
       <h2 class="modal-title">Игра окончена</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили 3 ошибки.</p>
+      <p id="gameover-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили максимум ошибок.</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="btn-second-chance" class="btn-primary">🎬 Второй шанс (+1 жизнь)</button>
@@ -297,6 +303,7 @@
         <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
         <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
         <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
+        <div class="modal-stat-row"><span>Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
       </div>
 
       <button id="btn-close-stats" class="btn-primary">Закрыть</button>

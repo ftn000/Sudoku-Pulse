@@ -80,6 +80,7 @@ export interface GameStats {
   score: number;
   maxCombo: number;
   activePerks: Perk[];
+  runStage?: number;
 }
 
 export interface PlayerStats {
@@ -90,4 +91,6 @@ export interface PlayerStats {
   totalScore: number;
   dailyStreak: number;
   lastDailyDate: string | null;
+  bestRunStage?: number;
+  bestRunScore?: number;
 }

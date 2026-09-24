@@ -98,6 +98,14 @@ export class SudokuGame {
     if (options?.mode) this.mode = options.mode;
     if (options?.perks) this.activePerks = options.perks;
 
+    // Automatic difficulty scaling in Pulse Run
+    if (this.mode === 'run') {
+      if (this.runStage === 1) this.difficulty = 'easy';
+      else if (this.runStage === 2) this.difficulty = 'medium';
+      else if (this.runStage === 3) this.difficulty = 'hard';
+      else this.difficulty = 'expert';
+    }
+
     const config = DIFFICULTY_CONFIGS[this.difficulty];
 
     // Daily mode seed logic
@@ -123,7 +131,7 @@ export class SudokuGame {
           notes: new Set<number>(),
           isError: false,
           isConflictPeer: false,
-          isInFog: this.mode === 'fog',
+          isInFog: this.isFogActive(),
           isBeacon: isGiven,
         };
       })
@@ -134,7 +142,7 @@ export class SudokuGame {
     this.redoStack = [];
     this.timerSeconds = 0;
     this.mistakesCount = 0;
-    this.maxMistakes = config.maxMistakes;
+    this.maxMistakes = config.maxMistakes + (this.hasPerk('extra_heart') ? 2 : 0);
     this.hintsRemaining = config.initialHints + (this.hasPerk('power_bank') ? 1 : 0);
     this.hintsUsed = 0;
 
@@ -144,7 +152,7 @@ export class SudokuGame {
       this.runStage = 1;
     }
     this.comboCount = 0;
-    this.comboMultiplier = 1.0;
+    this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
     this.pulseEnergy = 0;
     this.isFeverMode = false;
     this.feverSecondsLeft = 0;
@@ -158,9 +166,88 @@ export class SudokuGame {
     this.completedBoxes.clear();
 
     this.status = 'playing';
+
+    if (this.hasPerk('auto_scanner')) {
+      this.fillAllCandidates();
+    }
+
     this.updateErrorStates();
     this.updateFogVisibility();
     this.notify();
+  }
+
+  public isFogActive(): boolean {
+    if (this.mode === 'fog') return true;
+    if (this.mode === 'run' && this.runStage >= 2 && this.runStage % 2 === 0) return true;
+    return false;
+  }
+
+  public getRunModifierDescription(): string {
+    if (this.mode !== 'run') return '';
+    switch (this.runStage) {
+      case 1:
+        return 'Базовый сектор (Обычные условия)';
+      case 2:
+        return '🌫️ Аномалия: Туман войны!';
+      case 3:
+        return '⚡ Импульсный шторм (Сложная сетка)';
+      case 4:
+        return '🔥 Босс-сектор (Экспертная сетка)';
+      default:
+        return `💀 Глубокий космос (Сектор ${this.runStage})`;
+    }
+  }
+
+  public advanceRunStage(newPerk: Perk) {
+    if (this.mode !== 'run') return;
+    this.runStage++;
+    if (!this.activePerks.some((p) => p.id === newPerk.id)) {
+      this.activePerks.push(newPerk);
+    }
+    const stageClearBonus = 1500 * (this.runStage - 1);
+    this.score += stageClearBonus;
+
+    if (this.hasPerk('neon_shield')) {
+      this.shieldActive = true;
+    }
+    this.hintsRemaining = Math.min(5, this.hintsRemaining + 1);
+
+    this.startNewGame({
+      mode: 'run',
+      keepScore: true,
+    });
+  }
+
+  public fillAllCandidates() {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+        if (cell.value === 0) {
+          cell.notes.clear();
+          for (let n = 1; n <= 9; n++) {
+            if (this.isValidPlacement(r, c, n)) {
+              cell.notes.add(n);
+            }
+          }
+        }
+      }
+    }
+    this.notify();
+  }
+
+  public isValidPlacement(row: number, col: number, num: number): boolean {
+    for (let i = 0; i < 9; i++) {
+      if (i !== col && this.board[row][i].value === num) return false;
+      if (i !== row && this.board[i][col].value === num) return false;
+    }
+    const startR = Math.floor(row / 3) * 3;
+    const startC = Math.floor(col / 3) * 3;
+    for (let r = startR; r < startR + 3; r++) {
+      for (let c = startC; c < startC + 3; c++) {
+        if ((r !== row || c !== col) && this.board[r][c].value === num) return false;
+      }
+    }
+    return true;
   }
 
   public selectCell(row: number, col: number) {
@@ -332,7 +419,7 @@ export class SudokuGame {
   }
 
   public updateFogVisibility() {
-    if (this.mode !== 'fog') {
+    if (!this.isFogActive()) {
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
           this.board[r][c].isInFog = false;
@@ -546,6 +633,7 @@ export class SudokuGame {
         score: this.score,
         maxCombo: this.maxComboAchieved,
         activePerks: this.activePerks,
+        runStage: this.runStage,
       });
     }
   }
@@ -780,6 +868,12 @@ export class SudokuGame {
           stats.dailyStreak++;
           stats.lastDailyDate = today;
         }
+      }
+
+      // Run records
+      if (this.mode === 'run') {
+        stats.bestRunStage = Math.max(stats.bestRunStage || 0, this.runStage);
+        stats.bestRunScore = Math.max(stats.bestRunScore || 0, this.score);
       }
 
       localStorage.setItem(STATS_KEY, JSON.stringify(stats));

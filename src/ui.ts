@@ -64,16 +64,22 @@ export class SudokuUI {
 
   // Modals
   private winModal!: HTMLElement;
+  private modalWinTitle!: HTMLElement;
+  private modalSubtitle!: HTMLElement;
   private modalTime!: HTMLElement;
   private modalScore!: HTMLElement;
   private modalCombo!: HTMLElement;
   private modalMistakes!: HTMLElement;
   private modalMode!: HTMLElement;
+  private runStageUpgrade!: HTMLElement;
+  private nextStageNum!: HTMLElement;
+  private runPerksDraft!: HTMLElement;
   private btnDailyShare!: HTMLButtonElement;
   private btnWinMenu!: HTMLButtonElement;
   private playAgainBtn!: HTMLButtonElement;
 
   private gameOverModal!: HTMLElement;
+  private gameOverSubtitle!: HTMLElement;
   private secondChanceBtn!: HTMLButtonElement;
   private restartGameOverBtn!: HTMLButtonElement;
   private btnGameOverMenu!: HTMLButtonElement;
@@ -85,6 +91,7 @@ export class SudokuUI {
   private statCombo!: HTMLElement;
   private statScore!: HTMLElement;
   private statStreak!: HTMLElement;
+  private statRunStage!: HTMLElement;
 
   private settingsModal!: HTMLElement;
   private btnCloseSettings!: HTMLButtonElement;
@@ -179,16 +186,22 @@ export class SudokuUI {
 
     // Modals
     this.winModal = document.getElementById('win-modal')!;
+    this.modalWinTitle = document.getElementById('modal-win-title')!;
+    this.modalSubtitle = document.getElementById('modal-subtitle')!;
     this.modalTime = document.getElementById('modal-time')!;
     this.modalScore = document.getElementById('modal-score')!;
     this.modalCombo = document.getElementById('modal-combo')!;
     this.modalMistakes = document.getElementById('modal-mistakes')!;
     this.modalMode = document.getElementById('modal-mode')!;
+    this.runStageUpgrade = document.getElementById('run-stage-upgrade')!;
+    this.nextStageNum = document.getElementById('next-stage-num')!;
+    this.runPerksDraft = document.getElementById('run-perks-draft')!;
     this.btnDailyShare = document.getElementById('btn-daily-share') as HTMLButtonElement;
     this.btnWinMenu = document.getElementById('btn-win-menu') as HTMLButtonElement;
     this.playAgainBtn = document.getElementById('btn-play-again') as HTMLButtonElement;
 
     this.gameOverModal = document.getElementById('gameover-modal')!;
+    this.gameOverSubtitle = document.getElementById('gameover-subtitle')!;
     this.secondChanceBtn = document.getElementById('btn-second-chance') as HTMLButtonElement;
     this.restartGameOverBtn = document.getElementById('btn-restart-gameover') as HTMLButtonElement;
     this.btnGameOverMenu = document.getElementById('btn-gameover-menu') as HTMLButtonElement;
@@ -200,6 +213,7 @@ export class SudokuUI {
     this.statCombo = document.getElementById('stat-combo')!;
     this.statScore = document.getElementById('stat-score')!;
     this.statStreak = document.getElementById('stat-streak')!;
+    this.statRunStage = document.getElementById('stat-run-stage')!;
 
     this.settingsModal = document.getElementById('settings-modal')!;
     this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
@@ -575,8 +589,14 @@ export class SudokuUI {
 
     // Perk badge
     if (this.game.activePerks.length > 0) {
-      const perk = this.game.activePerks[0];
-      this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}`;
+      if (this.game.activePerks.length === 1) {
+        const perk = this.game.activePerks[0];
+        this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}`;
+      } else {
+        const icons = this.game.activePerks.map((p) => p.icon).join(' ');
+        this.gamePerkBadge.textContent = `${icons} (${this.game.activePerks.length})`;
+      }
+      this.gamePerkBadge.title = this.game.activePerks.map((p) => `${p.icon} ${p.name}: ${p.description}`).join('\n');
       this.gamePerkBadge.classList.remove('hidden');
     } else {
       this.gamePerkBadge.classList.add('hidden');
@@ -776,12 +796,50 @@ export class SudokuUI {
       classic: 'Классический',
       fog: 'Туман войны',
       daily: 'Daily Pulse',
-      run: 'Pulse Run',
+      run: `Pulse Run (Этап ${this.game.runStage})`,
     };
     this.modalMode.textContent = modeLabels[stats.mode];
 
-    // Show Daily Share button if daily mode
-    this.btnDailyShare.classList.toggle('hidden', stats.mode !== 'daily');
+    if (stats.mode === 'run') {
+      const nextStage = this.game.runStage + 1;
+      const stageBonus = 1500 * this.game.runStage;
+      this.modalWinTitle.textContent = `🚀 Этап ${this.game.runStage} пройден!`;
+      this.modalSubtitle.textContent = `Бонус за этап: +${stageBonus.toLocaleString('ru-RU')} очков! Выберите новый перк:`;
+      this.nextStageNum.textContent = nextStage.toString();
+      this.runStageUpgrade.classList.remove('hidden');
+      this.playAgainBtn.classList.add('hidden');
+      this.btnDailyShare.classList.add('hidden');
+
+      this.runPerksDraft.innerHTML = '';
+      const ownedIds = this.game.activePerks.map((p) => p.id);
+      const drafted = getRandomPerks(3, ownedIds);
+      drafted.forEach((perk) => {
+        const card = document.createElement('div');
+        card.className = 'perk-card';
+        card.style.padding = '10px 12px';
+        card.innerHTML = `
+          <div class="perk-icon-lg" style="font-size:1.5rem;">${perk.icon}</div>
+          <div class="perk-info">
+            <div class="perk-title" style="font-size:0.95rem;">${perk.name}</div>
+            <div class="perk-desc" style="font-size:0.8rem;">${perk.description}</div>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          this.winModal.classList.add('hidden');
+          this.stopConfetti();
+          soundManager.playCorrect(3);
+          this.game.advanceRunStage(perk);
+          this.showToast(`🚀 Этап ${this.game.runStage}: ${this.game.getRunModifierDescription()}`);
+        });
+        this.runPerksDraft.appendChild(card);
+      });
+    } else {
+      this.modalWinTitle.textContent = 'Победа!';
+      this.modalSubtitle.textContent = 'Головоломка успешно решена!';
+      this.runStageUpgrade.classList.add('hidden');
+      this.playAgainBtn.classList.remove('hidden');
+      this.btnDailyShare.classList.toggle('hidden', stats.mode !== 'daily');
+    }
 
     this.winModal.classList.remove('hidden');
     this.startConfetti();
@@ -807,6 +865,11 @@ export class SudokuUI {
   }
 
   private showGameOverModal() {
+    if (this.game.mode === 'run') {
+      this.gameOverSubtitle.textContent = `Забег окончен на Этапе ${this.game.runStage}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
+    } else {
+      this.gameOverSubtitle.textContent = `Вы совершили ${this.game.maxMistakes} ошибок.`;
+    }
     this.gameOverModal.classList.remove('hidden');
   }
 
@@ -817,6 +880,9 @@ export class SudokuUI {
     this.statCombo.textContent = `x${stats.maxCombo}`;
     this.statScore.textContent = stats.totalScore.toLocaleString('ru-RU');
     this.statStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+    const bestRun = stats.bestRunStage || 0;
+    const bestRunScore = stats.bestRunScore || 0;
+    this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
     this.statsModal.classList.remove('hidden');
   }
 
