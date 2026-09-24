@@ -586,6 +586,9 @@ export class SudokuUI {
           perks: [perk],
         });
         this.showScreen('game');
+        if (this.game.isFogActive()) {
+          this.showToast('🔦 Туман войны: кликайте по клеткам, чтобы светить фонариком! Верные ответы зажигают маяки навсегда.');
+        }
       });
 
       this.perksListContainer.appendChild(card);
@@ -771,14 +774,17 @@ export class SudokuUI {
         if (cellData.isInFog) {
           cellDiv.classList.add('in-fog');
         }
-        if (cellData.isBeacon) {
+        if (cellData.isInTorch) {
+          cellDiv.classList.add('in-torch');
+        }
+        if (cellData.isBeacon && this.game.isFogActive()) {
           cellDiv.classList.add('beacon');
         }
 
         const isSelected = selected && selected.row === r && selected.col === c;
         const inSameBox = Math.floor(r / 3) === selectedBoxRow && Math.floor(c / 3) === selectedBoxCol;
         const inSameLine = selected && (selected.row === r || selected.col === c);
-        const hasSameValue = selectedValue > 0 && cellData.value === selectedValue;
+        const hasSameValue = selectedValue > 0 && !cellData.isInFog && cellData.value === selectedValue;
 
         if (isSelected) {
           cellDiv.classList.add('selected');
@@ -790,7 +796,7 @@ export class SudokuUI {
 
         if (cellData.isError) {
           cellDiv.classList.add('error');
-        } else if (cellData.isConflictPeer) {
+        } else if (cellData.isConflictPeer && !cellData.isInFog) {
           cellDiv.classList.add('conflict-peer');
         }
 
@@ -802,7 +808,7 @@ export class SudokuUI {
           cellDiv.classList.add('user-value');
         }
 
-        if (cellData.value > 0) {
+        if (cellData.value > 0 && !cellData.isInFog) {
           const digitSpan = document.createElement('span');
           digitSpan.className = 'cell-digit';
           digitSpan.textContent = cellData.value.toString();

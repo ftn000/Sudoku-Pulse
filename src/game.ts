@@ -126,6 +126,7 @@ export class SudokuGame {
       Array.from({ length: 9 }, (_, c) => {
         const val = puzzle[r][c];
         const isGiven = val !== 0;
+        const isCenterBox = r >= 3 && r <= 5 && c >= 3 && c <= 5;
         return {
           row: r,
           col: c,
@@ -137,12 +138,13 @@ export class SudokuGame {
           isError: false,
           isConflictPeer: false,
           isInFog: this.isFogActive(),
-          isBeacon: isGiven,
+          isInTorch: false,
+          isBeacon: isGiven && isCenterBox,
         };
       })
     );
 
-    this.selectedCell = null;
+    this.selectedCell = this.isFogActive() ? { row: 4, col: 4 } : null;
     this.history = [];
     this.redoStack = [];
     this.timerSeconds = 0;
@@ -462,6 +464,7 @@ export class SudokuGame {
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
           this.board[r][c].isInFog = false;
+          this.board[r][c].isInTorch = false;
         }
       }
       return;
@@ -475,26 +478,23 @@ export class SudokuGame {
       for (let c = 0; c < 9; c++) {
         const cell = this.board[r][c];
 
-        // Torch visibility around cursor
+        // Torch visibility around cursor (3x3 normal, 5x5 with keen_eye perk)
         const distR = Math.abs(r - selR);
         const distC = Math.abs(c - selC);
         const inTorch = selR !== -1 && distR <= torchRadius && distC <= torchRadius;
 
-        // Beacons: solved/given cells are illuminated
-        const isBeacon = cell.isGiven || cell.isLocked;
+        // Beacons: only initial center beacons or user-solved cells are permanent beacons
+        const isBeacon = Boolean(cell.isBeacon);
 
-        // Beacons also illuminate orthogonal neighbors
+        // Beacons permanently illuminate a 3x3 area around themselves
         let nearBeacon = false;
         if (!isBeacon) {
-          const neighbors = [
-            [r - 1, c],
-            [r + 1, c],
-            [r, c - 1],
-            [r, c + 1],
-          ];
-          for (const [nr, nc] of neighbors) {
-            if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
-              if (this.board[nr][nc].isBeacon) {
+          for (let dr = -1; dr <= 1 && !nearBeacon; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              const nr = r + dr;
+              const nc = c + dc;
+              if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9 && this.board[nr][nc].isBeacon) {
                 nearBeacon = true;
                 break;
               }
@@ -503,6 +503,7 @@ export class SudokuGame {
         }
 
         cell.isInFog = !(inTorch || isBeacon || nearBeacon);
+        cell.isInTorch = inTorch && !(isBeacon || nearBeacon);
       }
     }
   }
@@ -800,6 +801,9 @@ export class SudokuGame {
     }
 
     if (newlyCompletedCells.length > 0) {
+      for (const [cr, cc] of newlyCompletedCells) {
+        this.board[cr][cc].isBeacon = true;
+      }
       if (this.onSoundTriggerCallback) {
         this.onSoundTriggerCallback('line');
       }
@@ -1107,13 +1111,17 @@ export class SudokuGame {
       this.isAutoNotesActive = data.isAutoNotesActive ?? false;
       this.status = data.status === 'completed' || data.status === 'gameover' ? 'idle' : data.status || 'playing';
 
-      this.board = data.board.map((row: any[]) =>
-        row.map((c: any) => ({
-          ...c,
-          notes: new Set<number>(c.notes || []),
-          isLocked: c.isGiven || (c.value !== 0 && c.value === c.solution),
-          isBeacon: c.isGiven || (c.value !== 0 && c.value === c.solution),
-        }))
+      this.board = data.board.map((row: any[], rIdx: number) =>
+        row.map((c: any, cIdx: number) => {
+          const isCenterBox = rIdx >= 3 && rIdx <= 5 && cIdx >= 3 && cIdx <= 5;
+          const isUserSolved = !c.isGiven && c.value !== 0 && c.value === c.solution;
+          return {
+            ...c,
+            notes: new Set<number>(c.notes || []),
+            isLocked: c.isGiven || isUserSolved,
+            isBeacon: c.isBeacon !== undefined ? c.isBeacon : (c.isGiven && isCenterBox) || isUserSolved,
+          };
+        })
       );
 
       this.history = [];

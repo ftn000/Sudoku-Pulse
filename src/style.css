@@ -814,7 +814,8 @@ body {
 
 /* Fog of War Shading */
 .cell.in-fog {
-  background: #090d16 !important;
+  background: #070a12 !important;
+  overflow: hidden;
 }
 
 .cell.in-fog * {
@@ -822,14 +823,26 @@ body {
 }
 
 .cell.in-fog::after {
-  content: '';
+  content: '🌫️';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle, rgba(15, 23, 42, 0.95) 0%, rgba(9, 13, 22, 1) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: rgba(148, 163, 184, 0.25);
+  filter: grayscale(0.4) opacity(0.32);
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.92) 0%, rgba(5, 8, 15, 0.98) 100%);
+  pointer-events: none;
+}
+
+.cell.in-torch {
+  box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.35);
+  background-color: rgba(56, 189, 248, 0.08);
 }
 
 .cell.beacon {
-  box-shadow: inset 0 0 10px rgba(56, 189, 248, 0.3);
+  box-shadow: inset 0 0 10px rgba(52, 211, 153, 0.28);
 }
 
 /* Line Wave */

@@ -38,6 +38,7 @@ export interface CellData {
   isConflictPeer: boolean; // True if this cell is a matching peer of an error cell
   justFilledCorrectly?: boolean; // For triggering celebratory glow animation
   isInFog?: boolean; // For Fog of War mode: true if hidden in fog
+  isInTorch?: boolean; // True if temporarily illuminated by cursor torch
   isBeacon?: boolean; // For Fog of War mode: true if this solved cell illuminates its zone
 }
 
