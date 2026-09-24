@@ -2,6 +2,7 @@ import { SudokuGame } from './game';
 import { Difficulty, GameMode, GameStats, AppScreen } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks } from './perks';
+import { haptics } from './haptics';
 
 export class SudokuUI {
   private game: SudokuGame;
@@ -122,14 +123,31 @@ export class SudokuUI {
       onGameOver: () => this.showGameOverModal(),
       onLineComplete: (cells) => this.triggerLineWave(cells),
       onSoundTrigger: (sound) => {
-        if (sound === 'select') soundManager.playSelect();
-        else if (sound === 'place') soundManager.playSelect();
-        else if (sound === 'correct') soundManager.playCorrect(this.game.comboCount);
-        else if (sound === 'error') soundManager.playError();
-        else if (sound === 'line') soundManager.playLineComplete();
-        else if (sound === 'win') soundManager.playVictory();
-        else if (sound === 'fever') soundManager.playFeverStart();
-        else if (sound === 'shield') soundManager.playShieldDeflect();
+        if (sound === 'select') {
+          soundManager.playSelect();
+          haptics.selection();
+        } else if (sound === 'place') {
+          soundManager.playSelect();
+          haptics.light();
+        } else if (sound === 'correct') {
+          soundManager.playCorrect(this.game.comboCount);
+          haptics.success();
+        } else if (sound === 'error') {
+          soundManager.playError();
+          haptics.error();
+        } else if (sound === 'line') {
+          soundManager.playLineComplete();
+          haptics.success();
+        } else if (sound === 'win') {
+          soundManager.playVictory();
+          haptics.victory();
+        } else if (sound === 'fever') {
+          soundManager.playFeverStart();
+          haptics.fever();
+        } else if (sound === 'shield') {
+          soundManager.playShieldDeflect();
+          haptics.light();
+        }
       },
     });
   }
