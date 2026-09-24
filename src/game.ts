@@ -57,7 +57,7 @@ export class SudokuGame {
   private onWinCallback?: (stats: GameStats) => void;
   private onGameOverCallback?: () => void;
   private onLineCompleteCallback?: (cells: Array<[number, number]>) => void;
-  private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'shield') => void;
+  private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
 
   constructor(difficulty: Difficulty = 'medium', mode: GameMode = 'classic') {
     this.difficulty = difficulty;
@@ -69,7 +69,7 @@ export class SudokuGame {
     onWin?: (stats: GameStats) => void;
     onGameOver?: () => void;
     onLineComplete?: (cells: Array<[number, number]>) => void;
-    onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'shield') => void;
+    onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
   }) {
     this.onStateChangeCallback = options.onStateChange;
     this.onWinCallback = options.onWin;
@@ -231,13 +231,13 @@ export class SudokuGame {
     let cellsWithNotes = 0;
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        if (this.board[r][c].value === 0 && this.board[r][c].notes.size > 0) {
+        if (this.board[r][c].notes.size > 0) {
           cellsWithNotes++;
         }
       }
     }
 
-    if (this.isAutoNotesActive || cellsWithNotes >= 5) {
+    if (this.isAutoNotesActive || cellsWithNotes > 0) {
       this.clearAllCandidates();
       return false;
     } else {
@@ -267,9 +267,7 @@ export class SudokuGame {
   public clearAllCandidates() {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        if (this.board[r][c].value === 0) {
-          this.board[r][c].notes.clear();
-        }
+        this.board[r][c].notes.clear();
       }
     }
     this.isAutoNotesActive = false;
@@ -908,7 +906,10 @@ export class SudokuGame {
         if (this.feverSecondsLeft <= 0) {
           this.isFeverMode = false;
           this.pulseEnergy = 0;
-          this.comboMultiplier = 1.0;
+          this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
+          if (this.onSoundTriggerCallback) {
+            this.onSoundTriggerCallback('fever_end');
+          }
         }
       } else {
         // Natural combo pulse decay

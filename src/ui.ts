@@ -155,6 +155,8 @@ export class SudokuUI {
         } else if (sound === 'fever') {
           soundManager.playFeverStart();
           haptics.fever();
+        } else if (sound === 'fever_end') {
+          soundManager.stopFeverTrack();
         } else if (sound === 'shield') {
           soundManager.playShieldDeflect();
           haptics.light();
@@ -726,6 +728,7 @@ export class SudokuUI {
     if (this.game.status === 'paused') {
       this.pauseOverlay.classList.remove('hidden');
       this.pauseBtn.textContent = '▶';
+      soundManager.stopFeverTrack();
     } else {
       this.pauseOverlay.classList.add('hidden');
       this.pauseBtn.textContent = '⏸';
@@ -735,12 +738,13 @@ export class SudokuUI {
   private renderPulseBar() {
     this.pulseFill.style.width = `${this.game.pulseEnergy}%`;
 
-    if (this.game.isFeverMode) {
+    if (this.game.isFeverMode && this.game.status === 'playing') {
       this.comboBadge.textContent = `🔥 FEVER OVERDRIVE! 10x`;
       this.comboBadge.className = 'combo-badge fever';
       this.pulseFill.classList.add('fever');
       this.pulseStatusText.textContent = `Осталось: ${this.game.feverSecondsLeft} сек!`;
     } else {
+      soundManager.stopFeverTrack();
       this.comboBadge.className = 'combo-badge';
       this.pulseFill.classList.remove('fever');
 
