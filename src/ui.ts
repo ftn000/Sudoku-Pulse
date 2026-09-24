@@ -99,13 +99,16 @@ export class SudokuUI {
   private btnCloseSettings!: HTMLButtonElement;
   private settingSoundBtn!: HTMLButtonElement;
   private settingThemeBtn!: HTMLButtonElement;
+  private themeSkinPills: HTMLButtonElement[] = [];
 
   private adModal!: HTMLElement;
   private adRewardTitle!: HTMLElement;
   private adProgressFill!: HTMLElement;
   private adTimerText!: HTMLElement;
 
-  // Confetti
+  // Background Particles & Confetti
+  private bgParticlesCanvas!: HTMLCanvasElement;
+  private bgParticlesCtx!: CanvasRenderingContext2D | null;
   private confettiCanvas!: HTMLCanvasElement;
   private confettiCtx!: CanvasRenderingContext2D | null;
   private confettiAnimationId?: number;
@@ -115,6 +118,7 @@ export class SudokuUI {
     this.initDOMElements();
     this.initEventListeners();
     this.initConfetti();
+    this.initBgParticles();
     this.updateDailyInfoOnMenu();
     this.showScreen('menu');
 
@@ -239,12 +243,15 @@ export class SudokuUI {
     this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
     this.settingSoundBtn = document.getElementById('setting-sound-btn') as HTMLButtonElement;
     this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
+    this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
 
     this.adModal = document.getElementById('ad-modal')!;
     this.adRewardTitle = document.getElementById('ad-reward-title')!;
     this.adProgressFill = document.getElementById('ad-progress-fill')!;
     this.adTimerText = document.getElementById('ad-timer-text')!;
 
+    this.bgParticlesCanvas = document.getElementById('bg-particles-canvas') as HTMLCanvasElement;
+    this.bgParticlesCtx = this.bgParticlesCanvas.getContext('2d');
     this.confettiCanvas = document.getElementById('confetti-canvas') as HTMLCanvasElement;
     this.confettiCtx = this.confettiCanvas.getContext('2d');
 
@@ -364,6 +371,14 @@ export class SudokuUI {
 
     this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
     this.settingThemeBtn.addEventListener('click', () => this.toggleTheme());
+    this.themeSkinPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const skin = pill.getAttribute('data-skin') || 'dark';
+        soundManager.playSelect();
+        haptics.selection();
+        this.setTheme(skin);
+      });
+    });
 
     // Pause / Resume
     this.pauseBtn.addEventListener('click', () => this.game.togglePause());
@@ -549,17 +564,34 @@ export class SudokuUI {
     this.settingSoundBtn.classList.toggle('active', enabled);
   }
 
+  private setTheme(theme: string) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('sudoku_theme', theme);
+    this.updateThemeButtons(theme);
+  }
+
   private toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('sudoku_theme', next);
-    this.updateThemeButtons(next);
+    const skins = ['dark', 'synthwave', 'matrix', 'oled', 'light'];
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const idx = skins.indexOf(current);
+    const next = skins[(idx + 1) % skins.length];
+    this.setTheme(next);
   }
 
   private updateThemeButtons(theme: string) {
-    this.themeToggleBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-    this.settingThemeBtn.textContent = theme === 'dark' ? 'Тёмная' : 'Светлая';
+    const labels: Record<string, { icon: string; name: string }> = {
+      dark: { icon: '⚡', name: 'Cyber Neon' },
+      synthwave: { icon: '🌆', name: 'Synthwave 80s' },
+      matrix: { icon: '🟢', name: 'Matrix Cyber' },
+      oled: { icon: '🌑', name: 'OLED Black' },
+      light: { icon: '☀️', name: 'Светлая' },
+    };
+    const info = labels[theme] || labels.dark;
+    this.themeToggleBtn.textContent = info.icon;
+    this.settingThemeBtn.textContent = `${info.icon} ${info.name}`;
+    this.themeSkinPills.forEach((pill) => {
+      pill.classList.toggle('active', pill.getAttribute('data-skin') === theme);
+    });
   }
 
   private handleArrowKey(key: string) {
@@ -1037,4 +1069,73 @@ export class SudokuUI {
       this.confettiCtx.clearRect(0, 0, this.confettiCanvas.width, this.confettiCanvas.height);
     }
   }
+
+  private initBgParticles() {
+    if (!this.bgParticlesCanvas || !this.bgParticlesCtx) return;
+    const ctx = this.bgParticlesCtx;
+
+    const resize = () => {
+      this.bgParticlesCanvas.width = window.innerWidth;
+      this.bgParticlesCanvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    const particles = Array.from({ length: 32 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 2 + 1,
+    }));
+
+    const renderParticles = () => {
+      ctx.clearRect(0, 0, this.bgParticlesCanvas.width, this.bgParticlesCanvas.height);
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const isFever = this.game.isFeverMode;
+      const speedMult = isFever ? 3.5 : 1.0;
+
+      let rgb = '56, 189, 248';
+      if (isFever) rgb = '251, 191, 36';
+      else if (theme === 'synthwave') rgb = '244, 114, 182';
+      else if (theme === 'matrix') rgb = '74, 222, 128';
+      else if (theme === 'light') rgb = '99, 102, 241';
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx * speedMult;
+        p.y += p.vy * speedMult;
+
+        if (p.x < 0) p.x = this.bgParticlesCanvas.width;
+        if (p.x > this.bgParticlesCanvas.width) p.x = 0;
+        if (p.y < 0) p.y = this.bgParticlesCanvas.height;
+        if (p.y > this.bgParticlesCanvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb}, ${isFever ? 0.55 : 0.3})`;
+        ctx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(${rgb}, ${(1 - dist / 110) * 0.12})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(renderParticles);
+    };
+
+    renderParticles();
+  }
 }
+

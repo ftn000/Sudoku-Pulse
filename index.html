@@ -337,7 +337,14 @@
         </div>
         <div class="setting-item">
           <span>Тема оформления</span>
-          <button id="setting-theme-btn" class="diff-pill">Тёмная</button>
+          <button id="setting-theme-btn" class="diff-pill">Cyber Neon</button>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+          <button class="diff-pill theme-skin-pill" data-skin="dark" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
+          <button class="diff-pill theme-skin-pill" data-skin="synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synthwave</button>
+          <button class="diff-pill theme-skin-pill" data-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
+          <button class="diff-pill theme-skin-pill" data-skin="oled" style="flex:1; font-size: 0.78rem;">🌑 OLED</button>
+          <button class="diff-pill theme-skin-pill" data-skin="light" style="flex:1; font-size: 0.78rem;">☀️ Светлая</button>
         </div>
       </div>
 
@@ -361,6 +368,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Background ambient cyber particles -->
+  <canvas id="bg-particles-canvas"></canvas>
 
   <!-- Canvas for celebration confetti -->
   <canvas id="confetti-canvas"></canvas>

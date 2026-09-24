@@ -55,6 +55,99 @@
   --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="synthwave"] {
+  --bg-gradient: linear-gradient(135deg, #1a0926 0%, #2e0f38 50%, #12092b 100%);
+  --surface-bg: rgba(46, 15, 56, 0.78);
+  --surface-border: rgba(244, 114, 182, 0.18);
+  --cell-bg: #230c33;
+  --cell-given-color: #fdf2f8;
+  --cell-user-color: #f472b6;
+  --cell-locked-color: #f472b6;
+  --cell-selected: #be185d;
+  --cell-highlight-area: rgba(244, 114, 182, 0.14);
+  --cell-highlight-same: rgba(244, 114, 182, 0.32);
+  --cell-error-bg: rgba(239, 68, 68, 0.35);
+  --cell-error-text: #fda4af;
+  --grid-border: #4a1c5e;
+  --grid-thick-border: #c084fc;
+  --text-main: #fdf2f8;
+  --text-muted: #d8b4fe;
+  --accent: #ec4899;
+  --accent-hover: #db2777;
+  --pulse-cyan: #f472b6;
+  --pulse-glow: rgba(244, 114, 182, 0.65);
+  --btn-bg: #361447;
+  --btn-hover: #4c1d63;
+  --modal-bg: #260e36;
+  --note-color: #e879f9;
+  --shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.25);
+}
+
+[data-theme="matrix"] {
+  --bg-gradient: linear-gradient(135deg, #020804 0%, #051609 50%, #020d06 100%);
+  --surface-bg: rgba(6, 26, 12, 0.85);
+  --surface-border: rgba(34, 197, 94, 0.2);
+  --cell-bg: #07190c;
+  --cell-given-color: #dcfce7;
+  --cell-user-color: #4ade80;
+  --cell-locked-color: #22c55e;
+  --cell-selected: #15803d;
+  --cell-highlight-area: rgba(34, 197, 94, 0.14);
+  --cell-highlight-same: rgba(34, 197, 94, 0.3);
+  --cell-error-bg: rgba(220, 38, 38, 0.35);
+  --cell-error-text: #f87171;
+  --grid-border: #14532d;
+  --grid-thick-border: #22c55e;
+  --text-main: #dcfce7;
+  --text-muted: #86efac;
+  --accent: #16a34a;
+  --accent-hover: #15803d;
+  --pulse-cyan: #4ade80;
+  --pulse-glow: rgba(74, 222, 128, 0.6);
+  --btn-bg: #0b2913;
+  --btn-hover: #14532d;
+  --modal-bg: #051409;
+  --note-color: #86efac;
+  --shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);
+}
+
+[data-theme="oled"] {
+  --bg-gradient: linear-gradient(135deg, #000000 0%, #050505 100%);
+  --surface-bg: rgba(12, 12, 14, 0.95);
+  --surface-border: rgba(255, 255, 255, 0.12);
+  --cell-bg: #08080a;
+  --cell-given-color: #ffffff;
+  --cell-user-color: #38bdf8;
+  --cell-locked-color: #38bdf8;
+  --cell-selected: #0369a1;
+  --cell-highlight-area: rgba(56, 189, 248, 0.12);
+  --cell-highlight-same: rgba(56, 189, 248, 0.28);
+  --cell-error-bg: rgba(239, 68, 68, 0.3);
+  --cell-error-text: #f87171;
+  --grid-border: #262626;
+  --grid-thick-border: #525252;
+  --text-main: #fafafa;
+  --text-muted: #a3a3a3;
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --pulse-cyan: #38bdf8;
+  --pulse-glow: rgba(56, 189, 248, 0.7);
+  --btn-bg: #141417;
+  --btn-hover: #262626;
+  --modal-bg: #0a0a0c;
+  --note-color: #a3a3a3;
+  --shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9);
+}
+
+#bg-particles-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -79,6 +172,8 @@ body {
 
 /* Screen Management */
 .screen {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 500px;
   display: flex;
