@@ -1,0 +1,7 @@
+services:
+  sudoku-pulse:
+    build: .
+    container_name: sudoku-pulse
+    restart: always
+    ports:
+      - "8080:80"
