@@ -42,8 +42,9 @@ export class SudokuGame {
   public activePerks: Perk[] = [];
   public shieldActive: boolean = false;
 
-  // Run Mode
+  // Run Mode & Seed
   public runStage: number = 1;
+  public currentSeed: number = 0;
 
   // Completed units
   private completedRows: Set<number> = new Set();
@@ -108,12 +109,15 @@ export class SudokuGame {
 
     const config = DIFFICULTY_CONFIGS[this.difficulty];
 
-    // Daily mode seed logic
+    // Seed logic
     let seed: number | undefined = options?.seed;
     if (this.mode === 'daily') {
       const today = new Date().toISOString().split('T')[0];
       seed = hashDateStringToSeed(today);
+    } else if (seed === undefined) {
+      seed = Math.floor(Math.random() * 899999) + 100000;
     }
+    this.currentSeed = seed;
 
     const { puzzle, solution } = generatePuzzle(this.difficulty, seed);
 

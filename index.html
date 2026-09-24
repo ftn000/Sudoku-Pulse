@@ -279,6 +279,11 @@
         📋 Скопировать результат (Telegram)
       </button>
 
+      <!-- Challenge Friend by Seed Link -->
+      <button id="btn-challenge-share" class="btn-secondary" style="width: 100%; border: 1px solid var(--pulse-cyan); color: var(--pulse-cyan);">
+        ⚔️ Бросить вызов другу (Ссылка на это поле)
+      </button>
+
       <div style="display: flex; gap: 8px;">
         <button id="btn-win-menu" class="btn-secondary" style="flex:1;">В меню</button>
         <button id="btn-play-again" class="btn-primary" style="flex:1;">Ещё раз</button>
@@ -307,16 +312,25 @@
   <!-- MODAL: STATS / RECORDS                     -->
   <!-- ========================================== -->
   <div id="stats-modal" class="modal-overlay hidden">
-    <div class="modal-card">
-      <h2 class="modal-title">📊 Ваша статистика</h2>
+    <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+      <h2 class="modal-title">📊 Рекорды и Лидерборд</h2>
+
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Ваш ник:</span>
+        <input id="player-name-input" type="text" maxlength="18" placeholder="CyberPlayer" style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; outline: none;">
+      </div>
       
       <div class="modal-stats">
-        <div class="modal-stat-row"><span>Партий сыграно:</span><span id="stat-played">0</span></div>
-        <div class="modal-stat-row"><span>Побед:</span><span id="stat-won">0</span></div>
+        <div class="modal-stat-row"><span>Партий сыграно / Побед:</span><span><span id="stat-played">0</span> / <span id="stat-won">0</span></span></div>
         <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
         <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
         <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
         <div class="modal-stat-row"><span>Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
+      </div>
+
+      <div class="section-title" style="margin-top: 4px; margin-bottom: 4px;">🌐 Глобальный Лидерборд (Топ Игроков)</div>
+      <div id="leaderboard-list" class="modal-stats" style="max-height: 170px; overflow-y: auto; font-size: 0.85rem;">
+        <div style="text-align: center; color: var(--text-muted);">Загрузка рекордов сервера...</div>
       </div>
 
       <button id="btn-close-stats" class="btn-primary">Закрыть</button>

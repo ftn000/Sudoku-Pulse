@@ -77,6 +77,7 @@ export class SudokuUI {
   private nextStageNum!: HTMLElement;
   private runPerksDraft!: HTMLElement;
   private btnDailyShare!: HTMLButtonElement;
+  private btnChallengeShare!: HTMLButtonElement;
   private btnWinMenu!: HTMLButtonElement;
   private playAgainBtn!: HTMLButtonElement;
 
@@ -88,6 +89,8 @@ export class SudokuUI {
 
   private statsModal!: HTMLElement;
   private btnCloseStats!: HTMLButtonElement;
+  private playerNameInput!: HTMLInputElement;
+  private leaderboardList!: HTMLElement;
   private statPlayed!: HTMLElement;
   private statWon!: HTMLElement;
   private statCombo!: HTMLElement;
@@ -120,7 +123,10 @@ export class SudokuUI {
     this.initConfetti();
     this.initBgParticles();
     this.updateDailyInfoOnMenu();
-    this.showScreen('menu');
+
+    if (!this.checkUrlChallenge()) {
+      this.showScreen('menu');
+    }
 
     this.game.setCallbacks({
       onStateChange: () => this.render(),
@@ -221,6 +227,7 @@ export class SudokuUI {
     this.nextStageNum = document.getElementById('next-stage-num')!;
     this.runPerksDraft = document.getElementById('run-perks-draft')!;
     this.btnDailyShare = document.getElementById('btn-daily-share') as HTMLButtonElement;
+    this.btnChallengeShare = document.getElementById('btn-challenge-share') as HTMLButtonElement;
     this.btnWinMenu = document.getElementById('btn-win-menu') as HTMLButtonElement;
     this.playAgainBtn = document.getElementById('btn-play-again') as HTMLButtonElement;
 
@@ -232,6 +239,8 @@ export class SudokuUI {
 
     this.statsModal = document.getElementById('stats-modal')!;
     this.btnCloseStats = document.getElementById('btn-close-stats') as HTMLButtonElement;
+    this.playerNameInput = document.getElementById('player-name-input') as HTMLInputElement;
+    this.leaderboardList = document.getElementById('leaderboard-list')!;
     this.statPlayed = document.getElementById('stat-played')!;
     this.statWon = document.getElementById('stat-won')!;
     this.statCombo = document.getElementById('stat-combo')!;
@@ -260,7 +269,13 @@ export class SudokuUI {
       if (btn) this.numpadButtons.push(btn);
     }
 
-    // Load initial settings
+    // Load initial settings & player name
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    const defaultName = tgUser?.username || tgUser?.first_name || `Pulse#${Math.floor(100 + Math.random() * 899)}`;
+    const savedName = localStorage.getItem('sudoku_player_name') || defaultName;
+    this.playerNameInput.value = savedName;
+    localStorage.setItem('sudoku_player_name', savedName);
+
     const savedTheme = localStorage.getItem('sudoku_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateThemeButtons(savedTheme);
@@ -443,9 +458,20 @@ export class SudokuUI {
       this.updateDailyInfoOnMenu();
     });
 
-    // Daily Share button
+    // Daily Share button & Challenge Share button
     this.btnDailyShare.addEventListener('click', () => {
       this.copyDailyResultToClipboard();
+    });
+
+    this.btnChallengeShare.addEventListener('click', () => {
+      this.copyChallengeLinkToClipboard();
+    });
+
+    this.playerNameInput.addEventListener('change', () => {
+      const name = this.playerNameInput.value.trim() || 'CyberPlayer';
+      this.playerNameInput.value = name;
+      localStorage.setItem('sudoku_player_name', name);
+      this.showToast(`✅ Никнейм сохранён: ${name}`);
     });
 
     // Game Over buttons
@@ -909,6 +935,112 @@ export class SudokuUI {
 
     this.winModal.classList.remove('hidden');
     this.startConfetti();
+    this.submitScoreToLeaderboard(stats);
+  }
+
+  private checkUrlChallenge(): boolean {
+    const params = new URLSearchParams(window.location.search);
+    const seedStr = params.get('seed');
+    if (!seedStr) return false;
+
+    const seed = parseInt(seedStr, 10);
+    if (isNaN(seed)) return false;
+
+    const diffParam = (params.get('diff') as Difficulty) || 'medium';
+    const modeParam = (params.get('mode') as GameMode) || 'classic';
+    const validDiffs: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
+    const diff: Difficulty = validDiffs.includes(diffParam) ? diffParam : 'medium';
+    const mode: GameMode = ['classic', 'zen', 'daily', 'run'].includes(modeParam) ? modeParam : 'classic';
+
+    this.currentDifficulty = diff;
+    this.currentMode = mode;
+
+    // Clean URL query params without reloading
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    setTimeout(() => {
+      this.startSelectedMode(diff, mode, seed);
+      this.showToast(`🎯 Вызов по ссылке запущен (Seed #${seed})!`);
+    }, 100);
+
+    return true;
+  }
+
+  private copyChallengeLinkToClipboard() {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}?seed=${this.game.currentSeed}&diff=${this.game.difficulty}&mode=${this.game.mode}`;
+    const mins = Math.floor(this.game.timerSeconds / 60);
+    const secs = this.game.timerSeconds % 60;
+    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const text = `🎯 Вызов в Sudoku Pulse!\nМой счёт: ${this.game.score.toLocaleString('ru-RU')} за ${timeStr}.\nПопробуй побить на том же раскладе:\n${url}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      this.showToast('🔗 Ссылка-вызов скопирована в буфер обмена!');
+    }).catch(() => {
+      this.showToast('🔗 Не удалось скопировать ссылку.');
+    });
+  }
+
+  private async submitScoreToLeaderboard(stats: GameStats) {
+    try {
+      const playerName = (localStorage.getItem('sudoku-pulse-player-name') || 'Игрок').trim() || 'Игрок';
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      await fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: playerName,
+          score: stats.score,
+          mode: stats.mode,
+          difficulty: stats.difficulty,
+          timeSeconds: stats.timeSeconds,
+          runStage: stats.runStage || 1,
+        }),
+      });
+    } catch {
+      // Offline or local dev server without /api/leaderboard — silently ignore
+    }
+  }
+
+  private async fetchAndRenderLeaderboard() {
+    if (!this.leaderboardList) return;
+    this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
+    try {
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      const res = await fetch(apiBase);
+      if (!res.ok) throw new Error('Network response was not ok');
+      const data = await res.json();
+      const entries: Array<{
+        name: string;
+        score: number;
+        mode: string;
+        difficulty: string;
+        runStage?: number;
+      }> = data.leaderboard || [];
+
+      if (entries.length === 0) {
+        this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей. Станьте первым!</div>`;
+        return;
+      }
+
+      this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : '⚡ Классика';
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); font-size:0.85rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; min-width:24px;">${medal}</span>
+              <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+            </div>
+            <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString('ru-RU')}</span>
+          </div>
+        `;
+      }).join('');
+    } catch {
+      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Онлайн-сервер недоступен (офлайн-режим)</div>`;
+    }
   }
 
   private copyDailyResultToClipboard() {
@@ -950,6 +1082,7 @@ export class SudokuUI {
     const bestRunScore = stats.bestRunScore || 0;
     this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
     this.statsModal.classList.remove('hidden');
+    this.fetchAndRenderLeaderboard();
   }
 
   private showMockAd(rewardTitle: string, onReward: () => void) {
