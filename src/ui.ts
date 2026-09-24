@@ -952,15 +952,20 @@ export class SudokuUI {
     const diff: Difficulty = validDiffs.includes(diffParam) ? diffParam : 'medium';
     const mode: GameMode = ['classic', 'zen', 'daily', 'run'].includes(modeParam) ? modeParam : 'classic';
 
-    this.currentDifficulty = diff;
-    this.currentMode = mode;
+    this.selectedDifficulty = diff;
+    this.selectedMode = mode;
 
     // Clean URL query params without reloading
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
 
     setTimeout(() => {
-      this.startSelectedMode(diff, mode, seed);
+      this.game.startNewGame({
+        difficulty: diff,
+        mode,
+        seed,
+      });
+      this.showScreen('game');
       this.showToast(`🎯 Вызов по ссылке запущен (Seed #${seed})!`);
     }, 100);
 
