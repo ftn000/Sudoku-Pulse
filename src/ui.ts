@@ -53,6 +53,7 @@ export class SudokuUI {
   private pauseBtn!: HTMLButtonElement;
   private resumeBtn!: HTMLButtonElement;
   private notesBtn!: HTMLButtonElement;
+  private btnAutoNotes!: HTMLButtonElement;
   private undoBtn!: HTMLButtonElement;
   private eraseBtn!: HTMLButtonElement;
   private hintBtn!: HTMLButtonElement;
@@ -193,6 +194,7 @@ export class SudokuUI {
     this.pauseBtn = document.getElementById('btn-pause') as HTMLButtonElement;
     this.resumeBtn = document.getElementById('btn-resume') as HTMLButtonElement;
     this.notesBtn = document.getElementById('btn-notes') as HTMLButtonElement;
+    this.btnAutoNotes = document.getElementById('btn-auto-notes') as HTMLButtonElement;
     this.undoBtn = document.getElementById('btn-undo') as HTMLButtonElement;
     this.eraseBtn = document.getElementById('btn-erase') as HTMLButtonElement;
     this.hintBtn = document.getElementById('btn-hint') as HTMLButtonElement;
@@ -369,12 +371,21 @@ export class SudokuUI {
 
     // Toolbar
     this.notesBtn.addEventListener('click', () => this.game.toggleNotesMode());
+    this.btnAutoNotes.addEventListener('click', () => {
+      soundManager.playCorrect(2);
+      haptics.light();
+      this.game.fillAllCandidates();
+      this.showToast('✨ Авто-заметки: все возможные кандидаты проставлены!');
+    });
     this.undoBtn.addEventListener('click', () => this.game.undo());
     this.eraseBtn.addEventListener('click', () => this.game.eraseCell());
 
     this.hintBtn.addEventListener('click', () => {
       if (this.game.hintsRemaining > 0) {
-        this.game.giveHint();
+        const explanation = this.game.giveHint();
+        if (explanation) {
+          this.showToast(explanation);
+        }
       } else {
         this.showMockAd('🎁 Награда: +1 Подсказка', () => {
           this.game.addBonusHint();
@@ -470,6 +481,11 @@ export class SudokuUI {
 
       if (e.key.toLowerCase() === 'n') {
         this.game.toggleNotesMode();
+        return;
+      }
+
+      if (e.key.toLowerCase() === 'a') {
+        this.btnAutoNotes.click();
         return;
       }
 

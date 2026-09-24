@@ -528,11 +528,12 @@ export class SudokuGame {
     this.notify();
   }
 
-  public giveHint(): boolean {
-    if (this.status !== 'playing' || this.hintsRemaining <= 0) return false;
+  public giveHint(): string | null {
+    if (this.status !== 'playing' || this.hintsRemaining <= 0) return null;
 
     let targetRow = -1;
     let targetCol = -1;
+    let explanation = '';
 
     if (
       this.selectedCell &&
@@ -542,21 +543,81 @@ export class SudokuGame {
     ) {
       targetRow = this.selectedCell.row;
       targetCol = this.selectedCell.col;
+      const sol = this.board[targetRow][targetCol].solution;
+      const validNums = [];
+      for (let n = 1; n <= 9; n++) {
+        if (this.isValidPlacement(targetRow, targetCol, n)) validNums.push(n);
+      }
+      if (validNums.length === 1) {
+        explanation = `💡 Одиночка (Naked Single): в [Р${targetRow + 1}, С${targetCol + 1}] подходит только ${sol} (остальные цифры уже есть в линиях/блоке)!`;
+      } else {
+        explanation = `💡 Подсказка: в ячейке [Р${targetRow + 1}, С${targetCol + 1}] верная цифра — ${sol}.`;
+      }
     } else {
-      const candidates: Array<{ r: number; c: number }> = [];
-      for (let r = 0; r < 9; r++) {
+      // Search for Naked Single across the board
+      for (let r = 0; r < 9 && targetRow === -1; r++) {
         for (let c = 0; c < 9; c++) {
           const cell = this.board[r][c];
           if (!cell.isLocked && cell.value !== cell.solution) {
-            candidates.push({ r, c });
+            const validNums = [];
+            for (let n = 1; n <= 9; n++) {
+              if (this.isValidPlacement(r, c, n)) validNums.push(n);
+            }
+            if (validNums.length === 1) {
+              targetRow = r;
+              targetCol = c;
+              explanation = `💡 Одиночка (Naked Single): в [Р${r + 1}, С${c + 1}] может стоять только ${cell.solution}!`;
+              break;
+            }
           }
         }
       }
 
-      if (candidates.length === 0) return false;
-      const pick = candidates[Math.floor(Math.random() * candidates.length)];
-      targetRow = pick.r;
-      targetCol = pick.c;
+      // Search for Hidden Single in rows if no Naked Single found
+      if (targetRow === -1) {
+        for (let r = 0; r < 9 && targetRow === -1; r++) {
+          for (let num = 1; num <= 9; num++) {
+            const possibleCols: number[] = [];
+            for (let c = 0; c < 9; c++) {
+              if (this.board[r][c].value === num) {
+                possibleCols.length = 0;
+                break;
+              }
+              if (this.board[r][c].value === 0 && this.isValidPlacement(r, c, num)) {
+                possibleCols.push(c);
+              }
+            }
+            if (possibleCols.length === 1) {
+              const c = possibleCols[0];
+              if (this.board[r][c].solution === num) {
+                targetRow = r;
+                targetCol = c;
+                explanation = `💡 Скрытая одиночка: в строке ${r + 1} цифра ${num} может стоять только в столбце ${c + 1}!`;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Fallback to random unsolved cell
+      if (targetRow === -1) {
+        const candidates: Array<{ r: number; c: number }> = [];
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cell = this.board[r][c];
+            if (!cell.isLocked && cell.value !== cell.solution) {
+              candidates.push({ r, c });
+            }
+          }
+        }
+
+        if (candidates.length === 0) return null;
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        targetRow = pick.r;
+        targetCol = pick.c;
+        explanation = `💡 Тактический ход: в [Р${targetRow + 1}, С${targetCol + 1}] раскрыта цифра ${this.board[targetRow][targetCol].solution}.`;
+      }
     }
 
     const cell = this.board[targetRow][targetCol];
@@ -600,8 +661,9 @@ export class SudokuGame {
     }
 
     this.notify();
-    return true;
+    return explanation;
   }
+
 
   public addBonusHint() {
     this.hintsRemaining++;
