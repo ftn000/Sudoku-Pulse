@@ -1,14 +1,18 @@
 import {
   Difficulty,
   DIFFICULTY_CONFIGS,
+  GameMode,
   CellData,
   MoveAction,
   GameStatus,
   GameStats,
+  Perk,
+  PlayerStats,
 } from './types';
-import { generatePuzzle } from './generator';
+import { generatePuzzle, hashDateStringToSeed } from './generator';
 
-const STORAGE_KEY = 'sudoku_ts_saved_game_v2';
+const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
+const STATS_KEY = 'sudoku_pulse_player_stats_v1';
 
 export class SudokuGame {
   public board: CellData[][] = [];
@@ -17,6 +21,7 @@ export class SudokuGame {
   public history: MoveAction[] = [];
   public redoStack: MoveAction[] = [];
   public difficulty: Difficulty = 'medium';
+  public mode: GameMode = 'classic';
   public status: GameStatus = 'idle';
   public timerSeconds: number = 0;
   public mistakesCount: number = 0;
@@ -24,20 +29,37 @@ export class SudokuGame {
   public hintsRemaining: number = 3;
   public hintsUsed: number = 0;
 
-  // Track completed lines to only celebrate each line once
+  // Pulse & Combo Engine
+  public score: number = 0;
+  public comboCount: number = 0;
+  public comboMultiplier: number = 1.0;
+  public pulseEnergy: number = 0; // 0 to 100
+  public isFeverMode: boolean = false;
+  public feverSecondsLeft: number = 0;
+  public maxComboAchieved: number = 0;
+
+  // Perks
+  public activePerks: Perk[] = [];
+  public shieldActive: boolean = false;
+
+  // Run Mode
+  public runStage: number = 1;
+
+  // Completed units
   private completedRows: Set<number> = new Set();
   private completedCols: Set<number> = new Set();
   private completedBoxes: Set<number> = new Set();
 
+  // Callbacks
   private onStateChangeCallback?: () => void;
   private onWinCallback?: (stats: GameStats) => void;
   private onGameOverCallback?: () => void;
   private onLineCompleteCallback?: (cells: Array<[number, number]>) => void;
-  private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win') => void;
+  private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'shield') => void;
 
-  constructor(difficulty: Difficulty = 'medium') {
+  constructor(difficulty: Difficulty = 'medium', mode: GameMode = 'classic') {
     this.difficulty = difficulty;
-    this.startNewGame(difficulty);
+    this.mode = mode;
   }
 
   public setCallbacks(options: {
@@ -45,7 +67,7 @@ export class SudokuGame {
     onWin?: (stats: GameStats) => void;
     onGameOver?: () => void;
     onLineComplete?: (cells: Array<[number, number]>) => void;
-    onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win') => void;
+    onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'shield') => void;
   }) {
     this.onStateChangeCallback = options.onStateChange;
     this.onWinCallback = options.onWin;
@@ -61,13 +83,31 @@ export class SudokuGame {
     }
   }
 
-  public startNewGame(difficulty?: Difficulty) {
-    if (difficulty) {
-      this.difficulty = difficulty;
-    }
+  public hasPerk(id: string): boolean {
+    return this.activePerks.some((p) => p.id === id);
+  }
+
+  public startNewGame(options?: {
+    difficulty?: Difficulty;
+    mode?: GameMode;
+    perks?: Perk[];
+    seed?: number;
+    keepScore?: boolean;
+  }) {
+    if (options?.difficulty) this.difficulty = options.difficulty;
+    if (options?.mode) this.mode = options.mode;
+    if (options?.perks) this.activePerks = options.perks;
 
     const config = DIFFICULTY_CONFIGS[this.difficulty];
-    const { puzzle, solution } = generatePuzzle(this.difficulty);
+
+    // Daily mode seed logic
+    let seed: number | undefined = options?.seed;
+    if (this.mode === 'daily') {
+      const today = new Date().toISOString().split('T')[0];
+      seed = hashDateStringToSeed(today);
+    }
+
+    const { puzzle, solution } = generatePuzzle(this.difficulty, seed);
 
     this.board = Array.from({ length: 9 }, (_, r) =>
       Array.from({ length: 9 }, (_, c) => {
@@ -79,10 +119,12 @@ export class SudokuGame {
           value: val,
           solution: solution[r][c],
           isGiven,
-          isLocked: isGiven, // Given clues start locked
+          isLocked: isGiven,
           notes: new Set<number>(),
           isError: false,
           isConflictPeer: false,
+          isInFog: this.mode === 'fog',
+          isBeacon: isGiven,
         };
       })
     );
@@ -93,15 +135,31 @@ export class SudokuGame {
     this.timerSeconds = 0;
     this.mistakesCount = 0;
     this.maxMistakes = config.maxMistakes;
-    this.hintsRemaining = config.initialHints;
+    this.hintsRemaining = config.initialHints + (this.hasPerk('power_bank') ? 1 : 0);
     this.hintsUsed = 0;
-    this.status = 'playing';
+
+    // Pulse & Score state
+    if (!options?.keepScore) {
+      this.score = 0;
+      this.runStage = 1;
+    }
+    this.comboCount = 0;
+    this.comboMultiplier = 1.0;
+    this.pulseEnergy = 0;
+    this.isFeverMode = false;
+    this.feverSecondsLeft = 0;
+    this.maxComboAchieved = 0;
+
+    // Perks
+    this.shieldActive = this.hasPerk('neon_shield');
 
     this.completedRows.clear();
     this.completedCols.clear();
     this.completedBoxes.clear();
 
+    this.status = 'playing';
     this.updateErrorStates();
+    this.updateFogVisibility();
     this.notify();
   }
 
@@ -111,6 +169,7 @@ export class SudokuGame {
     if (this.onSoundTriggerCallback) {
       this.onSoundTriggerCallback('select');
     }
+    this.updateFogVisibility();
     this.notify();
   }
 
@@ -124,11 +183,10 @@ export class SudokuGame {
     const { row, col } = this.selectedCell;
     const cell = this.board[row][col];
 
-    // Cannot edit given clues or already correctly solved/locked cells
     if (cell.isGiven || cell.isLocked) return;
 
     if (this.isNotesMode) {
-      // Toggle note candidate
+      // Notes toggle
       const hasNote = cell.notes.has(num);
       if (hasNote) {
         cell.notes.delete(num);
@@ -148,9 +206,8 @@ export class SudokuGame {
         this.onSoundTriggerCallback('place');
       }
     } else {
-      // Direct value placement
+      // Direct placement
       if (cell.value === num && cell.isError) {
-        // Pressing same wrong number clears it
         this.eraseCell();
         return;
       }
@@ -165,36 +222,80 @@ export class SudokuGame {
       const isCorrect = num === cell.solution;
 
       if (isCorrect) {
-        // Correct answer: Lock cell permanently
+        // Correct Move
         cell.isLocked = true;
+        cell.isBeacon = true;
         cell.isError = false;
         this.removeConflictingNotes(row, col, num);
+
+        // Combo & Pulse calculation
+        this.comboCount++;
+        this.maxComboAchieved = Math.max(this.maxComboAchieved, this.comboCount);
+
+        let multiplierBonus = 1.0;
+        if (this.comboCount >= 8) multiplierBonus = 5.0;
+        else if (this.comboCount >= 5) multiplierBonus = 3.0;
+        else if (this.comboCount >= 3) multiplierBonus = 2.0;
+        else if (this.comboCount >= 2) multiplierBonus = 1.5;
+
+        if (this.isFeverMode) {
+          this.comboMultiplier = 10.0;
+        } else {
+          this.comboMultiplier = multiplierBonus;
+        }
+
+        // Energy gain
+        const energyGain = (this.hasPerk('point_surge') ? 25 : 18);
+        this.pulseEnergy = Math.min(100, this.pulseEnergy + energyGain);
+
+        // Add score
+        const pointsBase = 100;
+        const perkScoreMult = this.hasPerk('point_surge') ? 1.5 : 1.0;
+        this.score += Math.round(pointsBase * this.comboMultiplier * perkScoreMult);
+
+        // Trigger Fever Mode if full
+        if (this.pulseEnergy >= 100 && !this.isFeverMode) {
+          this.triggerFeverMode();
+        }
 
         if (this.onSoundTriggerCallback) {
           this.onSoundTriggerCallback('correct');
         }
 
-        // Check for completed row, column, or 3x3 block
         this.checkForCompletedUnits(row, col);
       } else {
-        // Incorrect answer
+        // Mistake made
         cell.isLocked = false;
         cell.isError = true;
-        this.mistakesCount++;
 
-        if (this.onSoundTriggerCallback) {
-          this.onSoundTriggerCallback('error');
-        }
-
-        // Check game over
-        if (this.mistakesCount >= this.maxMistakes) {
-          this.status = 'gameover';
-          this.updateErrorStates();
-          this.notify();
-          if (this.onGameOverCallback) {
-            this.onGameOverCallback();
+        // Check Neon Shield Perk
+        if (this.shieldActive) {
+          this.shieldActive = false; // Consumed
+          if (this.onSoundTriggerCallback) {
+            this.onSoundTriggerCallback('shield');
           }
-          return;
+        } else {
+          this.mistakesCount++;
+          // Reset combo if not in Fever mode
+          if (!this.isFeverMode) {
+            this.comboCount = 0;
+            this.comboMultiplier = 1.0;
+            this.pulseEnergy = Math.max(0, this.pulseEnergy - 30);
+          }
+
+          if (this.onSoundTriggerCallback) {
+            this.onSoundTriggerCallback('error');
+          }
+
+          if (this.mistakesCount >= this.maxMistakes) {
+            this.status = 'gameover';
+            this.updateErrorStates();
+            this.notify();
+            if (this.onGameOverCallback) {
+              this.onGameOverCallback();
+            }
+            return;
+          }
         }
       }
 
@@ -211,24 +312,73 @@ export class SudokuGame {
       this.redoStack = [];
 
       this.updateErrorStates();
+      this.updateFogVisibility();
 
       if (this.checkWin()) {
-        this.status = 'completed';
-        if (this.onSoundTriggerCallback) {
-          this.onSoundTriggerCallback('win');
-        }
-        if (this.onWinCallback) {
-          this.onWinCallback({
-            difficulty: this.difficulty,
-            timeSeconds: this.timerSeconds,
-            mistakes: this.mistakesCount,
-            hintsUsed: this.hintsUsed,
-          });
-        }
+        this.handleGameWin();
       }
     }
 
     this.notify();
+  }
+
+  private triggerFeverMode() {
+    this.isFeverMode = true;
+    this.feverSecondsLeft = this.hasPerk('fever_overdrive') ? 17 : 12;
+    this.comboMultiplier = 10.0;
+    if (this.onSoundTriggerCallback) {
+      this.onSoundTriggerCallback('fever');
+    }
+  }
+
+  public updateFogVisibility() {
+    if (this.mode !== 'fog') {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          this.board[r][c].isInFog = false;
+        }
+      }
+      return;
+    }
+
+    const torchRadius = this.hasPerk('keen_eye') ? 2 : 1;
+    const selR = this.selectedCell ? this.selectedCell.row : -1;
+    const selC = this.selectedCell ? this.selectedCell.col : -1;
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+
+        // Torch visibility around cursor
+        const distR = Math.abs(r - selR);
+        const distC = Math.abs(c - selC);
+        const inTorch = selR !== -1 && distR <= torchRadius && distC <= torchRadius;
+
+        // Beacons: solved/given cells are illuminated
+        const isBeacon = cell.isGiven || cell.isLocked;
+
+        // Beacons also illuminate orthogonal neighbors
+        let nearBeacon = false;
+        if (!isBeacon) {
+          const neighbors = [
+            [r - 1, c],
+            [r + 1, c],
+            [r, c - 1],
+            [r, c + 1],
+          ];
+          for (const [nr, nc] of neighbors) {
+            if (nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
+              if (this.board[nr][nc].isBeacon) {
+                nearBeacon = true;
+                break;
+              }
+            }
+          }
+        }
+
+        cell.isInFog = !(inTorch || isBeacon || nearBeacon);
+      }
+    }
   }
 
   public eraseCell() {
@@ -236,7 +386,6 @@ export class SudokuGame {
     const { row, col } = this.selectedCell;
     const cell = this.board[row][col];
 
-    // Cannot erase given clues or locked correctly answered cells
     if (cell.isGiven || cell.isLocked || (cell.value === 0 && cell.notes.size === 0)) return;
 
     const prevValue = cell.value;
@@ -256,6 +405,7 @@ export class SudokuGame {
     this.redoStack = [];
 
     this.updateErrorStates();
+    this.updateFogVisibility();
     this.notify();
   }
 
@@ -266,9 +416,7 @@ export class SudokuGame {
 
     const cell = this.board[action.row][action.col];
 
-    // If cell was locked by a correct input, do not allow reverting solved cell
     if (cell.isLocked && !cell.isGiven && action.type === 'setValue' && action.newValue === cell.solution) {
-      // Keep locked solved cell
       return;
     }
 
@@ -289,44 +437,13 @@ export class SudokuGame {
 
     this.selectedCell = { row: action.row, col: action.col };
     this.updateErrorStates();
-    this.notify();
-  }
-
-  public redo() {
-    if (this.redoStack.length === 0 || this.status !== 'playing') return;
-    const action = this.redoStack.pop()!;
-    this.history.push(action);
-
-    const cell = this.board[action.row][action.col];
-
-    if (action.type === 'setValue') {
-      cell.value = action.newValue;
-      cell.notes = new Set(action.newNotes);
-      if (cell.value === cell.solution) {
-        cell.isLocked = true;
-        this.removeConflictingNotes(action.row, action.col, cell.value);
-      }
-    } else if (action.type === 'toggleNote') {
-      if (action.added) {
-        cell.notes.add(action.num);
-      } else {
-        cell.notes.delete(action.num);
-      }
-    } else if (action.type === 'clear') {
-      cell.value = 0;
-      cell.notes.clear();
-      cell.isError = false;
-    }
-
-    this.selectedCell = { row: action.row, col: action.col };
-    this.updateErrorStates();
+    this.updateFogVisibility();
     this.notify();
   }
 
   public giveHint(): boolean {
     if (this.status !== 'playing' || this.hintsRemaining <= 0) return false;
 
-    // Pick target cell: selected cell if empty/wrong, else a random unsolved cell
     let targetRow = -1;
     let targetCol = -1;
 
@@ -361,7 +478,8 @@ export class SudokuGame {
     const wasLocked = cell.isLocked;
 
     cell.value = cell.solution;
-    cell.isLocked = true; // Lock hint cell as well
+    cell.isLocked = true;
+    cell.isBeacon = true;
     cell.isError = false;
     cell.notes.clear();
 
@@ -388,20 +506,10 @@ export class SudokuGame {
 
     this.selectedCell = { row: targetRow, col: targetCol };
     this.updateErrorStates();
+    this.updateFogVisibility();
 
     if (this.checkWin()) {
-      this.status = 'completed';
-      if (this.onSoundTriggerCallback) {
-        this.onSoundTriggerCallback('win');
-      }
-      if (this.onWinCallback) {
-        this.onWinCallback({
-          difficulty: this.difficulty,
-          timeSeconds: this.timerSeconds,
-          mistakes: this.mistakesCount,
-          hintsUsed: this.hintsUsed,
-        });
-      }
+      this.handleGameWin();
     }
 
     this.notify();
@@ -421,6 +529,27 @@ export class SudokuGame {
     }
   }
 
+  private handleGameWin() {
+    this.status = 'completed';
+    this.updatePlayerStatsOnWin();
+
+    if (this.onSoundTriggerCallback) {
+      this.onSoundTriggerCallback('win');
+    }
+    if (this.onWinCallback) {
+      this.onWinCallback({
+        difficulty: this.difficulty,
+        mode: this.mode,
+        timeSeconds: this.timerSeconds,
+        mistakes: this.mistakesCount,
+        hintsUsed: this.hintsUsed,
+        score: this.score,
+        maxCombo: this.maxComboAchieved,
+        activePerks: this.activePerks,
+      });
+    }
+  }
+
   private checkForCompletedUnits(row: number, col: number) {
     const newlyCompletedCells: Array<[number, number]> = [];
 
@@ -436,6 +565,7 @@ export class SudokuGame {
       if (rowComplete) {
         this.completedRows.add(row);
         for (let c = 0; c < 9; c++) newlyCompletedCells.push([row, c]);
+        this.score += 500 * Math.round(this.comboMultiplier);
       }
     }
 
@@ -451,6 +581,7 @@ export class SudokuGame {
       if (colComplete) {
         this.completedCols.add(col);
         for (let r = 0; r < 9; r++) newlyCompletedCells.push([r, col]);
+        this.score += 500 * Math.round(this.comboMultiplier);
       }
     }
 
@@ -475,6 +606,7 @@ export class SudokuGame {
             newlyCompletedCells.push([r, c]);
           }
         }
+        this.score += 750 * Math.round(this.comboMultiplier);
       }
     }
 
@@ -489,12 +621,10 @@ export class SudokuGame {
   }
 
   private removeConflictingNotes(row: number, col: number, num: number) {
-    // Row and column
     for (let i = 0; i < 9; i++) {
       this.board[row][i].notes.delete(num);
       this.board[i][col].notes.delete(num);
     }
-    // 3x3 Box
     const startRow = Math.floor(row / 3) * 3;
     const startCol = Math.floor(col / 3) * 3;
     for (let r = startRow; r < startRow + 3; r++) {
@@ -504,13 +634,7 @@ export class SudokuGame {
     }
   }
 
-  /**
-   * Identifies errors and conflict peers:
-   * - cell.isError = true ONLY for incorrect user values (red background + shake digit)
-   * - cell.isConflictPeer = true for cells that share the same number in row/col/box (blue matching + pulse)
-   */
   public updateErrorStates() {
-    // Reset all flags first
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         this.board[r][c].isError = false;
@@ -518,7 +642,6 @@ export class SudokuGame {
       }
     }
 
-    // 1. Identify erroneous cells (non-zero value that does NOT equal solution)
     const errorCells: Array<{ r: number; c: number; val: number }> = [];
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -530,7 +653,6 @@ export class SudokuGame {
       }
     }
 
-    // 2. For each error cell, find conflicting peers with the same number in row, col, or box
     for (const err of errorCells) {
       const errBoxR = Math.floor(err.r / 3);
       const errBoxC = Math.floor(err.c / 3);
@@ -545,7 +667,6 @@ export class SudokuGame {
             const sameBox = Math.floor(r / 3) === errBoxR && Math.floor(c / 3) === errBoxC;
 
             if (sameRow || sameCol || sameBox) {
-              // The other cell is a conflict peer (should NOT be red, but animated peer)
               if (!other.isError) {
                 other.isConflictPeer = true;
               }
@@ -586,6 +707,27 @@ export class SudokuGame {
   public tickTimer() {
     if (this.status === 'playing') {
       this.timerSeconds++;
+
+      // Fever Timer
+      if (this.isFeverMode) {
+        this.feverSecondsLeft--;
+        if (this.feverSecondsLeft <= 0) {
+          this.isFeverMode = false;
+          this.pulseEnergy = 0;
+          this.comboMultiplier = 1.0;
+        }
+      } else {
+        // Natural combo pulse decay
+        const decayRate = this.hasPerk('time_warp') ? 2 : 4;
+        if (this.pulseEnergy > 0) {
+          this.pulseEnergy = Math.max(0, this.pulseEnergy - decayRate);
+          if (this.pulseEnergy === 0) {
+            this.comboCount = 0;
+            this.comboMultiplier = 1.0;
+          }
+        }
+      }
+
       if (this.onStateChangeCallback) {
         this.onStateChangeCallback();
       }
@@ -601,6 +743,49 @@ export class SudokuGame {
     this.notify();
   }
 
+  // --- STATS SYSTEM ---
+  public static getPlayerStats(): PlayerStats {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {
+      gamesPlayed: 0,
+      gamesWon: 0,
+      bestTimeSeconds: { easy: null, medium: null, hard: null, expert: null },
+      maxCombo: 0,
+      totalScore: 0,
+      dailyStreak: 0,
+      lastDailyDate: null,
+    };
+  }
+
+  private updatePlayerStatsOnWin() {
+    try {
+      const stats = SudokuGame.getPlayerStats();
+      stats.gamesWon++;
+      stats.totalScore += this.score;
+      stats.maxCombo = Math.max(stats.maxCombo, this.maxComboAchieved);
+
+      // Best time
+      const curBest = stats.bestTimeSeconds[this.difficulty];
+      if (curBest === null || this.timerSeconds < curBest) {
+        stats.bestTimeSeconds[this.difficulty] = this.timerSeconds;
+      }
+
+      // Daily streak
+      if (this.mode === 'daily') {
+        const today = new Date().toISOString().split('T')[0];
+        if (stats.lastDailyDate !== today) {
+          stats.dailyStreak++;
+          stats.lastDailyDate = today;
+        }
+      }
+
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch {}
+  }
+
   public saveToStorage() {
     try {
       const serializableBoard = this.board.map((row) =>
@@ -612,17 +797,23 @@ export class SudokuGame {
       const data = {
         board: serializableBoard,
         difficulty: this.difficulty,
+        mode: this.mode,
         timerSeconds: this.timerSeconds,
         mistakesCount: this.mistakesCount,
         maxMistakes: this.maxMistakes,
         hintsRemaining: this.hintsRemaining,
         hintsUsed: this.hintsUsed,
+        score: this.score,
+        comboCount: this.comboCount,
+        pulseEnergy: this.pulseEnergy,
+        isFeverMode: this.isFeverMode,
+        feverSecondsLeft: this.feverSecondsLeft,
+        activePerks: this.activePerks,
+        shieldActive: this.shieldActive,
         status: this.status,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // Ignore storage errors
-    }
+    } catch {}
   }
 
   public loadFromStorage(): boolean {
@@ -636,18 +827,27 @@ export class SudokuGame {
       }
 
       this.difficulty = data.difficulty || 'medium';
+      this.mode = data.mode || 'classic';
       this.timerSeconds = data.timerSeconds || 0;
       this.mistakesCount = data.mistakesCount || 0;
       this.maxMistakes = data.maxMistakes || 3;
-      this.hintsRemaining = data.hintsRemaining ?? DIFFICULTY_CONFIGS[this.difficulty].initialHints;
+      this.hintsRemaining = data.hintsRemaining ?? 3;
       this.hintsUsed = data.hintsUsed || 0;
-      this.status = data.status === 'completed' || data.status === 'gameover' ? 'playing' : data.status || 'playing';
+      this.score = data.score || 0;
+      this.comboCount = data.comboCount || 0;
+      this.pulseEnergy = data.pulseEnergy || 0;
+      this.isFeverMode = data.isFeverMode || false;
+      this.feverSecondsLeft = data.feverSecondsLeft || 0;
+      this.activePerks = data.activePerks || [];
+      this.shieldActive = data.shieldActive ?? false;
+      this.status = data.status === 'completed' || data.status === 'gameover' ? 'idle' : data.status || 'playing';
 
       this.board = data.board.map((row: any[]) =>
         row.map((c: any) => ({
           ...c,
           notes: new Set<number>(c.notes || []),
           isLocked: c.isGiven || (c.value !== 0 && c.value === c.solution),
+          isBeacon: c.isGiven || (c.value !== 0 && c.value === c.solution),
         }))
       );
 
@@ -655,6 +855,7 @@ export class SudokuGame {
       this.redoStack = [];
       this.selectedCell = null;
       this.updateErrorStates();
+      this.updateFogVisibility();
       this.notify();
       return true;
     } catch {

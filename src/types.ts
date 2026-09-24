@@ -1,5 +1,9 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
+export type GameMode = 'classic' | 'fog' | 'daily' | 'run';
+
+export type AppScreen = 'menu' | 'mode_select' | 'perk_select' | 'game';
+
 export interface DifficultyConfig {
   name: string;
   label: string;
@@ -15,6 +19,13 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
   expert: { name: 'expert', label: 'Эксперт', clues: 22, initialHints: 1, maxMistakes: 3 },
 };
 
+export interface Perk {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
 export interface CellData {
   row: number;
   col: number;
@@ -26,6 +37,8 @@ export interface CellData {
   isError: boolean; // True if this cell has a wrong value
   isConflictPeer: boolean; // True if this cell is a matching peer of an error cell
   justFilledCorrectly?: boolean; // For triggering celebratory glow animation
+  isInFog?: boolean; // For Fog of War mode: true if hidden in fog
+  isBeacon?: boolean; // For Fog of War mode: true if this solved cell illuminates its zone
 }
 
 export type Grid = number[][];
@@ -60,7 +73,21 @@ export type GameStatus = 'idle' | 'playing' | 'paused' | 'completed' | 'gameover
 
 export interface GameStats {
   difficulty: Difficulty;
+  mode: GameMode;
   timeSeconds: number;
   mistakes: number;
   hintsUsed: number;
+  score: number;
+  maxCombo: number;
+  activePerks: Perk[];
+}
+
+export interface PlayerStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  bestTimeSeconds: Record<Difficulty, number | null>;
+  maxCombo: number;
+  totalScore: number;
+  dailyStreak: number;
+  lastDailyDate: string | null;
 }
