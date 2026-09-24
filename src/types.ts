@@ -10,13 +10,14 @@ export interface DifficultyConfig {
   clues: number; // Number of clues to keep
   initialHints: number; // Max hints given for this difficulty
   maxMistakes: number; // Maximum mistakes before game over
+  initialBeacons: number; // Initial static beacons in Dark Sector mode
 }
 
 export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
-  easy: { name: 'easy', label: 'Легкий', clues: 40, initialHints: 3, maxMistakes: 3 },
-  medium: { name: 'medium', label: 'Средний', clues: 32, initialHints: 3, maxMistakes: 3 },
-  hard: { name: 'hard', label: 'Сложный', clues: 26, initialHints: 3, maxMistakes: 3 },
-  expert: { name: 'expert', label: 'Эксперт', clues: 22, initialHints: 3, maxMistakes: 3 },
+  easy: { name: 'easy', label: 'Легкий', clues: 40, initialHints: 3, maxMistakes: 3, initialBeacons: 5 },
+  medium: { name: 'medium', label: 'Средний', clues: 32, initialHints: 3, maxMistakes: 3, initialBeacons: 3 },
+  hard: { name: 'hard', label: 'Сложный', clues: 26, initialHints: 3, maxMistakes: 3, initialBeacons: 1 },
+  expert: { name: 'expert', label: 'Эксперт', clues: 22, initialHints: 3, maxMistakes: 3, initialBeacons: 0 },
 };
 
 export interface Perk {
@@ -37,9 +38,11 @@ export interface CellData {
   isError: boolean; // True if this cell has a wrong value
   isConflictPeer: boolean; // True if this cell is a matching peer of an error cell
   justFilledCorrectly?: boolean; // For triggering celebratory glow animation
-  isInFog?: boolean; // For Fog of War mode: true if hidden in fog
-  isInTorch?: boolean; // True if temporarily illuminated by cursor torch
-  isBeacon?: boolean; // For Fog of War mode: true if this solved cell illuminates its zone
+  isInFog?: boolean; // For Dark Sector mode: true if hidden in darkness
+  isInTorch?: boolean; // True if currently illuminated by cursor scanner
+  isInEcho?: boolean; // True if in 3-second echo afterglow after cursor moved away
+  torchExpireAt?: number; // Timestamp (ms) when 3-second echo expires
+  isBeacon?: boolean; // True if this static/solved cell permanently illuminates its 3x3 zone
 }
 
 export type Grid = number[][];

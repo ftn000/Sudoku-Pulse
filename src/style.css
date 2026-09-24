@@ -812,37 +812,69 @@ body {
   80% { transform: translateX(3px); }
 }
 
-/* Fog of War Shading */
+/* Dark Sector Shading & 3s Echo Trail */
 .cell.in-fog {
-  background: #070a12 !important;
+  background: #050811 !important;
   overflow: hidden;
 }
 
-.cell.in-fog * {
+.cell.in-fog .cell-digit {
   opacity: 0 !important;
 }
 
+.cell.in-fog .notes-grid {
+  opacity: 0.85 !important;
+  position: relative;
+  z-index: 2;
+}
+
 .cell.in-fog::after {
-  content: '🌫️';
+  content: '✦';
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
-  color: rgba(148, 163, 184, 0.25);
-  filter: grayscale(0.4) opacity(0.32);
-  background: radial-gradient(circle, rgba(15, 23, 42, 0.92) 0%, rgba(5, 8, 15, 0.98) 100%);
+  font-size: 0.8rem;
+  color: rgba(99, 102, 241, 0.22);
+  background: radial-gradient(circle, rgba(12, 18, 34, 0.93) 0%, rgba(4, 6, 14, 0.99) 100%);
   pointer-events: none;
+  z-index: 1;
+}
+
+.cell.in-fog:has(.notes-grid)::after {
+  content: '';
 }
 
 .cell.in-torch {
-  box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.35);
-  background-color: rgba(56, 189, 248, 0.08);
+  box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.38);
+  background-color: rgba(56, 189, 248, 0.09);
+}
+
+.cell.in-echo {
+  animation: echo-fade 3s ease-in forwards;
+}
+
+@keyframes echo-fade {
+  0% {
+    box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.32);
+    background-color: rgba(56, 189, 248, 0.07);
+    opacity: 1;
+  }
+  60% {
+    box-shadow: inset 0 0 8px rgba(99, 102, 241, 0.2);
+    background-color: rgba(15, 23, 42, 0.65);
+    opacity: 0.65;
+  }
+  100% {
+    box-shadow: inset 0 0 2px rgba(5, 8, 17, 0.95);
+    background-color: #050811;
+    opacity: 0.12;
+  }
 }
 
 .cell.beacon {
-  box-shadow: inset 0 0 10px rgba(52, 211, 153, 0.28);
+  box-shadow: inset 0 0 12px rgba(52, 211, 153, 0.35);
 }
 
 /* Line Wave */

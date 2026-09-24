@@ -51,6 +51,7 @@ export class SudokuGame {
   private completedRows: Set<number> = new Set();
   private completedCols: Set<number> = new Set();
   private completedBoxes: Set<number> = new Set();
+  private echoCleanupTimer?: number;
 
   // Callbacks
   private onStateChangeCallback?: () => void;
@@ -126,7 +127,6 @@ export class SudokuGame {
       Array.from({ length: 9 }, (_, c) => {
         const val = puzzle[r][c];
         const isGiven = val !== 0;
-        const isCenterBox = r >= 3 && r <= 5 && c >= 3 && c <= 5;
         return {
           row: r,
           col: c,
@@ -139,12 +139,18 @@ export class SudokuGame {
           isConflictPeer: false,
           isInFog: this.isFogActive(),
           isInTorch: false,
-          isBeacon: isGiven && isCenterBox,
+          isInEcho: false,
+          torchExpireAt: 0,
+          isBeacon: false,
         };
       })
     );
 
-    this.selectedCell = this.isFogActive() ? { row: 4, col: 4 } : null;
+    if (this.isFogActive()) {
+      this.pickInitialBeacons(config.initialBeacons, this.currentSeed);
+    }
+
+    this.selectedCell = null;
     this.history = [];
     this.redoStack = [];
     this.timerSeconds = 0;
@@ -176,13 +182,58 @@ export class SudokuGame {
     this.status = 'playing';
     this.isAutoNotesActive = false;
 
+    this.updateErrorStates();
+    this.updateFogVisibility();
+
     if (this.hasPerk('auto_scanner')) {
       this.fillAllCandidates();
     }
 
-    this.updateErrorStates();
-    this.updateFogVisibility();
     this.notify();
+  }
+
+  private pickInitialBeacons(count: number, seed: number) {
+    if (count <= 0) return;
+
+    // Group all given cells by 3x3 box so beacons are spread across the board
+    const boxes: Array<Array<{ r: number; c: number }>> = Array.from({ length: 9 }, () => []);
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (this.board[r][c].isGiven) {
+          const boxIdx = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+          boxes[boxIdx].push({ r, c });
+        }
+      }
+    }
+
+    // Deterministic LCG helper from seed
+    let rngState = (seed || 123456) >>> 0;
+    const nextRand = () => {
+      rngState = (rngState * 1664525 + 1013904223) >>> 0;
+      return rngState / 0x100000000;
+    };
+
+    const boxOrder = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    for (let i = boxOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(nextRand() * (i + 1));
+      [boxOrder[i], boxOrder[j]] = [boxOrder[j], boxOrder[i]];
+    }
+
+    const chosen: Array<{ r: number; c: number }> = [];
+    for (const boxIdx of boxOrder) {
+      if (chosen.length >= count) break;
+      const candidates = boxes[boxIdx];
+      if (candidates.length === 0) continue;
+
+      // Prefer a candidate that is not adjacent to already chosen beacons
+      const farCandidates = candidates.filter((cand) =>
+        chosen.every((ch) => Math.abs(cand.r - ch.r) > 2 || Math.abs(cand.c - ch.c) > 2)
+      );
+      const pool = farCandidates.length > 0 ? farCandidates : candidates;
+      const pick = pool[Math.floor(nextRand() * pool.length)];
+      this.board[pick.r][pick.c].isBeacon = true;
+      chosen.push(pick);
+    }
   }
 
   public isFogActive(): boolean {
@@ -197,11 +248,11 @@ export class SudokuGame {
       case 1:
         return 'Базовый сектор (Обычные условия)';
       case 2:
-        return '🌫️ Аномалия: Туман войны!';
+        return '🌌 Аномалия: Тёмный сектор!';
       case 3:
         return '⚡ Импульсный шторм (Сложная сетка)';
       case 4:
-        return '🔥 Босс-сектор (Экспертная сетка)';
+        return '🔥 Босс-сектор (Экспертная сетка + Тёмный сектор)';
       default:
         return `💀 Глубокий космос (Сектор ${this.runStage})`;
     }
@@ -247,13 +298,15 @@ export class SudokuGame {
   }
 
   public fillAllCandidates() {
+    const fogActive = this.isFogActive();
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         const cell = this.board[r][c];
         if (cell.value === 0) {
+          if (fogActive && cell.isInFog) continue;
           cell.notes.clear();
           for (let n = 1; n <= 9; n++) {
-            if (this.isValidPlacement(r, c, n)) {
+            if (this.isValidPlacement(r, c, n, fogActive)) {
               cell.notes.add(n);
             }
           }
@@ -274,16 +327,19 @@ export class SudokuGame {
     this.notify();
   }
 
-  public isValidPlacement(row: number, col: number, num: number): boolean {
+  public isValidPlacement(row: number, col: number, num: number, respectFog: boolean = false): boolean {
     for (let i = 0; i < 9; i++) {
-      if (i !== col && this.board[row][i].value === num && !this.board[row][i].isError) return false;
-      if (i !== row && this.board[i][col].value === num && !this.board[i][col].isError) return false;
+      const rowCell = this.board[row][i];
+      if (i !== col && rowCell.value === num && !rowCell.isError && (!respectFog || !rowCell.isInFog)) return false;
+      const colCell = this.board[i][col];
+      if (i !== row && colCell.value === num && !colCell.isError && (!respectFog || !colCell.isInFog)) return false;
     }
     const startR = Math.floor(row / 3) * 3;
     const startC = Math.floor(col / 3) * 3;
     for (let r = startR; r < startR + 3; r++) {
       for (let c = startC; c < startC + 3; c++) {
-        if ((r !== row || c !== col) && this.board[r][c].value === num && !this.board[r][c].isError) return false;
+        const boxCell = this.board[r][c];
+        if ((r !== row || c !== col) && boxCell.value === num && !boxCell.isError && (!respectFog || !boxCell.isInFog)) return false;
       }
     }
     return true;
@@ -296,6 +352,9 @@ export class SudokuGame {
       this.onSoundTriggerCallback('select');
     }
     this.updateFogVisibility();
+    if (this.isFogActive()) {
+      this.scheduleEchoCleanup();
+    }
     this.notify();
   }
 
@@ -463,11 +522,13 @@ export class SudokuGame {
         for (let c = 0; c < 9; c++) {
           this.board[r][c].isInFog = false;
           this.board[r][c].isInTorch = false;
+          this.board[r][c].isInEcho = false;
         }
       }
       return;
     }
 
+    const now = Date.now();
     const torchRadius = this.hasPerk('keen_eye') ? 2 : 1;
     const selR = this.selectedCell ? this.selectedCell.row : -1;
     const selC = this.selectedCell ? this.selectedCell.col : -1;
@@ -476,12 +537,18 @@ export class SudokuGame {
       for (let c = 0; c < 9; c++) {
         const cell = this.board[r][c];
 
-        // Torch visibility around cursor (3x3 normal, 5x5 with keen_eye perk)
+        // Active scanner beam around cursor (3x3 normal, 5x5 with keen_eye perk)
         const distR = Math.abs(r - selR);
         const distC = Math.abs(c - selC);
         const inTorch = selR !== -1 && distR <= torchRadius && distC <= torchRadius;
 
-        // Beacons: only initial center beacons or user-solved cells are permanent beacons
+        if (inTorch) {
+          cell.torchExpireAt = now + 3000;
+        }
+
+        const inEcho = !inTorch && Boolean(cell.torchExpireAt && cell.torchExpireAt > now);
+
+        // Beacons: initial difficulty beacons (5/3/1/0) or user-solved cells
         const isBeacon = Boolean(cell.isBeacon);
 
         // Beacons permanently illuminate a 3x3 area around themselves
@@ -500,9 +567,43 @@ export class SudokuGame {
           }
         }
 
-        cell.isInFog = !(inTorch || isBeacon || nearBeacon);
-        cell.isInTorch = inTorch && !(isBeacon || nearBeacon);
+        const isPermanentlyLit = isBeacon || nearBeacon;
+        cell.isInFog = !(isPermanentlyLit || inTorch || inEcho);
+        cell.isInTorch = inTorch && !isPermanentlyLit;
+        cell.isInEcho = inEcho && !isPermanentlyLit;
       }
+    }
+  }
+
+  private scheduleEchoCleanup() {
+    if (this.echoCleanupTimer) {
+      clearTimeout(this.echoCleanupTimer);
+      this.echoCleanupTimer = undefined;
+    }
+    if (!this.isFogActive()) return;
+
+    const now = Date.now();
+    let earliestExpire = Infinity;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+        if (!cell.isInTorch && cell.torchExpireAt && cell.torchExpireAt > now) {
+          if (cell.torchExpireAt < earliestExpire) {
+            earliestExpire = cell.torchExpireAt;
+          }
+        }
+      }
+    }
+
+    if (earliestExpire < Infinity) {
+      const delay = Math.max(40, earliestExpire - now + 25);
+      this.echoCleanupTimer = window.setTimeout(() => {
+        this.updateFogVisibility();
+        if (this.onStateChangeCallback) {
+          this.onStateChangeCallback();
+        }
+        this.scheduleEchoCleanup();
+      }, delay);
     }
   }
 
@@ -912,15 +1013,20 @@ export class SudokuGame {
           }
         }
       } else {
-        // Natural combo pulse decay
-        const decayRate = this.hasPerk('time_warp') ? 2 : 4;
+        // Natural combo pulse decay (slower in Dark Sector to allow scanning)
+        const baseDecay = this.hasPerk('time_warp') ? 2 : 4;
+        const decayRate = this.isFogActive() ? Math.max(1, Math.round(baseDecay * 0.65)) : baseDecay;
         if (this.pulseEnergy > 0) {
           this.pulseEnergy = Math.max(0, this.pulseEnergy - decayRate);
           if (this.pulseEnergy === 0) {
             this.comboCount = 0;
-            this.comboMultiplier = 1.0;
+            this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
           }
         }
+      }
+
+      if (this.isFogActive()) {
+        this.updateFogVisibility();
       }
 
       if (this.onStateChangeCallback) {
@@ -1112,15 +1218,16 @@ export class SudokuGame {
       this.isAutoNotesActive = data.isAutoNotesActive ?? false;
       this.status = data.status === 'completed' || data.status === 'gameover' ? 'idle' : data.status || 'playing';
 
-      this.board = data.board.map((row: any[], rIdx: number) =>
-        row.map((c: any, cIdx: number) => {
-          const isCenterBox = rIdx >= 3 && rIdx <= 5 && cIdx >= 3 && cIdx <= 5;
+      this.board = data.board.map((row: any[]) =>
+        row.map((c: any) => {
           const isUserSolved = !c.isGiven && c.value !== 0 && c.value === c.solution;
           return {
             ...c,
             notes: new Set<number>(c.notes || []),
             isLocked: c.isGiven || isUserSolved,
-            isBeacon: c.isBeacon !== undefined ? c.isBeacon : (c.isGiven && isCenterBox) || isUserSolved,
+            isInEcho: false,
+            torchExpireAt: 0,
+            isBeacon: c.isBeacon !== undefined ? c.isBeacon : isUserSolved,
           };
         })
       );

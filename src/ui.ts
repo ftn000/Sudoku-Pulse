@@ -349,6 +349,7 @@ export class SudokuUI {
         this.modeCards.forEach((c) => c.classList.remove('selected'));
         card.classList.add('selected');
         this.selectedMode = card.getAttribute('data-mode') as GameMode;
+        this.updateDifficultyPillsForMode();
       });
     });
 
@@ -564,6 +565,22 @@ export class SudokuUI {
     });
   }
 
+  private updateDifficultyPillsForMode() {
+    const labels: Record<Difficulty, { normal: string; fog: string }> = {
+      easy: { normal: 'Легкий', fog: 'Легкий (5 🗼)' },
+      medium: { normal: 'Средний', fog: 'Средний (3 🗼)' },
+      hard: { normal: 'Сложный', fog: 'Сложный (1 🗼)' },
+      expert: { normal: 'Эксперт', fog: 'Эксперт (0 🗼)' },
+    };
+    this.diffPills.forEach((pill) => {
+      const diff = (pill.getAttribute('data-diff') as Difficulty) || 'medium';
+      const entry = labels[diff];
+      if (entry) {
+        pill.textContent = this.selectedMode === 'fog' ? entry.fog : entry.normal;
+      }
+    });
+  }
+
   private renderPerkDraft() {
     this.perksListContainer.innerHTML = '';
     const perks = getRandomPerks(3);
@@ -589,7 +606,13 @@ export class SudokuUI {
         });
         this.showScreen('game');
         if (this.game.isFogActive()) {
-          this.showToast('🔦 Туман войны: кликайте по клеткам, чтобы светить фонариком! Верные ответы зажигают маяки навсегда.');
+          const beaconsMap: Record<Difficulty, number> = { easy: 5, medium: 3, hard: 1, expert: 0 };
+          const bCount = beaconsMap[this.game.difficulty];
+          if (bCount === 0) {
+            this.showToast('🌌 Тёмный сектор (Эксперт): 0 маяков! Сканируйте поле курсором (эхо 3 сек).');
+          } else {
+            this.showToast(`🌌 Тёмный сектор: стартовых маяков — ${bCount}. Эхо-след сканера: 3 сек!`);
+          }
         }
       });
 
@@ -692,7 +715,7 @@ export class SudokuUI {
     // Mode badge
     const modeNames: Record<GameMode, string> = {
       classic: '⚡ Классика',
-      fog: '🌫️ Туман войны',
+      fog: '🌌 Тёмный сектор',
       daily: '📅 Daily Pulse',
       run: `🚀 Забег (Этап ${this.game.runStage})`,
     };
@@ -762,9 +785,13 @@ export class SudokuUI {
     this.boardElement.innerHTML = '';
 
     const selected = this.game.selectedCell;
-    const selectedValue = selected ? this.game.board[selected.row][selected.col].value : 0;
+    const selectedValue =
+      selected && !this.game.board[selected.row][selected.col].isInFog
+        ? this.game.board[selected.row][selected.col].value
+        : 0;
     const selectedBoxRow = selected ? Math.floor(selected.row / 3) : -1;
     const selectedBoxCol = selected ? Math.floor(selected.col / 3) : -1;
+    const now = Date.now();
 
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -774,12 +801,18 @@ export class SudokuUI {
         cellDiv.dataset.row = r.toString();
         cellDiv.dataset.col = c.toString();
 
-        // Fog of War
+        // Dark Sector (Fog, Torch, 3s Echo, and Beacons)
         if (cellData.isInFog) {
           cellDiv.classList.add('in-fog');
         }
         if (cellData.isInTorch) {
           cellDiv.classList.add('in-torch');
+        }
+        if (cellData.isInEcho) {
+          cellDiv.classList.add('in-echo');
+          const echoLeftMs = Math.max(0, (cellData.torchExpireAt || 0) - now);
+          const elapsedMs = Math.min(2950, Math.max(0, 3000 - echoLeftMs));
+          cellDiv.style.animationDelay = `-${elapsedMs}ms`;
         }
         if (cellData.isBeacon && this.game.isFogActive()) {
           cellDiv.classList.add('beacon');
@@ -822,7 +855,7 @@ export class SudokuUI {
           }
 
           cellDiv.appendChild(digitSpan);
-        } else if (cellData.notes.size > 0 && !cellData.isInFog) {
+        } else if (cellData.value === 0 && cellData.notes.size > 0) {
           const notesGrid = document.createElement('div');
           notesGrid.className = 'notes-grid';
           for (let n = 1; n <= 9; n++) {
@@ -911,7 +944,7 @@ export class SudokuUI {
 
     const modeLabels: Record<GameMode, string> = {
       classic: 'Классический',
-      fog: 'Туман войны',
+      fog: 'Тёмный сектор',
       daily: 'Daily Pulse',
       run: `Pulse Run (Этап ${this.game.runStage})`,
     };
@@ -1062,7 +1095,7 @@ export class SudokuUI {
 
       this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌫️ Туман' : '⚡ Классика';
+        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : '⚡ Классика';
         const isMe = item.playerId && item.playerId === myPlayerId;
         const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
         const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';

@@ -27,9 +27,9 @@ export const ALL_PERKS: Perk[] = [
   },
   {
     id: 'keen_eye',
-    name: 'Мощный фонарь',
-    description: 'В Тумане войны радиус обзора увеличен в 2 раза',
-    icon: '🔦',
+    name: 'Дальний радар',
+    description: 'В «Тёмном секторе» луч сканера расширен до квадрата 5×5',
+    icon: '📡',
   },
   {
     id: 'point_surge',

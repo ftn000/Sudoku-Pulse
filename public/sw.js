@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sudoku-pulse-v1.6.6';
+const CACHE_NAME = 'sudoku-pulse-v1.7.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
