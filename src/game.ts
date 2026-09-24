@@ -18,6 +18,7 @@ export class SudokuGame {
   public board: CellData[][] = [];
   public selectedCell: { row: number; col: number } | null = null;
   public isNotesMode: boolean = false;
+  public isAutoNotesActive: boolean = false;
   public history: MoveAction[] = [];
   public redoStack: MoveAction[] = [];
   public difficulty: Difficulty = 'medium';
@@ -171,6 +172,7 @@ export class SudokuGame {
     this.completedBoxes.clear();
 
     this.status = 'playing';
+    this.isAutoNotesActive = false;
 
     if (this.hasPerk('auto_scanner')) {
       this.fillAllCandidates();
@@ -223,6 +225,25 @@ export class SudokuGame {
     });
   }
 
+  public toggleAutoCandidates(): boolean {
+    let cellsWithNotes = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (this.board[r][c].value === 0 && this.board[r][c].notes.size > 0) {
+          cellsWithNotes++;
+        }
+      }
+    }
+
+    if (this.isAutoNotesActive || cellsWithNotes >= 5) {
+      this.clearAllCandidates();
+      return false;
+    } else {
+      this.fillAllCandidates();
+      return true;
+    }
+  }
+
   public fillAllCandidates() {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
@@ -237,19 +258,32 @@ export class SudokuGame {
         }
       }
     }
+    this.isAutoNotesActive = true;
+    this.notify();
+  }
+
+  public clearAllCandidates() {
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (this.board[r][c].value === 0) {
+          this.board[r][c].notes.clear();
+        }
+      }
+    }
+    this.isAutoNotesActive = false;
     this.notify();
   }
 
   public isValidPlacement(row: number, col: number, num: number): boolean {
     for (let i = 0; i < 9; i++) {
-      if (i !== col && this.board[row][i].value === num) return false;
-      if (i !== row && this.board[i][col].value === num) return false;
+      if (i !== col && this.board[row][i].value === num && !this.board[row][i].isError) return false;
+      if (i !== row && this.board[i][col].value === num && !this.board[i][col].isError) return false;
     }
     const startR = Math.floor(row / 3) * 3;
     const startC = Math.floor(col / 3) * 3;
     for (let r = startR; r < startR + 3; r++) {
       for (let c = startC; c < startC + 3; c++) {
-        if ((r !== row || c !== col) && this.board[r][c].value === num) return false;
+        if ((r !== row || c !== col) && this.board[r][c].value === num && !this.board[r][c].isError) return false;
       }
     }
     return true;
@@ -1039,6 +1073,7 @@ export class SudokuGame {
         feverSecondsLeft: this.feverSecondsLeft,
         activePerks: this.activePerks,
         shieldActive: this.shieldActive,
+        isAutoNotesActive: this.isAutoNotesActive,
         status: this.status,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -1069,6 +1104,7 @@ export class SudokuGame {
       this.feverSecondsLeft = data.feverSecondsLeft || 0;
       this.activePerks = data.activePerks || [];
       this.shieldActive = data.shieldActive ?? false;
+      this.isAutoNotesActive = data.isAutoNotesActive ?? false;
       this.status = data.status === 'completed' || data.status === 'gameover' ? 'idle' : data.status || 'playing';
 
       this.board = data.board.map((row: any[]) =>

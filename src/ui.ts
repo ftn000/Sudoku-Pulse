@@ -402,10 +402,14 @@ export class SudokuUI {
     // Toolbar
     this.notesBtn.addEventListener('click', () => this.game.toggleNotesMode());
     this.btnAutoNotes.addEventListener('click', () => {
-      soundManager.playCorrect(2);
+      const isNowActive = this.game.toggleAutoCandidates();
+      soundManager.playSelect();
       haptics.light();
-      this.game.fillAllCandidates();
-      this.showToast('✨ Авто-заметки: все возможные кандидаты проставлены!');
+      if (isNowActive) {
+        this.showToast('✨ Авто-заметки: кандидаты показаны');
+      } else {
+        this.showToast('🧹 Авто-заметки: кандидаты скрыты');
+      }
     });
     this.undoBtn.addEventListener('click', () => this.game.undo());
     this.eraseBtn.addEventListener('click', () => this.game.eraseCell());
@@ -831,6 +835,7 @@ export class SudokuUI {
 
   private renderToolbar() {
     this.notesBtn.classList.toggle('active', this.game.isNotesMode);
+    this.btnAutoNotes.classList.toggle('active', this.game.isAutoNotesActive);
 
     if (this.game.hintsRemaining > 0) {
       this.hintBtnLabel.textContent = 'Подсказка';
