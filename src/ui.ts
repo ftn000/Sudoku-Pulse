@@ -467,11 +467,21 @@ export class SudokuUI {
       this.copyChallengeLinkToClipboard();
     });
 
-    this.playerNameInput.addEventListener('change', () => {
+    this.playerNameInput.addEventListener('change', async () => {
       const name = this.playerNameInput.value.trim() || 'CyberPlayer';
       this.playerNameInput.value = name;
       localStorage.setItem('sudoku_player_name', name);
       this.showToast(`✅ Никнейм сохранён: ${name}`);
+      try {
+        const playerId = SudokuGame.getOrCreatePlayerId();
+        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+        await fetch(apiBase, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerId, name, action: 'rename' }),
+        });
+        this.fetchAndRenderLeaderboard();
+      } catch {}
     });
 
     // Game Over buttons
@@ -935,6 +945,7 @@ export class SudokuUI {
 
     this.winModal.classList.remove('hidden');
     this.startConfetti();
+    this.updateDailyInfoOnMenu();
     this.submitScoreToLeaderboard(stats);
   }
 
@@ -950,7 +961,7 @@ export class SudokuUI {
     const modeParam = (params.get('mode') as GameMode) || 'classic';
     const validDiffs: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
     const diff: Difficulty = validDiffs.includes(diffParam) ? diffParam : 'medium';
-    const mode: GameMode = ['classic', 'zen', 'daily', 'run'].includes(modeParam) ? modeParam : 'classic';
+    const mode: GameMode = ['classic', 'fog', 'daily', 'run'].includes(modeParam) ? modeParam : 'classic';
 
     this.selectedDifficulty = diff;
     this.selectedMode = mode;
@@ -989,17 +1000,20 @@ export class SudokuUI {
 
   private async submitScoreToLeaderboard(stats: GameStats) {
     try {
-      const playerName = (localStorage.getItem('sudoku-pulse-player-name') || 'Игрок').trim() || 'Игрок';
+      const playerId = SudokuGame.getOrCreatePlayerId();
+      const playerName = (localStorage.getItem('sudoku_player_name') || this.playerNameInput?.value || 'Игрок').trim() || 'Игрок';
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
       await fetch(apiBase, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          playerId,
           name: playerName,
           score: stats.score,
           mode: stats.mode,
           difficulty: stats.difficulty,
           timeSeconds: stats.timeSeconds,
+          combo: stats.maxCombo,
           runStage: stats.runStage || 1,
         }),
       });
@@ -1012,11 +1026,13 @@ export class SudokuUI {
     if (!this.leaderboardList) return;
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
     try {
+      const myPlayerId = SudokuGame.getOrCreatePlayerId();
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
       const res = await fetch(apiBase);
       if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
       const entries: Array<{
+        playerId?: string;
         name: string;
         score: number;
         mode: string;
@@ -1031,12 +1047,15 @@ export class SudokuUI {
 
       this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : '⚡ Классика';
+        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌫️ Туман' : '⚡ Классика';
+        const isMe = item.playerId && item.playerId === myPlayerId;
+        const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
+        const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
         return `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); font-size:0.85rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-weight:700; min-width:24px;">${medal}</span>
-              <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}</span>
+              <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>' : ''}</span>
               <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
             </div>
             <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString('ru-RU')}</span>

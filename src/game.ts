@@ -154,6 +154,7 @@ export class SudokuGame {
     if (!options?.keepScore) {
       this.score = 0;
       this.runStage = 1;
+      this.incrementGamesPlayed();
     }
     this.comboCount = 0;
     this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
@@ -849,8 +850,9 @@ export class SudokuGame {
     };
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
-        const val = this.board[r][c].value;
-        if (val >= 1 && val <= 9) {
+        const cell = this.board[r][c];
+        const val = cell.value;
+        if (val >= 1 && val <= 9 && !cell.isError && val === cell.solution) {
           counts[val]++;
         }
       }
@@ -897,11 +899,63 @@ export class SudokuGame {
     this.notify();
   }
 
-  // --- STATS SYSTEM ---
+  // --- DEVICE IDENTITY & STATS SYSTEM ---
+  public static getOrCreatePlayerId(): string {
+    const KEY = 'sudoku_player_id';
+    try {
+      let id = localStorage.getItem(KEY);
+      if (!id) {
+        id = `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+        localStorage.setItem(KEY, id);
+      }
+      return id;
+    } catch {
+      return 'dev_guest';
+    }
+  }
+
+  private static getLocalDateStr(date: Date = new Date()): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   public static getPlayerStats(): PlayerStats {
     try {
       const raw = localStorage.getItem(STATS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed: PlayerStats = JSON.parse(raw);
+        let modified = false;
+
+        // Auto-repair if gamesPlayed was not counted in older versions
+        if ((parsed.gamesPlayed || 0) < (parsed.gamesWon || 0)) {
+          parsed.gamesPlayed = parsed.gamesWon;
+          modified = true;
+        }
+
+        // Auto-repair dailyStreak if player already won games today
+        const today = SudokuGame.getLocalDateStr();
+        const yesterday = SudokuGame.getLocalDateStr(new Date(Date.now() - 86400000));
+        if ((parsed.gamesWon || 0) > 0 && (!parsed.dailyStreak || parsed.dailyStreak < 1)) {
+          parsed.dailyStreak = 1;
+          parsed.lastDailyDate = today;
+          modified = true;
+        } else if (
+          parsed.lastDailyDate &&
+          parsed.lastDailyDate !== today &&
+          parsed.lastDailyDate !== yesterday
+        ) {
+          // Streak broken if more than 1 day missed
+          parsed.dailyStreak = 0;
+          modified = true;
+        }
+
+        if (modified) {
+          localStorage.setItem(STATS_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
     } catch {}
     return {
       gamesPlayed: 0,
@@ -914,12 +968,23 @@ export class SudokuGame {
     };
   }
 
+  private incrementGamesPlayed() {
+    try {
+      const stats = SudokuGame.getPlayerStats();
+      stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch {}
+  }
+
   private updatePlayerStatsOnWin() {
     try {
       const stats = SudokuGame.getPlayerStats();
-      stats.gamesWon++;
-      stats.totalScore += this.score;
-      stats.maxCombo = Math.max(stats.maxCombo, this.maxComboAchieved);
+      stats.gamesWon = (stats.gamesWon || 0) + 1;
+      if ((stats.gamesPlayed || 0) < stats.gamesWon) {
+        stats.gamesPlayed = stats.gamesWon;
+      }
+      stats.totalScore = (stats.totalScore || 0) + this.score;
+      stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
 
       // Best time
       const curBest = stats.bestTimeSeconds[this.difficulty];
@@ -927,13 +992,17 @@ export class SudokuGame {
         stats.bestTimeSeconds[this.difficulty] = this.timerSeconds;
       }
 
-      // Daily streak
-      if (this.mode === 'daily') {
-        const today = new Date().toISOString().split('T')[0];
-        if (stats.lastDailyDate !== today) {
-          stats.dailyStreak++;
-          stats.lastDailyDate = today;
-        }
+      // Daily streak — counts on first win of each local calendar day across any mode
+      const today = SudokuGame.getLocalDateStr();
+      const yesterday = SudokuGame.getLocalDateStr(new Date(Date.now() - 86400000));
+      if (stats.lastDailyDate === today) {
+        stats.dailyStreak = Math.max(1, stats.dailyStreak || 1);
+      } else if (stats.lastDailyDate === yesterday) {
+        stats.dailyStreak = (stats.dailyStreak || 0) + 1;
+        stats.lastDailyDate = today;
+      } else {
+        stats.dailyStreak = 1;
+        stats.lastDailyDate = today;
       }
 
       // Run records

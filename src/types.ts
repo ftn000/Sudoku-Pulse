@@ -13,10 +13,10 @@ export interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
-  easy: { name: 'easy', label: 'Легкий', clues: 40, initialHints: 5, maxMistakes: 3 },
+  easy: { name: 'easy', label: 'Легкий', clues: 40, initialHints: 3, maxMistakes: 3 },
   medium: { name: 'medium', label: 'Средний', clues: 32, initialHints: 3, maxMistakes: 3 },
-  hard: { name: 'hard', label: 'Сложный', clues: 26, initialHints: 2, maxMistakes: 3 },
-  expert: { name: 'expert', label: 'Эксперт', clues: 22, initialHints: 1, maxMistakes: 3 },
+  hard: { name: 'hard', label: 'Сложный', clues: 26, initialHints: 3, maxMistakes: 3 },
+  expert: { name: 'expert', label: 'Эксперт', clues: 22, initialHints: 3, maxMistakes: 3 },
 };
 
 export interface Perk {

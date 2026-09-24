@@ -90,7 +90,21 @@ const server = http.createServer((req, res) => {
       req.on('end', () => {
         try {
           const payload = JSON.parse(body);
+          const playerId = String(payload.playerId || '').trim().slice(0, 48);
           const name = String(payload.name || 'Аноним').trim().slice(0, 18) || 'Аноним';
+
+          if (payload.action === 'rename' && playerId) {
+            const list = readLeaderboard();
+            const existingIdx = list.findIndex((e) => e.playerId && e.playerId === playerId);
+            if (existingIdx !== -1) {
+              list[existingIdx].name = name;
+              saveLeaderboard(list);
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ entries: list.slice(0, 15), leaderboard: list.slice(0, 15) }));
+            return;
+          }
+
           const score = Math.max(0, Math.min(9999999, Number(payload.score) || 0));
           const timeSeconds = Math.max(1, Number(payload.timeSeconds) || 999);
           const mode = String(payload.mode || 'classic').slice(0, 12);
@@ -100,13 +114,17 @@ const server = http.createServer((req, res) => {
 
           if (score > 0) {
             const list = readLeaderboard();
-            const existingIdx = list.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
+            const existingIdx = playerId
+              ? list.findIndex((e) => e.playerId === playerId)
+              : list.findIndex((e) => !e.playerId && e.name.toLowerCase() === name.toLowerCase());
+
             if (existingIdx !== -1) {
+              list[existingIdx].name = name;
               if (score >= list[existingIdx].score) {
-                list[existingIdx] = { name, score, timeSeconds, mode, combo, runStage, date };
+                list[existingIdx] = { playerId, name, score, timeSeconds, mode, combo, runStage, date };
               }
             } else {
-              list.push({ name, score, timeSeconds, mode, combo, runStage, date });
+              list.push({ playerId, name, score, timeSeconds, mode, combo, runStage, date });
             }
             const sorted = list
               .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
