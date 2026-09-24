@@ -1020,9 +1020,9 @@ export class SudokuUI {
         name: string;
         score: number;
         mode: string;
-        difficulty: string;
+        difficulty?: string;
         runStage?: number;
-      }> = data.leaderboard || [];
+      }> = data.entries || data.leaderboard || [];
 
       if (entries.length === 0) {
         this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей. Станьте первым!</div>`;

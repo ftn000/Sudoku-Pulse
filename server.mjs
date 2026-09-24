@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
         .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
         .slice(0, 15);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ entries: list }));
+      res.end(JSON.stringify({ entries: list, leaderboard: list }));
       return;
     }
 
@@ -95,6 +95,7 @@ const server = http.createServer((req, res) => {
           const timeSeconds = Math.max(1, Number(payload.timeSeconds) || 999);
           const mode = String(payload.mode || 'classic').slice(0, 12);
           const combo = Math.max(1, Number(payload.combo) || 1);
+          const runStage = Math.max(1, Number(payload.runStage) || 1);
           const date = new Date().toISOString().split('T')[0];
 
           if (score > 0) {
@@ -102,17 +103,17 @@ const server = http.createServer((req, res) => {
             const existingIdx = list.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
             if (existingIdx !== -1) {
               if (score >= list[existingIdx].score) {
-                list[existingIdx] = { name, score, timeSeconds, mode, combo, date };
+                list[existingIdx] = { name, score, timeSeconds, mode, combo, runStage, date };
               }
             } else {
-              list.push({ name, score, timeSeconds, mode, combo, date });
+              list.push({ name, score, timeSeconds, mode, combo, runStage, date });
             }
             const sorted = list
               .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
               .slice(0, 50);
             saveLeaderboard(sorted);
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ entries: sorted.slice(0, 15) }));
+            res.end(JSON.stringify({ entries: sorted.slice(0, 15), leaderboard: sorted.slice(0, 15) }));
             return;
           }
         } catch {}
