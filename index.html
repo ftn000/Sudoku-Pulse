@@ -8,193 +8,332 @@
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="logo-group">
-        <img src="./icon.jpg" class="logo-icon-img" alt="Sudoku Pulse">
-        <div>
-          <h1>Sudoku Pulse</h1>
-          <span class="badge">TypeScript</span>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button id="sound-toggle" class="icon-btn" title="Звук">🔊</button>
-        <button id="theme-toggle" class="icon-btn" title="Сменить тему">🌙</button>
-      </div>
-    </header>
 
-    <!-- Status Bar -->
-    <div class="status-bar">
-      <select id="difficulty-select" class="difficulty-select">
-        <option value="easy">Легкий</option>
-        <option value="medium" selected>Средний</option>
-        <option value="hard">Сложный</option>
-        <option value="expert">Эксперт</option>
-      </select>
-
-      <div class="mistakes-box">
-        Ошибки: <span id="mistakes" class="mistakes-badge">0/3</span>
+  <!-- ========================================== -->
+  <!-- SCREEN 1: MAIN MENU                        -->
+  <!-- ========================================== -->
+  <div id="screen-menu" class="screen">
+    <div class="menu-hero">
+      <div class="hero-logo-wrapper">
+        <img src="./icon.jpg" class="hero-logo-img" alt="Sudoku Pulse Logo">
+        <div class="hero-pulse-ring"></div>
       </div>
-
-      <div class="timer-box">
-        <span id="timer">00:00</span>
-        <button id="btn-pause" class="pause-btn" title="Пауза">⏸</button>
-      </div>
+      <h1 class="hero-title">SUDOKU<span class="hero-title-accent">PULSE</span></h1>
+      <p class="hero-subtitle">Классика в неоновом ритме с комбо и способностями</p>
     </div>
 
-    <!-- Board -->
-    <div class="board-wrapper">
-      <div id="sudoku-board" class="board-grid"></div>
+    <div class="menu-actions">
+      <button id="btn-menu-play" class="btn-menu-primary">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-text">
+          <strong>Играть</strong>
+          <small>Выбор режима и сложности</small>
+        </span>
+      </button>
 
-      <!-- Pause Overlay -->
-      <div id="pause-overlay" class="pause-overlay hidden">
-        <h2>Игра на паузе</h2>
-        <button id="btn-resume" class="btn-primary">Продолжить</button>
+      <button id="btn-menu-daily" class="btn-menu-card">
+        <span class="btn-icon">📅</span>
+        <span class="btn-text">
+          <strong>Daily Pulse</strong>
+          <small id="menu-daily-date">Ежедневный вызов мира</small>
+        </span>
+        <span class="badge-streak" id="menu-daily-streak">🔥 0</span>
+      </button>
+
+      <div class="menu-grid-row">
+        <button id="btn-menu-stats" class="btn-menu-secondary">
+          <span>📊</span> Рекорды
+        </button>
+        <button id="btn-menu-settings" class="btn-menu-secondary">
+          <span>⚙️</span> Настройки
+        </button>
       </div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button id="btn-undo" class="tool-btn" title="Отменить действие (Ctrl+Z)">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 7v6h6"></path>
-          <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
-        </svg>
-        <span>Отмена</span>
-      </button>
-
-      <button id="btn-erase" class="tool-btn" title="Очистить ячейку (Del / Backspace)">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L14 19"></path>
-        </svg>
-        <span>Стереть</span>
-      </button>
-
-      <button id="btn-notes" class="tool-btn" title="Режим заметок (N)">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        <span>Заметки</span>
-      </button>
-
-      <button id="btn-hint" class="tool-btn" title="Подсказка (H)">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 18h6"></path>
-          <path d="M10 22h4"></path>
-          <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
-        </svg>
-        <span id="hint-btn-label">Подсказка</span>
-        <span id="hint-counter" class="badge-counter">3</span>
-      </button>
-
-      <button id="btn-new-game" class="tool-btn" title="Новая игра">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-        </svg>
-        <span>Заново</span>
-      </button>
-    </div>
-
-    <!-- Number Pad -->
-    <div class="numpad">
-      <button class="num-btn" id="num-1">
-        <span class="num-digit">1</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-2">
-        <span class="num-digit">2</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-3">
-        <span class="num-digit">3</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-4">
-        <span class="num-digit">4</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-5">
-        <span class="num-digit">5</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-6">
-        <span class="num-digit">6</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-7">
-        <span class="num-digit">7</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-8">
-        <span class="num-digit">8</span>
-        <span class="num-remain">-</span>
-      </button>
-      <button class="num-btn" id="num-9">
-        <span class="num-digit">9</span>
-        <span class="num-remain">-</span>
-      </button>
-    </div>
-
-    <!-- Keyboard shortcuts helper -->
-    <div class="keyboard-hint">
-      Горячие клавиши: <kbd>1-9</kbd> ввод &bull; <kbd>Стрелки</kbd> выбор &bull; <kbd>N</kbd> заметки &bull; <kbd>Del</kbd> стереть &bull; <kbd>Ctrl+Z</kbd> отмена &bull; <kbd>H</kbd> подсказка &bull; <kbd>P</kbd> пауза
     </div>
   </div>
 
-  <!-- Win Modal -->
+  <!-- ========================================== -->
+  <!-- SCREEN 2: MODE SELECT                      -->
+  <!-- ========================================== -->
+  <div id="screen-modes" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-modes-back" class="icon-btn" title="Назад в меню">◀</button>
+      <h2>Выберите режим</h2>
+      <div style="width: 38px;"></div>
+    </div>
+
+    <div class="modes-list">
+      <div class="mode-card selected" data-mode="classic">
+        <div class="mode-icon">⚡</div>
+        <div class="mode-info">
+          <h3>Классический</h3>
+          <p>Чистое судоку с комбо-множителем очков и режимом Fever</p>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="fog">
+        <div class="mode-icon">🌫️</div>
+        <div class="mode-info">
+          <h3>Туман войны</h3>
+          <p>Поле во тьме! Фонарик освещает путь, а верные клетки служат маяками</p>
+        </div>
+      </div>
+
+      <div class="mode-card" data-mode="run">
+        <div class="mode-icon">🚀</div>
+        <div class="mode-info">
+          <h3>Pulse Run (Забег)</h3>
+          <p>Серия из уровней с выбором усиливающих перков перед стартом</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Difficulty selector section -->
+    <div class="section-title">Сложность</div>
+    <div class="difficulty-pills">
+      <button class="diff-pill" data-diff="easy">Легкий</button>
+      <button class="diff-pill active" data-diff="medium">Средний</button>
+      <button class="diff-pill" data-diff="hard">Сложный</button>
+      <button class="diff-pill" data-diff="expert">Эксперт</button>
+    </div>
+
+    <button id="btn-start-selected-mode" class="btn-primary btn-block">
+      Выбрать перк &rarr;
+    </button>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- SCREEN 3: PERK SELECT (DRAFT)              -->
+  <!-- ========================================== -->
+  <div id="screen-perks" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-perks-back" class="icon-btn" title="Назад">◀</button>
+      <h2>Выберите перк</h2>
+      <div style="width: 38px;"></div>
+    </div>
+    <p class="perks-hint">Выберите одно пассивное усиление на эту партию:</p>
+
+    <div id="perks-list" class="perks-list">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- SCREEN 4: GAMEPLAY SCREEN                  -->
+  <!-- ========================================== -->
+  <div id="screen-game" class="screen hidden">
+    <div class="app-container">
+      <!-- Game Top Nav -->
+      <header class="header">
+        <div class="logo-group">
+          <button id="btn-game-home" class="icon-btn" title="В главное меню">🏠</button>
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span id="game-mode-badge" class="badge">⚡ Классика</span>
+              <span id="game-perk-badge" class="badge perk-badge hidden">🛡️</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="score-display">
+          <span class="score-label">ОЧКИ</span>
+          <span id="score-counter" class="score-val">0</span>
+        </div>
+
+        <div class="header-actions">
+          <button id="sound-toggle" class="icon-btn" title="Звук">🔊</button>
+          <button id="theme-toggle" class="icon-btn" title="Тема">🌙</button>
+        </div>
+      </header>
+
+      <!-- Pulse Meter Bar -->
+      <div class="pulse-container">
+        <div class="pulse-header">
+          <span id="combo-badge" class="combo-badge">⚡ PULSE x1.0</span>
+          <span id="pulse-status-text" class="pulse-status">Заполняйте верными ходами!</span>
+        </div>
+        <div class="pulse-track">
+          <div id="pulse-fill" class="pulse-fill"></div>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="mistakes-box">
+          Ошибки: <span id="mistakes" class="mistakes-badge">0/3</span>
+        </div>
+
+        <div class="timer-box">
+          <span id="timer">00:00</span>
+          <button id="btn-pause" class="pause-btn" title="Пауза">⏸</button>
+        </div>
+      </div>
+
+      <!-- Sudoku Board Wrapper -->
+      <div class="board-wrapper">
+        <div id="sudoku-board" class="board-grid"></div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="pause-overlay hidden">
+          <h2>Игра на паузе</h2>
+          <button id="btn-resume" class="btn-primary">Продолжить</button>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button id="btn-undo" class="tool-btn" title="Отменить (Ctrl+Z)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+          </svg>
+          <span>Отмена</span>
+        </button>
+
+        <button id="btn-erase" class="tool-btn" title="Стереть (Del)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L14 19"></path>
+          </svg>
+          <span>Стереть</span>
+        </button>
+
+        <button id="btn-notes" class="tool-btn" title="Заметки (N)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>Заметки</span>
+        </button>
+
+        <button id="btn-hint" class="tool-btn" title="Подсказка (H)">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6"></path>
+            <path d="M10 22h4"></path>
+            <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+          </svg>
+          <span id="hint-btn-label">Подсказка</span>
+          <span id="hint-counter" class="badge-counter">3</span>
+        </button>
+
+        <button id="btn-new-game" class="tool-btn" title="Новая игра">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Заново</span>
+        </button>
+      </div>
+
+      <!-- Number Pad -->
+      <div class="numpad">
+        <button class="num-btn" id="num-1"><span class="num-digit">1</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-2"><span class="num-digit">2</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-3"><span class="num-digit">3</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-4"><span class="num-digit">4</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-5"><span class="num-digit">5</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-6"><span class="num-digit">6</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-7"><span class="num-digit">7</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-8"><span class="num-digit">8</span><span class="num-remain">-</span></button>
+        <button class="num-btn" id="num-9"><span class="num-digit">9</span><span class="num-remain">-</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: WIN SCREEN                          -->
+  <!-- ========================================== -->
   <div id="win-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-icon">🏆</div>
-      <h2 class="modal-title">Поздравляем!</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">Вы успешно решили судоку!</p>
+      <h2 class="modal-title">Победа!</h2>
+      <p id="modal-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Головоломка успешно решена!</p>
       
       <div class="modal-stats">
-        <div class="modal-stat-row">
-          <span>Сложность:</span>
-          <span id="modal-difficulty">-</span>
-        </div>
-        <div class="modal-stat-row">
-          <span>Время:</span>
-          <span id="modal-time">00:00</span>
-        </div>
-        <div class="modal-stat-row">
-          <span>Ошибки:</span>
-          <span id="modal-mistakes">0</span>
-        </div>
-        <div class="modal-stat-row">
-          <span>Использовано подсказок:</span>
-          <span id="modal-hints">0</span>
-        </div>
+        <div class="modal-stat-row"><span>Режим:</span><span id="modal-mode">Классический</span></div>
+        <div class="modal-stat-row"><span>Время:</span><span id="modal-time">00:00</span></div>
+        <div class="modal-stat-row"><span>Очки:</span><span id="modal-score" style="color:#38bdf8;">0</span></div>
+        <div class="modal-stat-row"><span>Макс. комбо:</span><span id="modal-combo">x1</span></div>
+        <div class="modal-stat-row"><span>Ошибки:</span><span id="modal-mistakes">0</span></div>
       </div>
 
-      <button id="btn-play-again" class="btn-primary">Играть снова</button>
+      <!-- Daily Share Button (Wordle Style) -->
+      <button id="btn-daily-share" class="btn-primary hidden" style="background: linear-gradient(135deg, #10b981, #059669);">
+        📋 Скопировать результат (Telegram)
+      </button>
+
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-win-menu" class="btn-secondary" style="flex:1;">В меню</button>
+        <button id="btn-play-again" class="btn-primary" style="flex:1;">Ещё раз</button>
+      </div>
     </div>
   </div>
 
-  <!-- Game Over Modal -->
+  <!-- ========================================== -->
+  <!-- MODAL: GAME OVER                           -->
+  <!-- ========================================== -->
   <div id="gameover-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-icon">💔</div>
       <h2 class="modal-title">Игра окончена</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили 3 ошибки из 3 допустимых.</p>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили 3 ошибки.</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="btn-second-chance" class="btn-primary">🎬 Второй шанс (+1 жизнь)</button>
-        <button id="btn-restart-gameover" class="btn-secondary">Начать заново</button>
+        <button id="btn-restart-gameover" class="btn-secondary">Попробовать снова</button>
+        <button id="btn-gameover-menu" class="btn-secondary">В главное меню</button>
       </div>
     </div>
   </div>
 
-  <!-- Mock Ad Simulation Modal -->
+  <!-- ========================================== -->
+  <!-- MODAL: STATS / RECORDS                     -->
+  <!-- ========================================== -->
+  <div id="stats-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">📊 Ваша статистика</h2>
+      
+      <div class="modal-stats">
+        <div class="modal-stat-row"><span>Партий сыграно:</span><span id="stat-played">0</span></div>
+        <div class="modal-stat-row"><span>Побед:</span><span id="stat-won">0</span></div>
+        <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
+        <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
+        <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
+      </div>
+
+      <button id="btn-close-stats" class="btn-primary">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SETTINGS                            -->
+  <!-- ========================================== -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h2 class="modal-title">⚙️ Настройки</h2>
+      
+      <div class="settings-list">
+        <div class="setting-item">
+          <span>Звуковые эффекты</span>
+          <button id="setting-sound-btn" class="diff-pill active">Вкл</button>
+        </div>
+        <div class="setting-item">
+          <span>Тема оформления</span>
+          <button id="setting-theme-btn" class="diff-pill">Тёмная</button>
+        </div>
+      </div>
+
+      <button id="btn-close-settings" class="btn-primary">Готово</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: REWARD AD SIMULATION                -->
+  <!-- ========================================== -->
   <div id="ad-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="ad-card">
         <span class="ad-sponsor">Спонсорская реклама</span>
         <div class="ad-banner-text" id="ad-reward-title">🎁 Получение награды...</div>
-        <p style="font-size: 0.8rem; color: #cbd5e1;">Благодарим за поддержку игры на чистом TypeScript!</p>
+        <p style="font-size: 0.8rem; color: #cbd5e1;">Благодарим за поддержку игры Sudoku Pulse!</p>
         <div class="ad-progress-bar">
           <div id="ad-progress-fill" class="ad-progress-fill"></div>
         </div>
@@ -203,7 +342,7 @@
     </div>
   </div>
 
-  <!-- Confetti canvas -->
+  <!-- Canvas for celebration confetti -->
   <canvas id="confetti-canvas"></canvas>
 
   <script type="module" src="/src/main.ts"></script>

@@ -1,16 +1,53 @@
 import { SudokuGame } from './game';
-import { Difficulty, DIFFICULTY_CONFIGS, GameStats } from './types';
+import { Difficulty, GameMode, GameStats, AppScreen } from './types';
 import { soundManager } from './audio';
+import { getRandomPerks } from './perks';
 
 export class SudokuUI {
   private game: SudokuGame;
   private timerInterval?: number;
+  private currentScreen: AppScreen = 'menu';
 
-  // DOM Elements
+  // Pending setup for new game
+  private selectedMode: GameMode = 'classic';
+  private selectedDifficulty: Difficulty = 'medium';
+
+  // Screen Elements
+  private screenMenu!: HTMLElement;
+  private screenModes!: HTMLElement;
+  private screenPerks!: HTMLElement;
+  private screenGame!: HTMLElement;
+
+  // Main Menu Elements
+  private btnMenuPlay!: HTMLButtonElement;
+  private btnMenuDaily!: HTMLButtonElement;
+  private btnMenuStats!: HTMLButtonElement;
+  private btnMenuSettings!: HTMLButtonElement;
+  private menuDailyDate!: HTMLElement;
+  private menuDailyStreak!: HTMLElement;
+
+  // Mode Select Elements
+  private btnModesBack!: HTMLButtonElement;
+  private btnStartSelectedMode!: HTMLButtonElement;
+  private modeCards: HTMLElement[] = [];
+  private diffPills: HTMLButtonElement[] = [];
+
+  // Perk Select Elements
+  private btnPerksBack!: HTMLButtonElement;
+  private perksListContainer!: HTMLElement;
+
+  // Game Screen Elements
+  private btnGameHome!: HTMLButtonElement;
+  private gameModeBadge!: HTMLElement;
+  private gamePerkBadge!: HTMLElement;
+  private scoreCounter!: HTMLElement;
+  private comboBadge!: HTMLElement;
+  private pulseFill!: HTMLElement;
+  private pulseStatusText!: HTMLElement;
+
   private boardElement!: HTMLElement;
   private timerElement!: HTMLElement;
   private mistakesElement!: HTMLElement;
-  private difficultySelect!: HTMLSelectElement;
   private pauseOverlay!: HTMLElement;
   private pauseBtn!: HTMLButtonElement;
   private resumeBtn!: HTMLButtonElement;
@@ -25,26 +62,41 @@ export class SudokuUI {
   private soundToggleBtn!: HTMLButtonElement;
   private numpadButtons: HTMLButtonElement[] = [];
 
-  // Win Modal
+  // Modals
   private winModal!: HTMLElement;
   private modalTime!: HTMLElement;
-  private modalDifficulty!: HTMLElement;
+  private modalScore!: HTMLElement;
+  private modalCombo!: HTMLElement;
   private modalMistakes!: HTMLElement;
-  private modalHints!: HTMLElement;
+  private modalMode!: HTMLElement;
+  private btnDailyShare!: HTMLButtonElement;
+  private btnWinMenu!: HTMLButtonElement;
   private playAgainBtn!: HTMLButtonElement;
 
-  // Game Over Modal
   private gameOverModal!: HTMLElement;
   private secondChanceBtn!: HTMLButtonElement;
   private restartGameOverBtn!: HTMLButtonElement;
+  private btnGameOverMenu!: HTMLButtonElement;
 
-  // Mock Ad Modal
+  private statsModal!: HTMLElement;
+  private btnCloseStats!: HTMLButtonElement;
+  private statPlayed!: HTMLElement;
+  private statWon!: HTMLElement;
+  private statCombo!: HTMLElement;
+  private statScore!: HTMLElement;
+  private statStreak!: HTMLElement;
+
+  private settingsModal!: HTMLElement;
+  private btnCloseSettings!: HTMLButtonElement;
+  private settingSoundBtn!: HTMLButtonElement;
+  private settingThemeBtn!: HTMLButtonElement;
+
   private adModal!: HTMLElement;
   private adRewardTitle!: HTMLElement;
   private adProgressFill!: HTMLElement;
   private adTimerText!: HTMLElement;
 
-  // Confetti Canvas
+  // Confetti
   private confettiCanvas!: HTMLCanvasElement;
   private confettiCtx!: CanvasRenderingContext2D | null;
   private confettiAnimationId?: number;
@@ -54,8 +106,8 @@ export class SudokuUI {
     this.initDOMElements();
     this.initEventListeners();
     this.initConfetti();
-    this.startTimer();
-    this.render();
+    this.updateDailyInfoOnMenu();
+    this.showScreen('menu');
 
     this.game.setCallbacks({
       onStateChange: () => this.render(),
@@ -65,19 +117,53 @@ export class SudokuUI {
       onSoundTrigger: (sound) => {
         if (sound === 'select') soundManager.playSelect();
         else if (sound === 'place') soundManager.playSelect();
-        else if (sound === 'correct') soundManager.playCorrect();
+        else if (sound === 'correct') soundManager.playCorrect(this.game.comboCount);
         else if (sound === 'error') soundManager.playError();
         else if (sound === 'line') soundManager.playLineComplete();
         else if (sound === 'win') soundManager.playVictory();
+        else if (sound === 'fever') soundManager.playFeverStart();
+        else if (sound === 'shield') soundManager.playShieldDeflect();
       },
     });
   }
 
   private initDOMElements() {
+    // Screens
+    this.screenMenu = document.getElementById('screen-menu')!;
+    this.screenModes = document.getElementById('screen-modes')!;
+    this.screenPerks = document.getElementById('screen-perks')!;
+    this.screenGame = document.getElementById('screen-game')!;
+
+    // Menu
+    this.btnMenuPlay = document.getElementById('btn-menu-play') as HTMLButtonElement;
+    this.btnMenuDaily = document.getElementById('btn-menu-daily') as HTMLButtonElement;
+    this.btnMenuStats = document.getElementById('btn-menu-stats') as HTMLButtonElement;
+    this.btnMenuSettings = document.getElementById('btn-menu-settings') as HTMLButtonElement;
+    this.menuDailyDate = document.getElementById('menu-daily-date')!;
+    this.menuDailyStreak = document.getElementById('menu-daily-streak')!;
+
+    // Mode Select
+    this.btnModesBack = document.getElementById('btn-modes-back') as HTMLButtonElement;
+    this.btnStartSelectedMode = document.getElementById('btn-start-selected-mode') as HTMLButtonElement;
+    this.modeCards = Array.from(document.querySelectorAll('.mode-card'));
+    this.diffPills = Array.from(document.querySelectorAll('.diff-pill[data-diff]'));
+
+    // Perk Select
+    this.btnPerksBack = document.getElementById('btn-perks-back') as HTMLButtonElement;
+    this.perksListContainer = document.getElementById('perks-list')!;
+
+    // Game Screen
+    this.btnGameHome = document.getElementById('btn-game-home') as HTMLButtonElement;
+    this.gameModeBadge = document.getElementById('game-mode-badge')!;
+    this.gamePerkBadge = document.getElementById('game-perk-badge')!;
+    this.scoreCounter = document.getElementById('score-counter')!;
+    this.comboBadge = document.getElementById('combo-badge')!;
+    this.pulseFill = document.getElementById('pulse-fill')!;
+    this.pulseStatusText = document.getElementById('pulse-status-text')!;
+
     this.boardElement = document.getElementById('sudoku-board')!;
     this.timerElement = document.getElementById('timer')!;
     this.mistakesElement = document.getElementById('mistakes')!;
-    this.difficultySelect = document.getElementById('difficulty-select') as HTMLSelectElement;
     this.pauseOverlay = document.getElementById('pause-overlay')!;
     this.pauseBtn = document.getElementById('btn-pause') as HTMLButtonElement;
     this.resumeBtn = document.getElementById('btn-resume') as HTMLButtonElement;
@@ -91,76 +177,169 @@ export class SudokuUI {
     this.themeToggleBtn = document.getElementById('theme-toggle') as HTMLButtonElement;
     this.soundToggleBtn = document.getElementById('sound-toggle') as HTMLButtonElement;
 
-    // Win Modal
+    // Modals
     this.winModal = document.getElementById('win-modal')!;
     this.modalTime = document.getElementById('modal-time')!;
-    this.modalDifficulty = document.getElementById('modal-difficulty')!;
+    this.modalScore = document.getElementById('modal-score')!;
+    this.modalCombo = document.getElementById('modal-combo')!;
     this.modalMistakes = document.getElementById('modal-mistakes')!;
-    this.modalHints = document.getElementById('modal-hints')!;
+    this.modalMode = document.getElementById('modal-mode')!;
+    this.btnDailyShare = document.getElementById('btn-daily-share') as HTMLButtonElement;
+    this.btnWinMenu = document.getElementById('btn-win-menu') as HTMLButtonElement;
     this.playAgainBtn = document.getElementById('btn-play-again') as HTMLButtonElement;
 
-    // Game Over Modal
     this.gameOverModal = document.getElementById('gameover-modal')!;
     this.secondChanceBtn = document.getElementById('btn-second-chance') as HTMLButtonElement;
     this.restartGameOverBtn = document.getElementById('btn-restart-gameover') as HTMLButtonElement;
+    this.btnGameOverMenu = document.getElementById('btn-gameover-menu') as HTMLButtonElement;
 
-    // Ad Modal
+    this.statsModal = document.getElementById('stats-modal')!;
+    this.btnCloseStats = document.getElementById('btn-close-stats') as HTMLButtonElement;
+    this.statPlayed = document.getElementById('stat-played')!;
+    this.statWon = document.getElementById('stat-won')!;
+    this.statCombo = document.getElementById('stat-combo')!;
+    this.statScore = document.getElementById('stat-score')!;
+    this.statStreak = document.getElementById('stat-streak')!;
+
+    this.settingsModal = document.getElementById('settings-modal')!;
+    this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
+    this.settingSoundBtn = document.getElementById('setting-sound-btn') as HTMLButtonElement;
+    this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
+
     this.adModal = document.getElementById('ad-modal')!;
     this.adRewardTitle = document.getElementById('ad-reward-title')!;
     this.adProgressFill = document.getElementById('ad-progress-fill')!;
     this.adTimerText = document.getElementById('ad-timer-text')!;
 
-    // Confetti canvas
     this.confettiCanvas = document.getElementById('confetti-canvas') as HTMLCanvasElement;
     this.confettiCtx = this.confettiCanvas.getContext('2d');
 
-    // Numpad buttons
     for (let i = 1; i <= 9; i++) {
       const btn = document.getElementById(`num-${i}`) as HTMLButtonElement;
       if (btn) this.numpadButtons.push(btn);
     }
 
-    // Set saved theme and sound
+    // Load initial settings
     const savedTheme = localStorage.getItem('sudoku_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    this.themeToggleBtn.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
-    this.soundToggleBtn.textContent = soundManager.enabled ? '🔊' : '🔇';
+    this.updateThemeButtons(savedTheme);
+    this.updateSoundButtons(soundManager.enabled);
+  }
+
+  public showScreen(screen: AppScreen) {
+    this.currentScreen = screen;
+    this.screenMenu.classList.toggle('hidden', screen !== 'menu');
+    this.screenModes.classList.toggle('hidden', screen !== 'mode_select');
+    this.screenPerks.classList.toggle('hidden', screen !== 'perk_select');
+    this.screenGame.classList.toggle('hidden', screen !== 'game');
+
+    if (screen === 'game') {
+      this.startTimer();
+      this.render();
+    } else {
+      this.stopTimer();
+      soundManager.stopFeverTrack();
+    }
   }
 
   private initEventListeners() {
-    // Difficulty selector
-    this.difficultySelect.value = this.game.difficulty;
-    this.difficultySelect.addEventListener('change', () => {
-      const diff = this.difficultySelect.value as Difficulty;
-      this.game.startNewGame(diff);
+    // Menu navigation
+    this.btnMenuPlay.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showScreen('mode_select');
     });
 
-    // Theme toggle
-    this.themeToggleBtn.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('sudoku_theme', next);
-      this.themeToggleBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+    this.btnMenuDaily.addEventListener('click', () => {
+      soundManager.playSelect();
+      // Start daily challenge directly!
+      this.game.startNewGame({
+        difficulty: 'medium',
+        mode: 'daily',
+        perks: [],
+      });
+      this.showScreen('game');
     });
 
-    // Sound toggle
-    this.soundToggleBtn.addEventListener('click', () => {
-      const isEnabled = soundManager.toggle();
-      this.soundToggleBtn.textContent = isEnabled ? '🔊' : '🔇';
-      if (isEnabled) soundManager.playSelect();
+    this.btnMenuStats.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showStatsModal();
     });
+
+    this.btnMenuSettings.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.settingsModal.classList.remove('hidden');
+    });
+
+    this.btnCloseStats.addEventListener('click', () => {
+      this.statsModal.classList.add('hidden');
+    });
+
+    this.btnCloseSettings.addEventListener('click', () => {
+      this.settingsModal.classList.add('hidden');
+    });
+
+    // Mode Selection Back
+    this.btnModesBack.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showScreen('menu');
+    });
+
+    // Mode Selection Cards
+    this.modeCards.forEach((card) => {
+      card.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.modeCards.forEach((c) => c.classList.remove('selected'));
+        card.classList.add('selected');
+        this.selectedMode = card.getAttribute('data-mode') as GameMode;
+      });
+    });
+
+    // Difficulty Pills
+    this.diffPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.diffPills.forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        this.selectedDifficulty = pill.getAttribute('data-diff') as Difficulty;
+      });
+    });
+
+    // Start Mode -> Go to Perk Selection
+    this.btnStartSelectedMode.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.renderPerkDraft();
+      this.showScreen('perk_select');
+    });
+
+    // Perk Back
+    this.btnPerksBack.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showScreen('mode_select');
+    });
+
+    // Game Screen Home Button
+    this.btnGameHome.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showScreen('menu');
+      this.updateDailyInfoOnMenu();
+    });
+
+    // Sound / Theme toggles
+    this.soundToggleBtn.addEventListener('click', () => this.toggleSound());
+    this.settingSoundBtn.addEventListener('click', () => this.toggleSound());
+
+    this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+    this.settingThemeBtn.addEventListener('click', () => this.toggleTheme());
 
     // Pause / Resume
     this.pauseBtn.addEventListener('click', () => this.game.togglePause());
     this.resumeBtn.addEventListener('click', () => this.game.togglePause());
 
-    // Toolbar buttons
+    // Toolbar
     this.notesBtn.addEventListener('click', () => this.game.toggleNotesMode());
     this.undoBtn.addEventListener('click', () => this.game.undo());
     this.eraseBtn.addEventListener('click', () => this.game.eraseCell());
 
-    // Hint button click: gives hint or triggers ad for extra hint
     this.hintBtn.addEventListener('click', () => {
       if (this.game.hintsRemaining > 0) {
         this.game.giveHint();
@@ -173,10 +352,14 @@ export class SudokuUI {
     });
 
     this.newGameBtn.addEventListener('click', () => {
-      this.game.startNewGame(this.difficultySelect.value as Difficulty);
+      this.game.startNewGame({
+        difficulty: this.selectedDifficulty,
+        mode: this.selectedMode,
+        perks: this.game.activePerks,
+      });
     });
 
-    // Numpad click
+    // Numpad clicks
     this.numpadButtons.forEach((btn, index) => {
       const num = index + 1;
       btn.addEventListener('click', () => {
@@ -184,14 +367,30 @@ export class SudokuUI {
       });
     });
 
-    // Win Modal Play Again
+    // Win Modal buttons
     this.playAgainBtn.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
       this.stopConfetti();
-      this.game.startNewGame(this.difficultySelect.value as Difficulty);
+      this.game.startNewGame({
+        difficulty: this.selectedDifficulty,
+        mode: this.selectedMode,
+        perks: this.game.activePerks,
+      });
     });
 
-    // Game Over Second Chance
+    this.btnWinMenu.addEventListener('click', () => {
+      this.winModal.classList.add('hidden');
+      this.stopConfetti();
+      this.showScreen('menu');
+      this.updateDailyInfoOnMenu();
+    });
+
+    // Daily Share button
+    this.btnDailyShare.addEventListener('click', () => {
+      this.copyDailyResultToClipboard();
+    });
+
+    // Game Over buttons
     this.secondChanceBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
       this.showMockAd('❤️ Второй шанс: +1 Жизнь', () => {
@@ -200,71 +399,59 @@ export class SudokuUI {
       });
     });
 
-    // Game Over Restart
     this.restartGameOverBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
-      this.game.startNewGame(this.difficultySelect.value as Difficulty);
+      this.game.startNewGame({
+        difficulty: this.selectedDifficulty,
+        mode: this.selectedMode,
+        perks: this.game.activePerks,
+      });
+    });
+
+    this.btnGameOverMenu.addEventListener('click', () => {
+      this.gameOverModal.classList.add('hidden');
+      this.showScreen('menu');
     });
 
     // Keyboard support
     window.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (this.currentScreen !== 'game') return;
       if (this.game.status === 'completed' || this.game.status === 'gameover') return;
 
-      // Numbers 1-9
       const num = parseInt(e.key, 10);
       if (!isNaN(num) && num >= 1 && num <= 9) {
         this.game.inputNumber(num);
         return;
       }
 
-      // Arrows
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         this.handleArrowKey(e.key);
         return;
       }
 
-      // Erase / Backspace / Delete
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         this.game.eraseCell();
         return;
       }
 
-      // Notes toggle (N key)
       if (e.key.toLowerCase() === 'n') {
         this.game.toggleNotesMode();
         return;
       }
 
-      // Undo (Ctrl+Z or Z)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         this.game.undo();
         return;
       }
 
-      // Redo (Ctrl+Y)
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-        e.preventDefault();
-        this.game.redo();
-        return;
-      }
-
-      // Hint (H key)
       if (e.key.toLowerCase() === 'h') {
-        if (this.game.hintsRemaining > 0) {
-          this.game.giveHint();
-        } else {
-          this.showMockAd('🎁 Награда: +1 Подсказка', () => {
-            this.game.addBonusHint();
-            this.showToast('🎉 Получена дополнительная подсказка!');
-          });
-        }
+        this.hintBtn.click();
         return;
       }
 
-      // Pause (Escape or P)
       if (e.key === 'Escape' || e.key.toLowerCase() === 'p') {
         this.game.togglePause();
         return;
@@ -272,23 +459,70 @@ export class SudokuUI {
     });
   }
 
+  private renderPerkDraft() {
+    this.perksListContainer.innerHTML = '';
+    const perks = getRandomPerks(3);
+
+    perks.forEach((perk) => {
+      const card = document.createElement('div');
+      card.className = 'perk-card';
+      card.innerHTML = `
+        <div class="perk-icon-lg">${perk.icon}</div>
+        <div class="perk-info">
+          <div class="perk-title">${perk.name}</div>
+          <div class="perk-desc">${perk.description}</div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        soundManager.playCorrect(3);
+        // Start game with selected perk!
+        this.game.startNewGame({
+          difficulty: this.selectedDifficulty,
+          mode: this.selectedMode,
+          perks: [perk],
+        });
+        this.showScreen('game');
+      });
+
+      this.perksListContainer.appendChild(card);
+    });
+  }
+
+  private toggleSound() {
+    const isEnabled = soundManager.toggle();
+    this.updateSoundButtons(isEnabled);
+    if (isEnabled) soundManager.playSelect();
+  }
+
+  private updateSoundButtons(enabled: boolean) {
+    this.soundToggleBtn.textContent = enabled ? '🔊' : '🔇';
+    this.settingSoundBtn.textContent = enabled ? 'Вкл' : 'Выкл';
+    this.settingSoundBtn.classList.toggle('active', enabled);
+  }
+
+  private toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sudoku_theme', next);
+    this.updateThemeButtons(next);
+  }
+
+  private updateThemeButtons(theme: string) {
+    this.themeToggleBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    this.settingThemeBtn.textContent = theme === 'dark' ? 'Тёмная' : 'Светлая';
+  }
+
   private handleArrowKey(key: string) {
     let r = this.game.selectedCell?.row ?? 4;
     let c = this.game.selectedCell?.col ?? 4;
 
     switch (key) {
-      case 'ArrowUp':
-        r = Math.max(0, r - 1);
-        break;
-      case 'ArrowDown':
-        r = Math.min(8, r + 1);
-        break;
-      case 'ArrowLeft':
-        c = Math.max(0, c - 1);
-        break;
-      case 'ArrowRight':
-        c = Math.min(8, c + 1);
-        break;
+      case 'ArrowUp': r = Math.max(0, r - 1); break;
+      case 'ArrowDown': r = Math.min(8, r + 1); break;
+      case 'ArrowLeft': c = Math.max(0, c - 1); break;
+      case 'ArrowRight': c = Math.min(8, c + 1); break;
     }
 
     this.game.selectCell(r, c);
@@ -301,20 +535,62 @@ export class SudokuUI {
     }, 1000);
   }
 
+  private stopTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = undefined;
+    }
+  }
+
+  private updateDailyInfoOnMenu() {
+    const today = new Date().toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+    });
+    this.menuDailyDate.textContent = `Вызов на сегодня: ${today}`;
+
+    const stats = SudokuGame.getPlayerStats();
+    this.menuDailyStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+  }
+
   public render() {
+    if (this.currentScreen !== 'game') return;
+
     this.renderHeaderAndStatus();
+    this.renderPulseBar();
     this.renderBoard();
     this.renderToolbar();
     this.renderNumpad();
   }
 
   private renderHeaderAndStatus() {
-    // Format timer
+    // Mode badge
+    const modeNames: Record<GameMode, string> = {
+      classic: '⚡ Классика',
+      fog: '🌫️ Туман войны',
+      daily: '📅 Daily Pulse',
+      run: `🚀 Забег (Этап ${this.game.runStage})`,
+    };
+    this.gameModeBadge.textContent = modeNames[this.game.mode];
+
+    // Perk badge
+    if (this.game.activePerks.length > 0) {
+      const perk = this.game.activePerks[0];
+      this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}`;
+      this.gamePerkBadge.classList.remove('hidden');
+    } else {
+      this.gamePerkBadge.classList.add('hidden');
+    }
+
+    // Score
+    this.scoreCounter.textContent = this.game.score.toLocaleString('ru-RU');
+
+    // Timer
     const mins = Math.floor(this.game.timerSeconds / 60);
     const secs = this.game.timerSeconds % 60;
     this.timerElement.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    // Mistakes: e.g. 0/3
+    // Mistakes
     this.mistakesElement.textContent = `${this.game.mistakesCount}/${this.game.maxMistakes}`;
 
     // Pause state
@@ -324,6 +600,28 @@ export class SudokuUI {
     } else {
       this.pauseOverlay.classList.add('hidden');
       this.pauseBtn.textContent = '⏸';
+    }
+  }
+
+  private renderPulseBar() {
+    this.pulseFill.style.width = `${this.game.pulseEnergy}%`;
+
+    if (this.game.isFeverMode) {
+      this.comboBadge.textContent = `🔥 FEVER OVERDRIVE! 10x`;
+      this.comboBadge.className = 'combo-badge fever';
+      this.pulseFill.classList.add('fever');
+      this.pulseStatusText.textContent = `Осталось: ${this.game.feverSecondsLeft} сек!`;
+    } else {
+      this.comboBadge.className = 'combo-badge';
+      this.pulseFill.classList.remove('fever');
+
+      if (this.game.comboCount >= 2) {
+        this.comboBadge.textContent = `🔥 x${this.game.comboMultiplier.toFixed(1)} COMBO (${this.game.comboCount})`;
+        this.pulseStatusText.textContent = `Удерживайте комбо-ритм!`;
+      } else {
+        this.comboBadge.textContent = `⚡ PULSE x1.0`;
+        this.pulseStatusText.textContent = `Решайте быстро для комбо!`;
+      }
     }
   }
 
@@ -343,6 +641,14 @@ export class SudokuUI {
         cellDiv.dataset.row = r.toString();
         cellDiv.dataset.col = c.toString();
 
+        // Fog of War
+        if (cellData.isInFog) {
+          cellDiv.classList.add('in-fog');
+        }
+        if (cellData.isBeacon) {
+          cellDiv.classList.add('beacon');
+        }
+
         const isSelected = selected && selected.row === r && selected.col === c;
         const inSameBox = Math.floor(r / 3) === selectedBoxRow && Math.floor(c / 3) === selectedBoxCol;
         const inSameLine = selected && (selected.row === r || selected.col === c);
@@ -356,9 +662,6 @@ export class SudokuUI {
           cellDiv.classList.add('highlight-area');
         }
 
-        // Error vs Conflict Peer:
-        // 1. Error cell: RED background and its digit shakes
-        // 2. Conflict peer: regular matching blue background + pulsing digit (NOT red!)
         if (cellData.isError) {
           cellDiv.classList.add('error');
         } else if (cellData.isConflictPeer) {
@@ -378,14 +681,12 @@ export class SudokuUI {
           digitSpan.className = 'cell-digit';
           digitSpan.textContent = cellData.value.toString();
 
-          // Only shake the digit if this cell is an error
           if (cellData.isError) {
             digitSpan.classList.add('shake');
           }
 
           cellDiv.appendChild(digitSpan);
-        } else if (cellData.notes.size > 0) {
-          // Render 3x3 notes mini grid
+        } else if (cellData.notes.size > 0 && !cellData.isInFog) {
           const notesGrid = document.createElement('div');
           notesGrid.className = 'notes-grid';
           for (let n = 1; n <= 9; n++) {
@@ -407,29 +708,20 @@ export class SudokuUI {
   }
 
   private renderToolbar() {
-    if (this.game.isNotesMode) {
-      this.notesBtn.classList.add('active');
-    } else {
-      this.notesBtn.classList.remove('active');
-    }
+    this.notesBtn.classList.toggle('active', this.game.isNotesMode);
 
-    // Hint button & badge
     if (this.game.hintsRemaining > 0) {
       this.hintBtnLabel.textContent = 'Подсказка';
       this.hintCounterBadge.textContent = this.game.hintsRemaining.toString();
       this.hintCounterBadge.className = 'badge-counter';
-      this.hintBtn.title = `Подсказка (H) - осталось: ${this.game.hintsRemaining}`;
     } else {
       this.hintBtnLabel.textContent = '+1 Подсказка';
       this.hintCounterBadge.textContent = '🎬';
       this.hintCounterBadge.className = 'badge-counter ad-badge';
-      this.hintBtn.title = 'Смотреть рекламу для получения подсказки';
     }
 
-    // Undo button
     this.undoBtn.disabled = this.game.history.length === 0;
 
-    // Erase button disabled if current cell is locked or empty
     const selected = this.game.selectedCell;
     if (selected) {
       const cell = this.game.board[selected.row][selected.col];
@@ -452,11 +744,7 @@ export class SudokuUI {
         remainElem.textContent = remaining > 0 ? remaining.toString() : '✓';
       }
 
-      if (remaining <= 0) {
-        btn.classList.add('completed');
-      } else {
-        btn.classList.remove('completed');
-      }
+      btn.classList.toggle('completed', remaining <= 0);
     }
   }
 
@@ -467,7 +755,6 @@ export class SudokuUI {
       );
       if (cellElem) {
         cellElem.classList.remove('line-wave');
-        // Force reflow
         void (cellElem as HTMLElement).offsetWidth;
         cellElem.classList.add('line-wave');
         setTimeout(() => {
@@ -481,16 +768,56 @@ export class SudokuUI {
     const mins = Math.floor(stats.timeSeconds / 60);
     const secs = stats.timeSeconds % 60;
     this.modalTime.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    this.modalDifficulty.textContent = DIFFICULTY_CONFIGS[stats.difficulty].label;
+    this.modalScore.textContent = stats.score.toLocaleString('ru-RU');
+    this.modalCombo.textContent = `x${stats.maxCombo}`;
     this.modalMistakes.textContent = `${stats.mistakes}/${this.game.maxMistakes}`;
-    this.modalHints.textContent = stats.hintsUsed.toString();
+
+    const modeLabels: Record<GameMode, string> = {
+      classic: 'Классический',
+      fog: 'Туман войны',
+      daily: 'Daily Pulse',
+      run: 'Pulse Run',
+    };
+    this.modalMode.textContent = modeLabels[stats.mode];
+
+    // Show Daily Share button if daily mode
+    this.btnDailyShare.classList.toggle('hidden', stats.mode !== 'daily');
 
     this.winModal.classList.remove('hidden');
     this.startConfetti();
   }
 
+  private copyDailyResultToClipboard() {
+    const mins = Math.floor(this.game.timerSeconds / 60);
+    const secs = this.game.timerSeconds % 60;
+    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    const shareText = `⚡ Sudoku Pulse Daily #${today}
+⏱️ Время: ${timeStr} | 🔥 Макс. комбо: x${this.game.maxComboAchieved}
+❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes} | 💎 Очки: ${this.game.score.toLocaleString()}
+🟩🟩🟩🟨🟩
+Сыграй в Sudoku Pulse!`;
+
+    navigator.clipboard.writeText(shareText).then(() => {
+      this.showToast('📋 Результат скопирован в буфер обмена!');
+    }).catch(() => {
+      this.showToast('📋 Не удалось скопировать.');
+    });
+  }
+
   private showGameOverModal() {
     this.gameOverModal.classList.remove('hidden');
+  }
+
+  private showStatsModal() {
+    const stats = SudokuGame.getPlayerStats();
+    this.statPlayed.textContent = stats.gamesPlayed.toString();
+    this.statWon.textContent = stats.gamesWon.toString();
+    this.statCombo.textContent = `x${stats.maxCombo}`;
+    this.statScore.textContent = stats.totalScore.toLocaleString('ru-RU');
+    this.statStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+    this.statsModal.classList.remove('hidden');
   }
 
   private showMockAd(rewardTitle: string, onReward: () => void) {
