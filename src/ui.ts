@@ -129,6 +129,7 @@ export class SudokuUI {
   private btnSyncImport!: HTMLButtonElement;
   private btnSyncCopyKey!: HTMLButtonElement;
   private btnSyncCloud!: HTMLButtonElement;
+  private btnSyncTgAuth!: HTMLButtonElement;
 
   private adModal!: HTMLElement;
   private adRewardTitle!: HTMLElement;
@@ -310,6 +311,7 @@ export class SudokuUI {
     this.btnSyncImport = document.getElementById('btn-sync-import') as HTMLButtonElement;
     this.btnSyncCopyKey = document.getElementById('btn-sync-copy-key') as HTMLButtonElement;
     this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement;
+    this.btnSyncTgAuth = document.getElementById('btn-sync-tg-auth') as HTMLButtonElement;
 
     this.adModal = document.getElementById('ad-modal')!;
     this.adRewardTitle = document.getElementById('ad-reward-title')!;
@@ -338,6 +340,11 @@ export class SudokuUI {
     this.updateThemeButtons(savedTheme);
     this.updateSoundButtons(soundManager.enabled);
     this.updateSyncBadge();
+
+    // Background cloud sync on start
+    setTimeout(() => {
+      this.syncWithCloud(false);
+    }, 800);
   }
 
   public showScreen(screen: AppScreen) {
@@ -346,6 +353,11 @@ export class SudokuUI {
     this.screenModes.classList.toggle('hidden', screen !== 'mode_select');
     this.screenPerks.classList.toggle('hidden', screen !== 'perk_select');
     this.screenGame.classList.toggle('hidden', screen !== 'game');
+
+    if (screen === 'menu') {
+      this.updateDailyInfoOnMenu();
+      this.updateSyncBadge();
+    }
 
     if (screen === 'game') {
       this.startTimer();
@@ -597,6 +609,24 @@ export class SudokuUI {
     });
 
     // Cloud Sync & Device Linking
+    if (this.btnSyncTgAuth) {
+      this.btnSyncTgAuth.addEventListener('click', () => {
+        soundManager.playSelect();
+        const tgApp = (window as any).Telegram?.WebApp;
+        if (tgApp?.initDataUnsafe?.user) {
+          const u = tgApp.initDataUnsafe.user;
+          this.showToast(`✅ Вы в Telegram: @${u.username || u.first_name} (Синхронизация активна)`);
+          this.syncWithCloud(true);
+          return;
+        }
+
+        const myKey = this.getSyncKey();
+        const botUrl = `https://t.me/dstu_schedule_notify_bot?start=sync_${encodeURIComponent(myKey)}`;
+        this.showToast('🚀 Открываем Telegram для связывания...');
+        window.open(botUrl, '_blank');
+      });
+    }
+
     if (this.btnSyncCopyKey) {
       this.btnSyncCopyKey.addEventListener('click', () => {
         soundManager.playSelect();
@@ -866,7 +896,7 @@ export class SudokuUI {
       this.btnMenuContinue.classList.toggle('hidden', !hasSave);
       if (hasSave && this.menuContinueMeta) {
         try {
-          const raw = localStorage.getItem('sudoku_active_game_v1');
+          const raw = localStorage.getItem('sudoku_pulse_saved_game_v3');
           if (raw) {
             const data = JSON.parse(raw);
             const mLabels: Record<string, string> = {
@@ -972,8 +1002,10 @@ export class SudokuUI {
         this.comboBadge.textContent = `🔥 x${this.game.comboMultiplier.toFixed(1)} COMBO (${this.game.comboCount})`;
         this.pulseStatusText.textContent = `Удерживайте комбо-ритм!`;
       } else {
-        this.comboBadge.textContent = `⚡ PULSE x1.0`;
-        this.pulseStatusText.textContent = `Решайте быстро для комбо!`;
+        this.comboBadge.textContent = `⚡ PULSE x${this.game.comboMultiplier.toFixed(1)}`;
+        this.pulseStatusText.textContent = this.game.comboMultiplier > 1.0
+          ? `Ускоритель активен: множитель x${this.game.comboMultiplier.toFixed(1)}!`
+          : `Решайте быстро для комбо!`;
       }
     }
   }
@@ -1367,12 +1399,17 @@ export class SudokuUI {
     const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
     if (tgUser) {
       const handle = tgUser.username ? `@${tgUser.username}` : tgUser.first_name || `TG #${tgUser.id}`;
-      this.syncAccountBadge.textContent = `✈️ ${handle}`;
+      this.syncAccountBadge.textContent = `✈️ Telegram: ${handle}`;
       this.syncAccountBadge.style.color = '#38bdf8';
     } else {
       const key = this.getSyncKey();
-      this.syncAccountBadge.textContent = `🔑 ${key}`;
-      this.syncAccountBadge.style.color = '#34d399';
+      if (key.startsWith('@') || key.startsWith('tg_')) {
+        this.syncAccountBadge.textContent = `✈️ Telegram: ${key}`;
+        this.syncAccountBadge.style.color = '#38bdf8';
+      } else {
+        this.syncAccountBadge.textContent = `🔑 ${key}`;
+        this.syncAccountBadge.style.color = '#34d399';
+      }
     }
   }
 
@@ -1405,7 +1442,7 @@ export class SudokuUI {
       }
 
       if (showToastNotification) {
-        this.showToast('☁️ Прогресс успешно синхронизирован с облаком!');
+        this.showToast('☁️ Прогресс успешно синхронизирован с Telegram Cloud!');
       }
     } catch {
       if (showToastNotification) {
@@ -1420,7 +1457,7 @@ export class SudokuUI {
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
       const res = await fetch(`${apiBase}?key=${encodeURIComponent(key)}`);
       if (!res.ok) {
-        this.showToast('❌ Профиль с таким ключом не найден');
+        this.showToast('❌ Профиль с таким Telegram/ключом не найден в облаке');
         return;
       }
       const data = await res.json();
@@ -1435,13 +1472,14 @@ export class SudokuUI {
         if (data.profile.theme) {
           this.setTheme(data.profile.theme);
         }
-        localStorage.setItem('sudoku_cloud_sync_key', key);
+        const effectiveKey = data.profile.key || key;
+        localStorage.setItem('sudoku_cloud_sync_key', effectiveKey);
         this.updateSyncBadge();
         this.updateDailyInfoOnMenu();
-        this.showToast('🎉 Прогресс успешно перенесён на это устройство!');
+        this.showToast('🎉 Профиль и прогресс успешно подключены!');
       }
     } catch {
-      this.showToast('❌ Ошибка при переносе прогресса');
+      this.showToast('❌ Ошибка при связывании устройств');
     }
   }
 

@@ -182,7 +182,27 @@ const server = http.createServer((req, res) => {
         return;
       }
       const profiles = readProfiles();
-      const profile = profiles[key];
+      let profile = profiles[key];
+
+      if (!profile) {
+        const clean = key.replace(/^@/, '').toLowerCase();
+        profile = profiles['@' + clean] || profiles['tg_' + clean] || profiles[clean];
+
+        if (!profile) {
+          // Search across all profiles for matching telegramUser
+          for (const p of Object.values(profiles)) {
+            if (p && p.telegramUser) {
+              const uName = String(p.telegramUser.username || '').toLowerCase();
+              const uId = String(p.telegramUser.id || '');
+              if (uName === clean || uId === clean) {
+                profile = p;
+                break;
+              }
+            }
+          }
+        }
+      }
+
       if (!profile) {
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Profile not found' }));
@@ -210,7 +230,11 @@ const server = http.createServer((req, res) => {
           }
 
           const profiles = readProfiles();
-          const existing = profiles[key] || {};
+          let existing = profiles[key] || {};
+          if (!existing.stats && payload.telegramUser?.id) {
+            existing = profiles['tg_' + payload.telegramUser.id] || existing;
+          }
+
           const incomingStats = payload.stats || {};
           const existingStats = existing.stats || {};
 
@@ -250,6 +274,13 @@ const server = http.createServer((req, res) => {
           };
 
           profiles[key] = mergedProfile;
+          if (payload.telegramUser?.id) {
+            profiles['tg_' + payload.telegramUser.id] = mergedProfile;
+          }
+          if (payload.telegramUser?.username) {
+            profiles['@' + payload.telegramUser.username.toLowerCase()] = mergedProfile;
+          }
+
           saveProfiles(profiles);
 
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });

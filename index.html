@@ -403,18 +403,23 @@
         </div>
       </div>
 
-      <div class="section-title" style="margin-top: 14px; margin-bottom: 6px;">☁️ Облачная синхронизация</div>
+      <div class="section-title" style="margin-top: 14px; margin-bottom: 6px;">✈️ Облачная синхронизация (Telegram & Cloud)</div>
       <div class="sync-box" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="color: var(--text-muted);">Аккаунт:</span>
           <span id="sync-account-badge" style="font-weight: 700; color: var(--pulse-cyan);">Гость</span>
         </div>
+
+        <button id="btn-sync-tg-auth" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 0.82rem; padding: 8px 12px; width: 100%;">
+          ✈️ Войти через Telegram (Бот / Mini App)
+        </button>
+
         <div style="display: flex; gap: 6px;">
-          <input id="sync-key-input" type="text" placeholder="Введите ключ синхронизации..." style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none;">
-          <button id="btn-sync-import" class="diff-pill" style="padding: 6px 10px; font-size: 0.8rem;">Войти</button>
+          <input id="sync-key-input" type="text" placeholder="TG @username или Ключ..." style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none;">
+          <button id="btn-sync-import" class="diff-pill" style="padding: 6px 10px; font-size: 0.8rem;">Связать</button>
         </div>
         <div style="display: flex; gap: 6px; margin-top: 2px;">
-          <button id="btn-sync-copy-key" class="btn-secondary" style="flex: 1; padding: 7px 10px; font-size: 0.78rem;">📋 Скопировать ключ</button>
+          <button id="btn-sync-copy-key" class="btn-secondary" style="flex: 1; padding: 7px 10px; font-size: 0.78rem;">📋 Мой ключ</button>
           <button id="btn-sync-cloud" class="btn-primary" style="flex: 1; padding: 7px 10px; font-size: 0.78rem;">🔄 Синхронизировать</button>
         </div>
       </div>

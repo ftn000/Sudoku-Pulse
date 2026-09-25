@@ -63,7 +63,12 @@ export class SudokuGame {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
-      return data && Array.isArray(data.board) && data.status === 'playing';
+      return Boolean(
+        data &&
+        Array.isArray(data.board) &&
+        data.board.length === 9 &&
+        (data.status === 'playing' || data.status === 'paused')
+      );
     } catch {
       return false;
     }
@@ -547,12 +552,13 @@ export class SudokuGame {
           stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
         });
 
-        const baseComboMult = 1.0 + this.getPerkLevel('combo_master') * 1.0;
+        const cmLvl = this.getPerkLevel('combo_master');
+        const baseComboMult = cmLvl > 0 ? 1.0 + cmLvl * 1.0 : 1.0;
         let multiplierBonus = baseComboMult;
-        if (this.comboCount >= 8) multiplierBonus = Math.max(baseComboMult, 5.0);
-        else if (this.comboCount >= 5) multiplierBonus = Math.max(baseComboMult, 3.0);
-        else if (this.comboCount >= 3) multiplierBonus = Math.max(baseComboMult, 2.0);
-        else if (this.comboCount >= 2) multiplierBonus = Math.max(baseComboMult, 1.5);
+        if (this.comboCount >= 8) multiplierBonus = baseComboMult + 4.0;
+        else if (this.comboCount >= 5) multiplierBonus = baseComboMult + 2.0;
+        else if (this.comboCount >= 3) multiplierBonus = baseComboMult + 1.0;
+        else if (this.comboCount >= 2) multiplierBonus = baseComboMult + 0.5;
 
         if (this.isFeverMode) {
           this.comboMultiplier = 10.0;
@@ -621,7 +627,8 @@ export class SudokuGame {
           // Reset combo if not in Fever mode
           if (!this.isFeverMode) {
             this.comboCount = 0;
-            this.comboMultiplier = 1.0 + this.getPerkLevel('combo_master') * 1.0;
+            const cmLvl = this.getPerkLevel('combo_master');
+            this.comboMultiplier = cmLvl > 0 ? 1.0 + cmLvl * 1.0 : 1.0;
             this.pulseEnergy = Math.max(0, this.pulseEnergy - 30);
           }
 
@@ -631,6 +638,7 @@ export class SudokuGame {
 
           if (this.mistakesCount >= this.maxMistakes) {
             this.status = 'gameover';
+            try { localStorage.removeItem(STORAGE_KEY); } catch {}
             this.updateErrorStates();
             this.notify();
             if (this.onGameOverCallback) {
@@ -979,6 +987,7 @@ export class SudokuGame {
 
   private handleGameWin() {
     this.status = 'completed';
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     this.updatePlayerStatsOnWin();
 
     if (this.onSoundTriggerCallback) {
@@ -1192,7 +1201,7 @@ export class SudokuGame {
           this.isFeverMode = false;
           this.pulseEnergy = 0;
           const cmLvl = this.getPerkLevel('combo_master');
-          this.comboMultiplier = cmLvl > 0 ? 1.5 + cmLvl * 0.5 : 1.0;
+          this.comboMultiplier = cmLvl > 0 ? 1.0 + cmLvl * 1.0 : 1.0;
           if (this.onSoundTriggerCallback) {
             this.onSoundTriggerCallback('fever_end');
           }
@@ -1209,7 +1218,7 @@ export class SudokuGame {
           if (this.pulseEnergy === 0) {
             this.comboCount = 0;
             const cmLvl = this.getPerkLevel('combo_master');
-            this.comboMultiplier = cmLvl > 0 ? 1.5 + cmLvl * 0.5 : 1.0;
+            this.comboMultiplier = cmLvl > 0 ? 1.0 + cmLvl * 1.0 : 1.0;
           }
         }
       }
