@@ -3,7 +3,7 @@ import { Difficulty, GameMode, GameStats, AppScreen } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS } from './achievements';
-import { haptics } from './haptics';
+import { haptics, TelegramUser } from './haptics';
 
 export class SudokuUI {
   private game: SudokuGame;
@@ -31,6 +31,8 @@ export class SudokuUI {
   private btnMenuSettings!: HTMLButtonElement;
   private menuDailyDate!: HTMLElement;
   private menuDailyStreak!: HTMLElement;
+  private btnMenuTgAuth!: HTMLButtonElement;
+  private menuTgAuthLabel!: HTMLElement;
 
   // Mode Select Elements
   private btnModesBack!: HTMLButtonElement;
@@ -131,6 +133,27 @@ export class SudokuUI {
   private btnSyncCloud!: HTMLButtonElement;
   private btnSyncTgAuth!: HTMLButtonElement;
 
+  // Telegram Auth Modal Elements
+  private tgAuthModal!: HTMLElement;
+  private tgAuthActiveView!: HTMLElement;
+  private tgAuthLoginView!: HTMLElement;
+  private tgAuthUserAvatar!: HTMLElement;
+  private tgAuthUserName!: HTMLElement;
+  private tgAuthUserHandle!: HTMLElement;
+  private btnTgManualSync!: HTMLButtonElement;
+  private btnTgLogout!: HTMLButtonElement;
+  private tgTabs: HTMLButtonElement[] = [];
+  private tgTabPanes: HTMLElement[] = [];
+  private tgAuthQrImg!: HTMLImageElement;
+  private tgQrSpinner!: HTMLElement;
+  private btnTgOpenBotLink!: HTMLAnchorElement;
+  private tgPollStatusText!: HTMLElement;
+  private tgWidgetContainer!: HTMLElement;
+  private tgManualInput!: HTMLInputElement;
+  private btnTgManualLogin!: HTMLButtonElement;
+  private btnCloseTgAuth!: HTMLButtonElement;
+  private tgAuthPollTimer?: number;
+
   private adModal!: HTMLElement;
   private adRewardTitle!: HTMLElement;
   private adProgressFill!: HTMLElement;
@@ -223,6 +246,8 @@ export class SudokuUI {
     this.btnMenuSettings = document.getElementById('btn-menu-settings') as HTMLButtonElement;
     this.menuDailyDate = document.getElementById('menu-daily-date')!;
     this.menuDailyStreak = document.getElementById('menu-daily-streak')!;
+    this.btnMenuTgAuth = document.getElementById('btn-menu-tg-auth') as HTMLButtonElement;
+    this.menuTgAuthLabel = document.getElementById('menu-tg-auth-label')!;
 
     // Mode Select
     this.btnModesBack = document.getElementById('btn-modes-back') as HTMLButtonElement;
@@ -313,6 +338,26 @@ export class SudokuUI {
     this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement;
     this.btnSyncTgAuth = document.getElementById('btn-sync-tg-auth') as HTMLButtonElement;
 
+    // Telegram Auth Modal
+    this.tgAuthModal = document.getElementById('tg-auth-modal')!;
+    this.tgAuthActiveView = document.getElementById('tg-auth-active-view')!;
+    this.tgAuthLoginView = document.getElementById('tg-auth-login-view')!;
+    this.tgAuthUserAvatar = document.getElementById('tg-auth-user-avatar')!;
+    this.tgAuthUserName = document.getElementById('tg-auth-user-name')!;
+    this.tgAuthUserHandle = document.getElementById('tg-auth-user-handle')!;
+    this.btnTgManualSync = document.getElementById('btn-tg-manual-sync') as HTMLButtonElement;
+    this.btnTgLogout = document.getElementById('btn-tg-logout') as HTMLButtonElement;
+    this.tgTabs = Array.from(document.querySelectorAll('.tg-tab'));
+    this.tgTabPanes = Array.from(document.querySelectorAll('.tg-tab-pane'));
+    this.tgAuthQrImg = document.getElementById('tg-auth-qr-img') as HTMLImageElement;
+    this.tgQrSpinner = document.getElementById('tg-qr-spinner')!;
+    this.btnTgOpenBotLink = document.getElementById('btn-tg-open-bot-link') as HTMLAnchorElement;
+    this.tgPollStatusText = document.getElementById('tg-poll-status-text')!;
+    this.tgWidgetContainer = document.getElementById('tg-widget-container')!;
+    this.tgManualInput = document.getElementById('tg-manual-input') as HTMLInputElement;
+    this.btnTgManualLogin = document.getElementById('btn-tg-manual-login') as HTMLButtonElement;
+    this.btnCloseTgAuth = document.getElementById('btn-close-tg-auth') as HTMLButtonElement;
+
     this.adModal = document.getElementById('ad-modal')!;
     this.adRewardTitle = document.getElementById('ad-reward-title')!;
     this.adProgressFill = document.getElementById('ad-progress-fill')!;
@@ -323,14 +368,34 @@ export class SudokuUI {
     this.confettiCanvas = document.getElementById('confetti-canvas') as HTMLCanvasElement;
     this.confettiCtx = this.confettiCanvas.getContext('2d');
 
+    this.numpadButtons = [];
     for (let i = 1; i <= 9; i++) {
       const btn = document.getElementById(`num-${i}`) as HTMLButtonElement;
       if (btn) this.numpadButtons.push(btn);
     }
 
+    // Initialize Telegram WebApp SDK
+    haptics.initTelegram();
+
+    // Register Telegram Login Widget Callback
+    (window as any).onTelegramAuth = async (user: any) => {
+      try {
+        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/widget' : '/api/auth/widget';
+        const res = await fetch(apiBase, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user),
+        });
+        const data = await res.json();
+        this.applyTelegramUser(user, data.profile);
+      } catch {
+        this.applyTelegramUser(user);
+      }
+    };
+
     // Load initial settings & player name
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    const defaultName = tgUser?.username || tgUser?.first_name || `Pulse#${Math.floor(100 + Math.random() * 899)}`;
+    const tgUser = this.getStoredTelegramUser();
+    const defaultName = tgUser?.username ? `@${tgUser.username}` : tgUser?.first_name || `Pulse#${Math.floor(100 + Math.random() * 899)}`;
     const savedName = localStorage.getItem('sudoku_player_name') || defaultName;
     this.playerNameInput.value = savedName;
     localStorage.setItem('sudoku_player_name', savedName);
@@ -340,6 +405,7 @@ export class SudokuUI {
     this.updateThemeButtons(savedTheme);
     this.updateSoundButtons(soundManager.enabled);
     this.updateSyncBadge();
+    this.updateTgMenuPill();
 
     // Background cloud sync on start
     setTimeout(() => {
@@ -354,9 +420,12 @@ export class SudokuUI {
     this.screenPerks.classList.toggle('hidden', screen !== 'perk_select');
     this.screenGame.classList.toggle('hidden', screen !== 'game');
 
+    this.updateScreenBackButton();
+
     if (screen === 'menu') {
       this.updateDailyInfoOnMenu();
       this.updateSyncBadge();
+      this.updateTgMenuPill();
     }
 
     if (screen === 'game') {
@@ -381,6 +450,12 @@ export class SudokuUI {
       });
     }
 
+    if (this.btnMenuTgAuth) {
+      this.btnMenuTgAuth.addEventListener('click', () => {
+        this.openTgAuthModal();
+      });
+    }
+
     this.btnMenuPlay.addEventListener('click', () => {
       soundManager.playSelect();
       this.showScreen('mode_select');
@@ -400,28 +475,43 @@ export class SudokuUI {
     this.btnMenuAchievements.addEventListener('click', () => {
       soundManager.playSelect();
       this.showAchievementsModal();
+      haptics.setBackButton(() => {
+        this.achievementsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
     });
 
     this.btnCloseAchievements.addEventListener('click', () => {
       this.achievementsModal.classList.add('hidden');
+      this.updateScreenBackButton();
     });
 
     this.btnMenuStats.addEventListener('click', () => {
       soundManager.playSelect();
       this.showStatsModal();
+      haptics.setBackButton(() => {
+        this.statsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
     });
 
     this.btnMenuSettings.addEventListener('click', () => {
       soundManager.playSelect();
       this.settingsModal.classList.remove('hidden');
+      haptics.setBackButton(() => {
+        this.settingsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
     });
 
     this.btnCloseStats.addEventListener('click', () => {
       this.statsModal.classList.add('hidden');
+      this.updateScreenBackButton();
     });
 
     this.btnCloseSettings.addEventListener('click', () => {
       this.settingsModal.classList.add('hidden');
+      this.updateScreenBackButton();
     });
 
     // Leaderboard Filter Tabs
@@ -434,6 +524,56 @@ export class SudokuUI {
         this.renderLeaderboardList();
       });
     });
+
+    // Telegram Auth Modal Event Listeners
+    if (this.btnCloseTgAuth) {
+      this.btnCloseTgAuth.addEventListener('click', () => {
+        this.closeTgAuthModal();
+      });
+    }
+
+    if (this.btnTgManualSync) {
+      this.btnTgManualSync.addEventListener('click', async () => {
+        soundManager.playSelect();
+        haptics.light();
+        await this.syncWithCloud(true);
+      });
+    }
+
+    if (this.btnTgLogout) {
+      this.btnTgLogout.addEventListener('click', () => {
+        this.logoutTelegram();
+      });
+    }
+
+    this.tgTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        const tabKey = tab.getAttribute('data-tg-tab');
+        this.tgTabs.forEach((t) => t.classList.toggle('active', t === tab));
+        this.tgTabPanes.forEach((pane) => {
+          const isMatch = pane.id === `tg-tab-content-${tabKey}`;
+          pane.classList.toggle('hidden', !isMatch);
+        });
+        if (tabKey === 'widget') {
+          this.mountTelegramWidget();
+        }
+      });
+    });
+
+    if (this.btnTgManualLogin) {
+      this.btnTgManualLogin.addEventListener('click', async () => {
+        soundManager.playSelect();
+        haptics.light();
+        const val = (this.tgManualInput?.value || '').trim();
+        if (!val) {
+          this.showToast('⚠️ Введите @username, Telegram ID или ключ');
+          return;
+        }
+        await this.importSyncKey(val);
+      });
+    }
 
     // Mode Selection Back
     this.btnModesBack.addEventListener('click', () => {
@@ -612,18 +752,8 @@ export class SudokuUI {
     if (this.btnSyncTgAuth) {
       this.btnSyncTgAuth.addEventListener('click', () => {
         soundManager.playSelect();
-        const tgApp = (window as any).Telegram?.WebApp;
-        if (tgApp?.initDataUnsafe?.user) {
-          const u = tgApp.initDataUnsafe.user;
-          this.showToast(`✅ Вы в Telegram: @${u.username || u.first_name} (Синхронизация активна)`);
-          this.syncWithCloud(true);
-          return;
-        }
-
-        const myKey = this.getSyncKey();
-        const botUrl = `https://t.me/dstu_schedule_notify_bot?start=sync_${encodeURIComponent(myKey)}`;
-        this.showToast('🚀 Открываем Telegram для связывания...');
-        window.open(botUrl, '_blank');
+        this.settingsModal.classList.add('hidden');
+        this.openTgAuthModal();
       });
     }
 
@@ -1379,8 +1509,180 @@ export class SudokuUI {
     this.achievementsModal.classList.remove('hidden');
   }
 
+  private getStoredTelegramUser(): TelegramUser | null {
+    const fromTgApp = haptics.getTelegramUser();
+    if (fromTgApp) return fromTgApp;
+    try {
+      const raw = localStorage.getItem('sudoku_telegram_user');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+
+  private updateTgMenuPill() {
+    if (!this.btnMenuTgAuth || !this.menuTgAuthLabel) return;
+    const tgUser = this.getStoredTelegramUser();
+    if (tgUser) {
+      const name = tgUser.username ? `@${tgUser.username}` : (tgUser.first_name || `TG #${tgUser.id}`);
+      this.menuTgAuthLabel.textContent = name;
+      this.btnMenuTgAuth.style.borderColor = '#34d399';
+      this.btnMenuTgAuth.style.color = '#34d399';
+      this.btnMenuTgAuth.style.background = 'rgba(52, 211, 153, 0.12)';
+    } else {
+      this.menuTgAuthLabel.textContent = 'Войти через Telegram';
+      this.btnMenuTgAuth.style.borderColor = 'rgba(14, 165, 233, 0.3)';
+      this.btnMenuTgAuth.style.color = '#38bdf8';
+      this.btnMenuTgAuth.style.background = 'rgba(14, 165, 233, 0.12)';
+    }
+  }
+
+  private openTgAuthModal() {
+    soundManager.playSelect();
+    haptics.light();
+    this.updateTgAuthModalView();
+    this.tgAuthModal.classList.remove('hidden');
+    haptics.setBackButton(() => this.closeTgAuthModal());
+  }
+
+  private closeTgAuthModal() {
+    this.tgAuthModal.classList.add('hidden');
+    this.stopTgAuthPolling();
+    this.updateScreenBackButton();
+  }
+
+  private stopTgAuthPolling() {
+    if (this.tgAuthPollTimer) {
+      clearInterval(this.tgAuthPollTimer);
+      this.tgAuthPollTimer = undefined;
+    }
+  }
+
+  private updateTgAuthModalView() {
+    const tgUser = this.getStoredTelegramUser();
+    if (tgUser) {
+      this.tgAuthActiveView.classList.remove('hidden');
+      this.tgAuthLoginView.classList.add('hidden');
+      this.tgAuthUserName.textContent = tgUser.first_name || (tgUser.username ? `@${tgUser.username}` : 'Игрок');
+      this.tgAuthUserHandle.textContent = tgUser.username ? `@${tgUser.username}` : `Telegram ID: ${tgUser.id}`;
+      if (tgUser.photo_url) {
+        this.tgAuthUserAvatar.innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar" />`;
+      } else {
+        this.tgAuthUserAvatar.textContent = '✈️';
+      }
+    } else {
+      this.tgAuthActiveView.classList.add('hidden');
+      this.tgAuthLoginView.classList.remove('hidden');
+      this.initTgAuthSession();
+    }
+  }
+
+  private async initTgAuthSession() {
+    this.stopTgAuthPolling();
+    if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'flex';
+    if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'none';
+    if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Ожидание подтверждения в Telegram...';
+
+    try {
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/init' : '/api/auth/init';
+      const res = await fetch(apiBase);
+      if (!res.ok) throw new Error('Failed to init auth');
+      const data = await res.json();
+      if (data.success && data.token) {
+        if (this.btnTgOpenBotLink) this.btnTgOpenBotLink.href = data.botUrl;
+        if (this.tgAuthQrImg) {
+          this.tgAuthQrImg.src = data.qrUrl;
+          this.tgAuthQrImg.onload = () => {
+            if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
+            if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'block';
+          };
+        }
+        this.startTgAuthPolling(data.token);
+      }
+    } catch {
+      if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Офлайн режим (используйте ручной ввод)';
+      if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
+    }
+  }
+
+  private startTgAuthPolling(token: string) {
+    this.tgAuthPollTimer = window.setInterval(async () => {
+      try {
+        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/poll' : '/api/auth/poll';
+        const res = await fetch(`${apiBase}?token=${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.status === 'authorized' && data.telegramUser) {
+          this.stopTgAuthPolling();
+          this.applyTelegramUser(data.telegramUser, data.profile);
+        }
+      } catch {}
+    }, 2000);
+  }
+
+  private applyTelegramUser(user: TelegramUser, profile?: any) {
+    localStorage.setItem('sudoku_telegram_user', JSON.stringify(user));
+    localStorage.setItem('sudoku_cloud_sync_key', `tg_${user.id}`);
+    if (user.username) {
+      localStorage.setItem('sudoku_player_name', `@${user.username}`);
+      if (this.playerNameInput) this.playerNameInput.value = `@${user.username}`;
+    } else if (user.first_name) {
+      localStorage.setItem('sudoku_player_name', user.first_name);
+      if (this.playerNameInput) this.playerNameInput.value = user.first_name;
+    }
+
+    if (profile?.stats) {
+      SudokuGame.mergePlayerStats(profile.stats);
+    }
+
+    soundManager.playCorrect(3);
+    haptics.success();
+    this.updateTgMenuPill();
+    this.updateSyncBadge();
+    this.updateDailyInfoOnMenu();
+    this.updateTgAuthModalView();
+    this.showToast(`🎉 Успешный вход через Telegram (@${user.username || user.first_name || user.id})!`);
+  }
+
+  private logoutTelegram() {
+    soundManager.playSelect();
+    haptics.light();
+    this.stopTgAuthPolling();
+    localStorage.removeItem('sudoku_telegram_user');
+    localStorage.removeItem('sudoku_cloud_sync_key');
+    this.updateTgMenuPill();
+    this.updateSyncBadge();
+    this.updateTgAuthModalView();
+    this.showToast('🚪 Вы вышли из аккаунта Telegram');
+  }
+
+  private mountTelegramWidget() {
+    if (!this.tgWidgetContainer) return;
+    this.tgWidgetContainer.innerHTML = '';
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://telegram.org/js/telegram-widget.js?22';
+    script.setAttribute('data-telegram-login', 'dstu_schedule_notify_bot');
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-radius', '10');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
+    this.tgWidgetContainer.appendChild(script);
+  }
+
+  private updateScreenBackButton() {
+    if (this.currentScreen === 'menu') {
+      haptics.setBackButton(null);
+    } else if (this.currentScreen === 'mode_select') {
+      haptics.setBackButton(() => this.showScreen('menu'));
+    } else if (this.currentScreen === 'perk_select') {
+      haptics.setBackButton(() => this.showScreen('mode_select'));
+    } else if (this.currentScreen === 'game') {
+      haptics.setBackButton(() => this.showScreen('menu'));
+    }
+  }
+
   private getSyncKey(): string {
-    const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    const tgUser = this.getStoredTelegramUser();
     if (tgUser?.id) {
       return `tg_${tgUser.id}`;
     }
@@ -1396,7 +1698,7 @@ export class SudokuUI {
 
   private updateSyncBadge() {
     if (!this.syncAccountBadge) return;
-    const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    const tgUser = this.getStoredTelegramUser();
     if (tgUser) {
       const handle = tgUser.username ? `@${tgUser.username}` : tgUser.first_name || `TG #${tgUser.id}`;
       this.syncAccountBadge.textContent = `✈️ Telegram: ${handle}`;
@@ -1411,6 +1713,7 @@ export class SudokuUI {
         this.syncAccountBadge.style.color = '#34d399';
       }
     }
+    this.updateTgMenuPill();
   }
 
   private async syncWithCloud(showToastNotification: boolean = false) {
@@ -1419,7 +1722,7 @@ export class SudokuUI {
       const stats = SudokuGame.getPlayerStats();
       const playerName = localStorage.getItem('sudoku_player_name') || 'Игрок';
       const theme = localStorage.getItem('sudoku_theme') || 'dark';
-      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user || null;
+      const tgUser = this.getStoredTelegramUser();
 
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
       const res = await fetch(apiBase, {
@@ -1472,10 +1775,14 @@ export class SudokuUI {
         if (data.profile.theme) {
           this.setTheme(data.profile.theme);
         }
+        if (data.profile.telegramUser) {
+          localStorage.setItem('sudoku_telegram_user', JSON.stringify(data.profile.telegramUser));
+        }
         const effectiveKey = data.profile.key || key;
         localStorage.setItem('sudoku_cloud_sync_key', effectiveKey);
         this.updateSyncBadge();
         this.updateDailyInfoOnMenu();
+        this.updateTgAuthModalView();
         this.showToast('🎉 Профиль и прогресс успешно подключены!');
       }
     } catch {

@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -74,6 +75,38 @@ function saveProfiles(profiles) {
     ensureDb();
     fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
   } catch {}
+}
+
+const authSessions = new Map();
+
+function cleanExpiredSessions() {
+  const now = Date.now();
+  for (const [token, session] of authSessions.entries()) {
+    if (now - session.createdAt > 15 * 60 * 1000) {
+      authSessions.delete(token);
+    }
+  }
+}
+setInterval(cleanExpiredSessions, 60 * 1000);
+
+function findProfileByTelegram(profiles, query) {
+  if (!query) return null;
+  const clean = String(query).replace(/^@/, '').toLowerCase().trim();
+  if (profiles[query]) return profiles[query];
+  if (profiles['@' + clean]) return profiles['@' + clean];
+  if (profiles['tg_' + clean]) return profiles['tg_' + clean];
+  if (profiles[clean]) return profiles[clean];
+
+  for (const p of Object.values(profiles)) {
+    if (p && p.telegramUser) {
+      const uName = String(p.telegramUser.username || '').toLowerCase();
+      const uId = String(p.telegramUser.id || '');
+      if (uName === clean || uId === clean) {
+        return p;
+      }
+    }
+  }
+  return null;
 }
 
 const server = http.createServer((req, res) => {
@@ -157,6 +190,207 @@ const server = http.createServer((req, res) => {
         } catch {}
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Invalid payload' }));
+      });
+      return;
+    }
+  }
+
+  // Telegram Web Auth API (Deep Link, QR Code, Polling & Widget)
+  if (pathname.includes('/api/auth/')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // 1. Initialize Auth Session
+    if (pathname.endsWith('/api/auth/init')) {
+      const token = 'tg_auth_' + crypto.randomBytes(6).toString('hex');
+      const botName = process.env.BOT_USERNAME || 'dstu_schedule_notify_bot';
+      const botUrl = `https://t.me/${botName}?start=${token}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(botUrl)}`;
+
+      authSessions.set(token, {
+        token,
+        status: 'pending',
+        createdAt: Date.now(),
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        success: true,
+        token,
+        botUsername: botName,
+        botUrl,
+        qrUrl,
+      }));
+      return;
+    }
+
+    // 2. Poll Auth Session Status
+    if (pathname.endsWith('/api/auth/poll')) {
+      const token = String(parsedUrl.searchParams.get('token') || '').trim();
+      const session = authSessions.get(token);
+
+      if (!session) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, error: 'Session expired or not found' }));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        success: true,
+        status: session.status,
+        profile: session.profile || null,
+        telegramUser: session.telegramUser || null,
+      }));
+      return;
+    }
+
+    // 3. Verify / Approve Auth Session (called by Bot or Webhook or GET with params)
+    if (pathname.endsWith('/api/auth/verify')) {
+      const handleAuth = (token, user) => {
+        if (!token || !user || !user.id) return null;
+        let session = authSessions.get(token);
+        if (!session) {
+          session = { token, createdAt: Date.now() };
+          authSessions.set(token, session);
+        }
+
+        const profiles = readProfiles();
+        const tgKey = `tg_${user.id}`;
+        let profile = profiles[tgKey];
+
+        if (!profile && user.username) {
+          profile = profiles['@' + user.username.toLowerCase()];
+        }
+
+        if (!profile) {
+          profile = {
+            key: tgKey,
+            playerName: user.first_name || (user.username ? `@${user.username}` : 'Игрок'),
+            telegramUser: user,
+            theme: 'dark',
+            stats: {
+              gamesPlayed: 0,
+              gamesWon: 0,
+              totalScore: 0,
+              maxCombo: 1,
+              dailyStreak: 0,
+              bestTimeSeconds: { easy: null, medium: null, hard: null, expert: null },
+              unlockedAchievements: [],
+            },
+            updatedAt: new Date().toISOString(),
+          };
+        } else {
+          profile.telegramUser = { ...profile.telegramUser, ...user };
+          profile.updatedAt = new Date().toISOString();
+        }
+
+        profiles[tgKey] = profile;
+        if (user.username) {
+          profiles['@' + user.username.toLowerCase()] = profile;
+        }
+        saveProfiles(profiles);
+
+        session.status = 'authorized';
+        session.telegramUser = user;
+        session.profile = profile;
+
+        return profile;
+      };
+
+      if (req.method === 'GET') {
+        const token = String(parsedUrl.searchParams.get('token') || '').trim();
+        const userId = Number(parsedUrl.searchParams.get('userId') || parsedUrl.searchParams.get('id') || 0);
+        const username = String(parsedUrl.searchParams.get('username') || '').trim();
+        const firstName = String(parsedUrl.searchParams.get('first_name') || parsedUrl.searchParams.get('name') || '').trim();
+
+        if (token && userId) {
+          const profile = handleAuth(token, { id: userId, username, first_name: firstName });
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: true, profile }));
+          return;
+        }
+      }
+
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', (c) => { body += c; });
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            const profile = handleAuth(data.token, data.user || data);
+            if (profile) {
+              res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(JSON.stringify({ success: true, profile }));
+              return;
+            }
+          } catch {}
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid verification payload' }));
+        });
+        return;
+      }
+    }
+
+    // 4. Telegram Login Widget endpoint
+    if (pathname.endsWith('/api/auth/widget')) {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        try {
+          const user = JSON.parse(body);
+          if (!user || !user.id) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'User ID required' }));
+            return;
+          }
+
+          const profiles = readProfiles();
+          const tgKey = `tg_${user.id}`;
+          let profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
+
+          if (!profile) {
+            profile = {
+              key: tgKey,
+              playerName: user.first_name || (user.username ? `@${user.username}` : 'Игрок'),
+              telegramUser: user,
+              theme: 'dark',
+              stats: {
+                gamesPlayed: 0,
+                gamesWon: 0,
+                totalScore: 0,
+                maxCombo: 1,
+                dailyStreak: 0,
+                bestTimeSeconds: { easy: null, medium: null, hard: null, expert: null },
+                unlockedAchievements: [],
+              },
+              updatedAt: new Date().toISOString(),
+            };
+          } else {
+            profile.telegramUser = { ...profile.telegramUser, ...user };
+            profile.updatedAt = new Date().toISOString();
+          }
+
+          profiles[tgKey] = profile;
+          if (user.username) {
+            profiles['@' + user.username.toLowerCase()] = profile;
+          }
+          saveProfiles(profiles);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: true, profile }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
       });
       return;
     }

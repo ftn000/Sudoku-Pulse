@@ -19,6 +19,13 @@
   <!-- SCREEN 1: MAIN MENU                        -->
   <!-- ========================================== -->
   <div id="screen-menu" class="screen">
+    <div class="menu-top-bar">
+      <button id="btn-menu-tg-auth" class="tg-menu-auth-pill" title="Профиль и облачная синхронизация">
+        <span class="tg-pill-icon">✈️</span>
+        <span id="menu-tg-auth-label">Войти через Telegram</span>
+      </button>
+    </div>
+
     <div class="menu-hero">
       <div class="hero-logo-wrapper">
         <img src="./icon.jpg" class="hero-logo-img" alt="Sudoku Pulse Logo">
@@ -425,6 +432,95 @@
       </div>
 
       <button id="btn-close-settings" class="btn-primary">Готово</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: TELEGRAM WEB AUTH & CLOUD SYNC      -->
+  <!-- ========================================== -->
+  <div id="tg-auth-modal" class="modal-overlay hidden">
+    <div class="modal-card tg-auth-modal-card">
+      <div class="tg-auth-header">
+        <div class="tg-auth-icon">✈️</div>
+        <div>
+          <h2 class="modal-title" style="margin-bottom: 2px;">Вход через Telegram</h2>
+          <p style="color: var(--text-muted); font-size: 0.8rem;">Синхронизация рекордов и прогресса</p>
+        </div>
+      </div>
+
+      <!-- State 1: Active authorized profile view -->
+      <div id="tg-auth-active-view" class="tg-auth-active-view hidden">
+        <div class="tg-profile-card">
+          <div class="tg-avatar-badge" id="tg-auth-user-avatar">👤</div>
+          <div class="tg-user-details">
+            <div class="tg-user-name" id="tg-auth-user-name">Игрок</div>
+            <div class="tg-user-handle" id="tg-auth-user-handle">@username</div>
+          </div>
+          <span class="tg-status-badge">✅ Подключён</span>
+        </div>
+
+        <div class="tg-auth-sync-actions">
+          <button id="btn-tg-manual-sync" class="btn-primary" style="flex: 1;">
+            🔄 Синхронизировать
+          </button>
+          <button id="btn-tg-logout" class="btn-secondary" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">
+            🚪 Выйти
+          </button>
+        </div>
+      </div>
+
+      <!-- State 2: Login options tabs -->
+      <div id="tg-auth-login-view" class="tg-auth-login-view">
+        <div class="tg-tab-bar">
+          <button class="tg-tab active" data-tg-tab="bot">⚡ Бот & QR</button>
+          <button class="tg-tab" data-tg-tab="widget">🌐 Виджет</button>
+          <button class="tg-tab" data-tg-tab="manual">✏️ Ключ / Ник</button>
+        </div>
+
+        <!-- Tab 1: Bot Deep-Link & QR -->
+        <div id="tg-tab-content-bot" class="tg-tab-pane">
+          <p class="tg-step-desc">Нажмите кнопку для открытия бота или наведите камеру смартфона на QR-код:</p>
+          
+          <div class="tg-qr-wrapper">
+            <img id="tg-auth-qr-img" class="tg-qr-image" src="" alt="QR Code" style="display:none;" />
+            <div id="tg-qr-spinner" class="tg-qr-placeholder">
+              <div class="tg-spinner"></div>
+              <span>Генерация защищённого QR-кода...</span>
+            </div>
+          </div>
+
+          <a id="btn-tg-open-bot-link" href="#" target="_blank" class="btn-primary btn-tg-cta">
+            <span>🚀 Открыть @dstu_schedule_notify_bot</span>
+          </a>
+
+          <div class="tg-poll-status">
+            <span class="pulse-dot"></span>
+            <span id="tg-poll-status-text">Ожидание подтверждения в Telegram...</span>
+          </div>
+        </div>
+
+        <!-- Tab 2: Telegram Login Widget -->
+        <div id="tg-tab-content-widget" class="tg-tab-pane hidden">
+          <p class="tg-step-desc">Авторизация в один клик через официальный виджет Telegram:</p>
+          <div id="tg-widget-container" style="display: flex; justify-content: center; align-items: center; min-height: 90px;">
+            <!-- Telegram widget script rendered here -->
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Безопасный вход через Telegram Login Widget</p>
+        </div>
+
+        <!-- Tab 3: Manual Input -->
+        <div id="tg-tab-content-manual" class="tg-tab-pane hidden">
+          <p class="tg-step-desc">Введите ваш ник в Telegram (@username), Telegram ID или секретный ключ синхронизации:</p>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
+            <input id="tg-manual-input" type="text" placeholder="@username, tg_123456 или PULSE-XXXX" style="background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; outline: none; width: 100%;">
+            <button id="btn-tg-manual-login" class="btn-primary" style="padding: 10px;">
+              🔍 Найти и подключить профиль
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-close-tg-auth" class="btn-primary" style="margin-top: 8px;">Закрыть</button>
     </div>
   </div>
 
