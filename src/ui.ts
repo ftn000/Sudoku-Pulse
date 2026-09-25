@@ -1,7 +1,8 @@
 import { SudokuGame } from './game';
 import { Difficulty, GameMode, GameStats, AppScreen } from './types';
 import { soundManager } from './audio';
-import { getRandomPerks } from './perks';
+import { getRandomPerks, formatRomanLevel } from './perks';
+import { ACHIEVEMENTS } from './achievements';
 import { haptics } from './haptics';
 
 export class SudokuUI {
@@ -20,8 +21,12 @@ export class SudokuUI {
   private screenGame!: HTMLElement;
 
   // Main Menu Elements
+  private btnMenuContinue!: HTMLButtonElement;
+  private menuContinueMeta!: HTMLElement;
   private btnMenuPlay!: HTMLButtonElement;
   private btnMenuDaily!: HTMLButtonElement;
+  private btnMenuAchievements!: HTMLButtonElement;
+  private menuAchCounter!: HTMLElement;
   private btnMenuStats!: HTMLButtonElement;
   private btnMenuSettings!: HTMLButtonElement;
   private menuDailyDate!: HTMLElement;
@@ -91,12 +96,27 @@ export class SudokuUI {
   private btnCloseStats!: HTMLButtonElement;
   private playerNameInput!: HTMLInputElement;
   private leaderboardList!: HTMLElement;
+  private leaderboardFilterTabs: HTMLButtonElement[] = [];
+  private currentLeaderboardModeFilter: string = 'all';
+  private cachedLeaderboardEntries: Array<{
+    playerId?: string;
+    name: string;
+    score: number;
+    mode: string;
+    difficulty?: string;
+    runStage?: number;
+  }> = [];
   private statPlayed!: HTMLElement;
   private statWon!: HTMLElement;
   private statCombo!: HTMLElement;
   private statScore!: HTMLElement;
   private statStreak!: HTMLElement;
   private statRunStage!: HTMLElement;
+
+  private achievementsModal!: HTMLElement;
+  private achievementsSubtitle!: HTMLElement;
+  private achievementsList!: HTMLElement;
+  private btnCloseAchievements!: HTMLButtonElement;
 
   private settingsModal!: HTMLElement;
   private btnCloseSettings!: HTMLButtonElement;
@@ -133,6 +153,19 @@ export class SudokuUI {
       onWin: (stats) => this.showWinModal(stats),
       onGameOver: () => this.showGameOverModal(),
       onLineComplete: (cells) => this.triggerLineWave(cells),
+      onAchievementUnlocked: (ach) => {
+        soundManager.playVictory();
+        haptics.victory();
+        this.updateDailyInfoOnMenu();
+        setTimeout(() => {
+          this.showToast(`🏅 Открыто достижение: ${ach.icon} ${ach.title}!`);
+        }, 450);
+      },
+      onSurgeCaptured: (bonusScore: number) => {
+        soundManager.playLineComplete();
+        haptics.fever();
+        this.showToast(`⚡ Вспышка перехвачена! +${bonusScore} очков и +45% пульса`);
+      },
       onSoundTrigger: (sound) => {
         if (sound === 'select') {
           soundManager.playSelect();
@@ -173,8 +206,12 @@ export class SudokuUI {
     this.screenGame = document.getElementById('screen-game')!;
 
     // Menu
+    this.btnMenuContinue = document.getElementById('btn-menu-continue') as HTMLButtonElement;
+    this.menuContinueMeta = document.getElementById('menu-continue-meta')!;
     this.btnMenuPlay = document.getElementById('btn-menu-play') as HTMLButtonElement;
     this.btnMenuDaily = document.getElementById('btn-menu-daily') as HTMLButtonElement;
+    this.btnMenuAchievements = document.getElementById('btn-menu-achievements') as HTMLButtonElement;
+    this.menuAchCounter = document.getElementById('menu-ach-counter')!;
     this.btnMenuStats = document.getElementById('btn-menu-stats') as HTMLButtonElement;
     this.btnMenuSettings = document.getElementById('btn-menu-settings') as HTMLButtonElement;
     this.menuDailyDate = document.getElementById('menu-daily-date')!;
@@ -243,12 +280,18 @@ export class SudokuUI {
     this.btnCloseStats = document.getElementById('btn-close-stats') as HTMLButtonElement;
     this.playerNameInput = document.getElementById('player-name-input') as HTMLInputElement;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
+    this.leaderboardFilterTabs = Array.from(document.querySelectorAll('.lb-tab'));
     this.statPlayed = document.getElementById('stat-played')!;
     this.statWon = document.getElementById('stat-won')!;
     this.statCombo = document.getElementById('stat-combo')!;
     this.statScore = document.getElementById('stat-score')!;
     this.statStreak = document.getElementById('stat-streak')!;
     this.statRunStage = document.getElementById('stat-run-stage')!;
+
+    this.achievementsModal = document.getElementById('achievements-modal')!;
+    this.achievementsSubtitle = document.getElementById('achievements-subtitle')!;
+    this.achievementsList = document.getElementById('achievements-list')!;
+    this.btnCloseAchievements = document.getElementById('btn-close-achievements') as HTMLButtonElement;
 
     this.settingsModal = document.getElementById('settings-modal')!;
     this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
@@ -302,6 +345,17 @@ export class SudokuUI {
 
   private initEventListeners() {
     // Menu navigation
+    if (this.btnMenuContinue) {
+      this.btnMenuContinue.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        if (this.game.loadFromStorage()) {
+          this.showScreen('game');
+          this.showToast('▶️ Игра успешно восстановлена!');
+        }
+      });
+    }
+
     this.btnMenuPlay.addEventListener('click', () => {
       soundManager.playSelect();
       this.showScreen('mode_select');
@@ -316,6 +370,15 @@ export class SudokuUI {
         perks: [],
       });
       this.showScreen('game');
+    });
+
+    this.btnMenuAchievements.addEventListener('click', () => {
+      soundManager.playSelect();
+      this.showAchievementsModal();
+    });
+
+    this.btnCloseAchievements.addEventListener('click', () => {
+      this.achievementsModal.classList.add('hidden');
     });
 
     this.btnMenuStats.addEventListener('click', () => {
@@ -334,6 +397,17 @@ export class SudokuUI {
 
     this.btnCloseSettings.addEventListener('click', () => {
       this.settingsModal.classList.add('hidden');
+    });
+
+    // Leaderboard Filter Tabs
+    this.leaderboardFilterTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.leaderboardFilterTabs.forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        this.currentLeaderboardModeFilter = tab.getAttribute('data-lb-mode') || 'all';
+        this.renderLeaderboardList();
+      });
     });
 
     // Mode Selection Back
@@ -439,11 +513,46 @@ export class SudokuUI {
       });
     });
 
-    // Numpad clicks
+    // Numpad clicks & Long-press for Pin Mode (~380ms)
     this.numpadButtons.forEach((btn, index) => {
       const num = index + 1;
+      let pressTimer: number | undefined;
+      let isLongPress = false;
+
+      const startPress = () => {
+        isLongPress = false;
+        pressTimer = window.setTimeout(() => {
+          isLongPress = true;
+          this.game.togglePinNumber(num);
+          soundManager.playSelect();
+          haptics.fever();
+          if (this.game.pinnedNumber === num) {
+            this.showToast(`📌 Цифра ${num} зафиксирована для быстрого ввода!`);
+          } else {
+            this.showToast(`📌 Фиксация снята`);
+          }
+        }, 380);
+      };
+
+      const cancelPress = () => {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = undefined;
+        }
+      };
+
+      btn.addEventListener('pointerdown', startPress);
+      btn.addEventListener('pointerup', () => {
+        cancelPress();
+      });
+      btn.addEventListener('pointerleave', cancelPress);
+      btn.addEventListener('pointercancel', cancelPress);
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+
       btn.addEventListener('click', () => {
-        this.game.inputNumber(num);
+        if (!isLongPress) {
+          this.game.inputNumber(num);
+        }
       });
     });
 
@@ -699,6 +808,42 @@ export class SudokuUI {
 
     const stats = SudokuGame.getPlayerStats();
     this.menuDailyStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+
+    // Unlocked achievements counter
+    const unlockedCount = (stats.unlockedAchievements || []).length;
+    if (this.menuAchCounter) {
+      this.menuAchCounter.textContent = `${unlockedCount}/${ACHIEVEMENTS.length}`;
+    }
+
+    // Continue game button in Main Menu
+    if (this.btnMenuContinue) {
+      const hasSave = SudokuGame.hasSavedGame();
+      this.btnMenuContinue.classList.toggle('hidden', !hasSave);
+      if (hasSave && this.menuContinueMeta) {
+        try {
+          const raw = localStorage.getItem('sudoku_active_game_v1');
+          if (raw) {
+            const data = JSON.parse(raw);
+            const mLabels: Record<string, string> = {
+              classic: 'Классика',
+              fog: 'Тёмный сектор',
+              daily: 'Daily Pulse',
+              run: `Забег (Этап ${data.runStage || 1})`,
+            };
+            const dLabels: Record<string, string> = {
+              easy: 'Легкий',
+              medium: 'Средний',
+              hard: 'Сложный',
+              expert: 'Эксперт',
+            };
+            const mins = Math.floor((data.timerSeconds || 0) / 60);
+            const secs = (data.timerSeconds || 0) % 60;
+            const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            this.menuContinueMeta.textContent = `${mLabels[data.mode] || 'Игра'} • ${dLabels[data.difficulty] || ''} • ${timeStr}`;
+          }
+        } catch {}
+      }
+    }
   }
 
   public render() {
@@ -725,12 +870,19 @@ export class SudokuUI {
     if (this.game.activePerks.length > 0) {
       if (this.game.activePerks.length === 1) {
         const perk = this.game.activePerks[0];
-        this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}`;
+        const lvlStr = (perk.level && perk.level > 1) ? ` ${formatRomanLevel(perk.level)}` : '';
+        this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}${lvlStr}`;
       } else {
-        const icons = this.game.activePerks.map((p) => p.icon).join(' ');
+        const icons = this.game.activePerks.map((p) => {
+          const lvl = p.level && p.level > 1 ? formatRomanLevel(p.level) : '';
+          return `${p.icon}${lvl ? ` ${lvl}` : ''}`;
+        }).join(' ');
         this.gamePerkBadge.textContent = `${icons} (${this.game.activePerks.length})`;
       }
-      this.gamePerkBadge.title = this.game.activePerks.map((p) => `${p.icon} ${p.name}: ${p.description}`).join('\n');
+      this.gamePerkBadge.title = this.game.activePerks.map((p) => {
+        const lvlStr = (p.level && p.level > 1) ? ` (${formatRomanLevel(p.level)})` : '';
+        return `${p.icon} ${p.name}${lvlStr}: ${p.description}`;
+      }).join('\n');
       this.gamePerkBadge.classList.remove('hidden');
     } else {
       this.gamePerkBadge.classList.add('hidden');
@@ -816,6 +968,11 @@ export class SudokuUI {
         }
         if (cellData.isBeacon && this.game.isFogActive()) {
           cellDiv.classList.add('beacon');
+        }
+
+        // Energy Surge Cell (⚡ Вспышка)
+        if (cellData.isSurge && cellData.value === 0 && !cellData.isInFog) {
+          cellDiv.classList.add('surge-cell');
         }
 
         const isSelected = selected && selected.row === r && selected.col === c;
@@ -915,6 +1072,7 @@ export class SudokuUI {
       }
 
       btn.classList.toggle('completed', remaining <= 0);
+      btn.classList.toggle('pinned', this.game.pinnedNumber === i && remaining > 0);
     }
   }
 
@@ -961,16 +1119,16 @@ export class SudokuUI {
       this.btnDailyShare.classList.add('hidden');
 
       this.runPerksDraft.innerHTML = '';
-      const ownedIds = this.game.activePerks.map((p) => p.id);
-      const drafted = getRandomPerks(3, ownedIds);
+      const drafted = getRandomPerks(3, this.game.activePerks);
       drafted.forEach((perk) => {
         const card = document.createElement('div');
         card.className = 'perk-card';
         card.style.padding = '10px 12px';
+        const lvlStr = (perk.level && perk.level > 1) ? ` (${formatRomanLevel(perk.level)})` : '';
         card.innerHTML = `
           <div class="perk-icon-lg" style="font-size:1.5rem;">${perk.icon}</div>
           <div class="perk-info">
-            <div class="perk-title" style="font-size:0.95rem;">${perk.name}</div>
+            <div class="perk-title" style="font-size:0.95rem;">${perk.name}${lvlStr}</div>
             <div class="perk-desc" style="font-size:0.8rem;">${perk.description}</div>
           </div>
         `;
@@ -1074,45 +1232,79 @@ export class SudokuUI {
     if (!this.leaderboardList) return;
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
     try {
-      const myPlayerId = SudokuGame.getOrCreatePlayerId();
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
       const res = await fetch(apiBase);
       if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
-      const entries: Array<{
-        playerId?: string;
-        name: string;
-        score: number;
-        mode: string;
-        difficulty?: string;
-        runStage?: number;
-      }> = data.entries || data.leaderboard || [];
-
-      if (entries.length === 0) {
-        this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей. Станьте первым!</div>`;
-        return;
-      }
-
-      this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
-        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-        const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : '⚡ Классика';
-        const isMe = item.playerId && item.playerId === myPlayerId;
-        const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
-        const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
-        return `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:700; min-width:24px;">${medal}</span>
-              <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>' : ''}</span>
-              <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
-            </div>
-            <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString('ru-RU')}</span>
-          </div>
-        `;
-      }).join('');
+      this.cachedLeaderboardEntries = data.entries || data.leaderboard || [];
+      this.renderLeaderboardList();
     } catch {
       this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Онлайн-сервер недоступен (офлайн-режим)</div>`;
     }
+  }
+
+  private renderLeaderboardList() {
+    if (!this.leaderboardList) return;
+    const myPlayerId = SudokuGame.getOrCreatePlayerId();
+    let entries = this.cachedLeaderboardEntries;
+
+    if (this.currentLeaderboardModeFilter !== 'all') {
+      entries = entries.filter((e) => e.mode === this.currentLeaderboardModeFilter);
+    }
+
+    if (entries.length === 0) {
+      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей в этом режиме.</div>`;
+      return;
+    }
+
+    this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+      const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : '⚡ Классика';
+      const isMe = item.playerId && item.playerId === myPlayerId;
+      const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
+      const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-weight:700; min-width:24px;">${medal}</span>
+            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>' : ''}</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+          </div>
+          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString('ru-RU')}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  private showAchievementsModal() {
+    const stats = SudokuGame.getPlayerStats();
+    const unlockedIds = new Set(stats.unlockedAchievements || []);
+    this.achievementsSubtitle.textContent = `Открыто ${unlockedIds.size} из ${ACHIEVEMENTS.length} трофеев`;
+    this.achievementsList.innerHTML = '';
+
+    ACHIEVEMENTS.forEach((ach) => {
+      const isUnlocked = unlockedIds.has(ach.id);
+      const { current, target } = ach.getProgress(stats);
+      const progress = Math.min(100, Math.round((current / target) * 100));
+      const card = document.createElement('div');
+      card.className = `ach-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+      card.innerHTML = `
+        <div class="ach-icon">${ach.icon}</div>
+        <div class="ach-info">
+          <div class="ach-title-row">
+            <span class="ach-title">${ach.title}</span>
+            <span class="ach-status-badge">${isUnlocked ? '✅ Получено' : `${current}/${target}`}</span>
+          </div>
+          <div class="ach-desc">${ach.description}</div>
+          <div class="ach-progress-track">
+            <div class="ach-progress-fill" style="width: ${progress}%;"></div>
+          </div>
+        </div>
+      `;
+      this.achievementsList.appendChild(card);
+    });
+
+    this.achievementsModal.classList.remove('hidden');
   }
 
   private copyDailyResultToClipboard() {

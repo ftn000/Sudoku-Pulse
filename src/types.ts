@@ -25,6 +25,7 @@ export interface Perk {
   name: string;
   description: string;
   icon: string;
+  level?: number; // 1, 2, or 3
 }
 
 export interface CellData {
@@ -43,6 +44,8 @@ export interface CellData {
   isInEcho?: boolean; // True if in 3-second echo afterglow after cursor moved away
   torchExpireAt?: number; // Timestamp (ms) when 3-second echo expires
   isBeacon?: boolean; // True if this static/solved cell permanently illuminates its 3x3 zone
+  isSurge?: boolean; // True if this empty cell has an active ⚡ Surge energy bonus
+  surgeExpireAt?: number; // Timestamp (ms) when surge bonus expires
 }
 
 export type Grid = number[][];
@@ -97,4 +100,19 @@ export interface PlayerStats {
   lastDailyDate: string | null;
   bestRunStage?: number;
   bestRunScore?: number;
+  surgeCaptured?: number;
+  feverTriggeredCount?: number;
+  flawlessWins?: number;
+  darkSectorWins?: number;
+  expertDarkSectorWins?: number;
+  unlockedAchievements?: string[];
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  checkUnlocked: (stats: PlayerStats) => boolean;
+  getProgress: (stats: PlayerStats) => { current: number; target: number };
 }

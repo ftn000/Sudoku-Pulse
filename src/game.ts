@@ -8,8 +8,10 @@ import {
   GameStats,
   Perk,
   PlayerStats,
+  Achievement,
 } from './types';
 import { generatePuzzle, hashDateStringToSeed } from './generator';
+import { evaluateNewAchievements } from './achievements';
 
 const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
 const STATS_KEY = 'sudoku_pulse_player_stats_v1';
@@ -17,6 +19,7 @@ const STATS_KEY = 'sudoku_pulse_player_stats_v1';
 export class SudokuGame {
   public board: CellData[][] = [];
   public selectedCell: { row: number; col: number } | null = null;
+  public pinnedNumber: number | null = null;
   public isNotesMode: boolean = false;
   public isAutoNotesActive: boolean = false;
   public history: MoveAction[] = [];
@@ -42,10 +45,12 @@ export class SudokuGame {
   // Perks
   public activePerks: Perk[] = [];
   public shieldActive: boolean = false;
+  public shieldCharges: number = 0;
 
   // Run Mode & Seed
   public runStage: number = 1;
   public currentSeed: number = 0;
+  public lastSurgeSpawnTime: number = 0;
 
   // Completed units
   private completedRows: Set<number> = new Set();
@@ -53,12 +58,25 @@ export class SudokuGame {
   private completedBoxes: Set<number> = new Set();
   private echoCleanupTimer?: number;
 
+  public static hasSavedGame(): boolean {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      return data && Array.isArray(data.board) && data.status === 'playing';
+    } catch {
+      return false;
+    }
+  }
+
   // Callbacks
   private onStateChangeCallback?: () => void;
   private onWinCallback?: (stats: GameStats) => void;
   private onGameOverCallback?: () => void;
   private onLineCompleteCallback?: (cells: Array<[number, number]>) => void;
   private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
+  private onSurgeCapturedCallback?: (bonusScore: number) => void;
+  private onAchievementUnlockedCallback?: (ach: Achievement) => void;
 
   constructor(difficulty: Difficulty = 'medium', mode: GameMode = 'classic') {
     this.difficulty = difficulty;
@@ -71,12 +89,16 @@ export class SudokuGame {
     onGameOver?: () => void;
     onLineComplete?: (cells: Array<[number, number]>) => void;
     onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
+    onSurgeCaptured?: (bonusScore: number) => void;
+    onAchievementUnlocked?: (ach: Achievement) => void;
   }) {
     this.onStateChangeCallback = options.onStateChange;
     this.onWinCallback = options.onWin;
     this.onGameOverCallback = options.onGameOver;
     this.onLineCompleteCallback = options.onLineComplete;
     this.onSoundTriggerCallback = options.onSoundTrigger;
+    this.onSurgeCapturedCallback = options.onSurgeCaptured;
+    this.onAchievementUnlockedCallback = options.onAchievementUnlocked;
   }
 
   private notify() {
@@ -88,6 +110,34 @@ export class SudokuGame {
 
   public hasPerk(id: string): boolean {
     return this.activePerks.some((p) => p.id === id);
+  }
+
+  public getPerkLevel(id: string): number {
+    const perk = this.activePerks.find((p) => p.id === id);
+    return perk ? (perk.level || 1) : 0;
+  }
+
+  public hasSavedGame(): boolean {
+    return (
+      this.board.length === 9 &&
+      (this.status === 'playing' || this.status === 'paused') &&
+      (this.timerSeconds > 0 || this.history.length > 0 || this.score > 0)
+    );
+  }
+
+  public togglePinNumber(num: number): number | null {
+    if (this.pinnedNumber === num) {
+      this.pinnedNumber = null;
+    } else {
+      const counts = this.getNumberCounts();
+      if ((counts[num] || 0) >= 9) {
+        this.pinnedNumber = null;
+      } else {
+        this.pinnedNumber = num;
+      }
+    }
+    this.notify();
+    return this.pinnedNumber;
   }
 
   public startNewGame(options?: {
@@ -142,6 +192,8 @@ export class SudokuGame {
           isInEcho: false,
           torchExpireAt: 0,
           isBeacon: false,
+          isSurge: false,
+          surgeExpireAt: 0,
         };
       })
     );
@@ -151,12 +203,13 @@ export class SudokuGame {
     }
 
     this.selectedCell = null;
+    this.pinnedNumber = null;
     this.history = [];
     this.redoStack = [];
     this.timerSeconds = 0;
     this.mistakesCount = 0;
-    this.maxMistakes = config.maxMistakes + (this.hasPerk('extra_heart') ? 2 : 0);
-    this.hintsRemaining = config.initialHints + (this.hasPerk('power_bank') ? 1 : 0);
+    this.maxMistakes = config.maxMistakes + this.getPerkLevel('extra_heart') * 2;
+    this.hintsRemaining = config.initialHints + this.getPerkLevel('power_bank');
     this.hintsUsed = 0;
 
     // Pulse & Score state
@@ -166,14 +219,15 @@ export class SudokuGame {
       this.incrementGamesPlayed();
     }
     this.comboCount = 0;
-    this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
+    this.comboMultiplier = 1.0 + this.getPerkLevel('combo_master') * 1.0;
     this.pulseEnergy = 0;
     this.isFeverMode = false;
     this.feverSecondsLeft = 0;
     this.maxComboAchieved = 0;
 
     // Perks
-    this.shieldActive = this.hasPerk('neon_shield');
+    this.shieldCharges = this.getPerkLevel('neon_shield');
+    this.shieldActive = this.shieldCharges > 0;
 
     this.completedRows.clear();
     this.completedCols.clear();
@@ -187,6 +241,11 @@ export class SudokuGame {
 
     if (this.hasPerk('auto_scanner')) {
       this.fillAllCandidates();
+    }
+
+    // Spawn an initial surge cell after 3 seconds in non-daily modes
+    if (this.mode !== 'daily') {
+      this.spawnSurgeCell();
     }
 
     this.notify();
@@ -238,8 +297,16 @@ export class SudokuGame {
 
   public isFogActive(): boolean {
     if (this.mode === 'fog') return true;
-    if (this.mode === 'run' && this.runStage >= 2 && this.runStage % 2 === 0) return true;
+    if (this.mode === 'run' && (this.runStage === 2 || this.runStage >= 5)) return true;
     return false;
+  }
+
+  public isSolarStormActive(): boolean {
+    return this.mode === 'run' && (this.runStage === 3 || this.runStage >= 5);
+  }
+
+  public isCryoLeakActive(): boolean {
+    return this.mode === 'run' && (this.runStage === 4 || this.runStage >= 5);
   }
 
   public getRunModifierDescription(): string {
@@ -250,27 +317,29 @@ export class SudokuGame {
       case 2:
         return '🌌 Аномалия: Тёмный сектор!';
       case 3:
-        return '⚡ Импульсный шторм (Сложная сетка)';
+        return '☀️ Солнечный шторм (Вспышки ⚡ в 2 раза чаще и дают +1500 очков!)';
       case 4:
-        return '🔥 Босс-сектор (Экспертная сетка + Тёмный сектор)';
+        return '🧊 Крио-утечка (Пульс остывает быстрее, но базовые очки x2!)';
       default:
-        return `💀 Глубокий космос (Сектор ${this.runStage})`;
+        return `💀 Сверхновая — Сектор ${this.runStage} (Тёмный сектор + Шторм + Очки x2!)`;
     }
   }
 
   public advanceRunStage(newPerk: Perk) {
     if (this.mode !== 'run') return;
     this.runStage++;
-    if (!this.activePerks.some((p) => p.id === newPerk.id)) {
+    const existingIdx = this.activePerks.findIndex((p) => p.id === newPerk.id);
+    if (existingIdx >= 0) {
+      this.activePerks[existingIdx] = newPerk;
+    } else {
       this.activePerks.push(newPerk);
     }
     const stageClearBonus = 1500 * (this.runStage - 1);
     this.score += stageClearBonus;
 
-    if (this.hasPerk('neon_shield')) {
-      this.shieldActive = true;
-    }
-    this.hintsRemaining = Math.min(5, this.hintsRemaining + 1);
+    this.shieldCharges = this.getPerkLevel('neon_shield');
+    this.shieldActive = this.shieldCharges > 0;
+    this.hintsRemaining = Math.min(6, this.hintsRemaining + 1);
 
     this.startNewGame({
       mode: 'run',
@@ -348,6 +417,17 @@ export class SudokuGame {
   public selectCell(row: number, col: number) {
     if (row < 0 || row >= 9 || col < 0 || col >= 9) return;
     this.selectedCell = { row, col };
+
+    const cell = this.board[row][col];
+    if (this.pinnedNumber !== null && !cell.isGiven && !cell.isLocked && this.status === 'playing') {
+      this.updateFogVisibility();
+      if (this.isFogActive()) {
+        this.scheduleEchoCleanup();
+      }
+      this.inputNumber(this.pinnedNumber);
+      return;
+    }
+
     if (this.onSoundTriggerCallback) {
       this.onSoundTriggerCallback('select');
     }
@@ -361,6 +441,53 @@ export class SudokuGame {
   public toggleNotesMode() {
     this.isNotesMode = !this.isNotesMode;
     this.notify();
+  }
+
+  public spawnSurgeCell() {
+    if (this.mode === 'daily' || this.status !== 'playing') return;
+
+    const now = Date.now();
+    // Clear expired surges and check if one is already active
+    let activeCount = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+        if (cell.isSurge) {
+          if (cell.surgeExpireAt && cell.surgeExpireAt <= now) {
+            cell.isSurge = false;
+            cell.surgeExpireAt = 0;
+          } else {
+            activeCount++;
+          }
+        }
+      }
+    }
+
+    const maxActive = this.isSolarStormActive() ? 2 : 1;
+    if (activeCount >= maxActive) return;
+
+    // Pick candidate empty cells (prefer visible cells in Dark Sector)
+    const visibleEmpty: Array<{ r: number; c: number }> = [];
+    const anyEmpty: Array<{ r: number; c: number }> = [];
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+        if (cell.value === 0 && !cell.isLocked && !cell.isSurge) {
+          anyEmpty.push({ r, c });
+          if (!cell.isInFog) {
+            visibleEmpty.push({ r, c });
+          }
+        }
+      }
+    }
+
+    const pool = visibleEmpty.length > 0 ? visibleEmpty : anyEmpty;
+    if (pool.length === 0) return;
+
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    this.board[pick.r][pick.c].isSurge = true;
+    this.board[pick.r][pick.c].surgeExpireAt = now + 15000; // 15 seconds duration
   }
 
   public inputNumber(num: number) {
@@ -416,12 +543,16 @@ export class SudokuGame {
         // Combo & Pulse calculation
         this.comboCount++;
         this.maxComboAchieved = Math.max(this.maxComboAchieved, this.comboCount);
+        this.recordProgressStats((stats) => {
+          stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
+        });
 
-        let multiplierBonus = 1.0;
-        if (this.comboCount >= 8) multiplierBonus = 5.0;
-        else if (this.comboCount >= 5) multiplierBonus = 3.0;
-        else if (this.comboCount >= 3) multiplierBonus = 2.0;
-        else if (this.comboCount >= 2) multiplierBonus = 1.5;
+        const baseComboMult = 1.0 + this.getPerkLevel('combo_master') * 1.0;
+        let multiplierBonus = baseComboMult;
+        if (this.comboCount >= 8) multiplierBonus = Math.max(baseComboMult, 5.0);
+        else if (this.comboCount >= 5) multiplierBonus = Math.max(baseComboMult, 3.0);
+        else if (this.comboCount >= 3) multiplierBonus = Math.max(baseComboMult, 2.0);
+        else if (this.comboCount >= 2) multiplierBonus = Math.max(baseComboMult, 1.5);
 
         if (this.isFeverMode) {
           this.comboMultiplier = 10.0;
@@ -429,13 +560,30 @@ export class SudokuGame {
           this.comboMultiplier = multiplierBonus;
         }
 
+        // Check if this cell had an active ⚡ Surge
+        const now = Date.now();
+        if (cell.isSurge && (!cell.surgeExpireAt || cell.surgeExpireAt > now)) {
+          cell.isSurge = false;
+          cell.surgeExpireAt = 0;
+          const surgeBonus = this.isSolarStormActive() ? 1500 : 1000;
+          this.score += surgeBonus;
+          this.pulseEnergy = Math.min(100, this.pulseEnergy + 45);
+          this.recordProgressStats((stats) => {
+            stats.surgeCaptured = (stats.surgeCaptured || 0) + 1;
+          });
+          if (this.onSurgeCapturedCallback) {
+            this.onSurgeCapturedCallback(surgeBonus);
+          }
+        }
+
         // Energy gain
-        const energyGain = (this.hasPerk('point_surge') ? 25 : 18);
+        const surgePerkLvl = this.getPerkLevel('point_surge');
+        const energyGain = 18 + surgePerkLvl * 6;
         this.pulseEnergy = Math.min(100, this.pulseEnergy + energyGain);
 
-        // Add score
-        const pointsBase = 100;
-        const perkScoreMult = this.hasPerk('point_surge') ? 1.5 : 1.0;
+        // Add score (doubled in Cryo-Leak anomaly)
+        const pointsBase = this.isCryoLeakActive() ? 200 : 100;
+        const perkScoreMult = 1.0 + surgePerkLvl * 0.5;
         this.score += Math.round(pointsBase * this.comboMultiplier * perkScoreMult);
 
         // Trigger Fever Mode if full
@@ -448,14 +596,23 @@ export class SudokuGame {
         }
 
         this.checkForCompletedUnits(row, col);
+
+        // Unpin number if all 9 instances are now completed
+        if (this.pinnedNumber === num) {
+          const counts = this.getNumberCounts();
+          if ((counts[num] || 0) >= 9) {
+            this.pinnedNumber = null;
+          }
+        }
       } else {
         // Mistake made
         cell.isLocked = false;
         cell.isError = true;
 
-        // Check Neon Shield Perk
-        if (this.shieldActive) {
-          this.shieldActive = false; // Consumed
+        // Check Neon Shield Perk charges
+        if (this.shieldCharges > 0) {
+          this.shieldCharges--;
+          this.shieldActive = this.shieldCharges > 0;
           if (this.onSoundTriggerCallback) {
             this.onSoundTriggerCallback('shield');
           }
@@ -464,7 +621,7 @@ export class SudokuGame {
           // Reset combo if not in Fever mode
           if (!this.isFeverMode) {
             this.comboCount = 0;
-            this.comboMultiplier = 1.0;
+            this.comboMultiplier = 1.0 + this.getPerkLevel('combo_master') * 1.0;
             this.pulseEnergy = Math.max(0, this.pulseEnergy - 30);
           }
 
@@ -509,8 +666,11 @@ export class SudokuGame {
 
   private triggerFeverMode() {
     this.isFeverMode = true;
-    this.feverSecondsLeft = this.hasPerk('fever_overdrive') ? 17 : 12;
+    this.feverSecondsLeft = 12 + this.getPerkLevel('fever_overdrive') * 5;
     this.comboMultiplier = 10.0;
+    this.recordProgressStats((stats) => {
+      stats.feverTriggeredCount = (stats.feverTriggeredCount || 0) + 1;
+    });
     if (this.onSoundTriggerCallback) {
       this.onSoundTriggerCallback('fever');
     }
@@ -529,7 +689,7 @@ export class SudokuGame {
     }
 
     const now = Date.now();
-    const torchRadius = this.hasPerk('keen_eye') ? 2 : 1;
+    const torchRadius = 1 + this.getPerkLevel('keen_eye');
     const selR = this.selectedCell ? this.selectedCell.row : -1;
     const selC = this.selectedCell ? this.selectedCell.col : -1;
 
@@ -537,7 +697,7 @@ export class SudokuGame {
       for (let c = 0; c < 9; c++) {
         const cell = this.board[r][c];
 
-        // Active scanner beam around cursor (3x3 normal, 5x5 with keen_eye perk)
+        // Active scanner beam around cursor (3x3 normal, 5x5 Lv1, 7x7 Lv2)
         const distR = Math.abs(r - selR);
         const distC = Math.abs(c - selC);
         const inTorch = selR !== -1 && distR <= torchRadius && distC <= torchRadius;
@@ -1001,26 +1161,55 @@ export class SudokuGame {
     if (this.status === 'playing') {
       this.timerSeconds++;
 
+      // Surge cell lifecycle (Arcade modes: classic, fog, run)
+      if (this.mode !== 'daily') {
+        const now = Date.now();
+        let hasActiveSurge = false;
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cell = this.board[r][c];
+            if (cell.isSurge) {
+              if (cell.surgeExpireAt && now > cell.surgeExpireAt) {
+                cell.isSurge = false;
+                cell.surgeExpireAt = 0;
+              } else {
+                hasActiveSurge = true;
+              }
+            }
+          }
+        }
+        const surgeInterval = this.isSolarStormActive() ? 9 : 15;
+        if (!hasActiveSurge && this.timerSeconds - this.lastSurgeSpawnTime >= surgeInterval) {
+          this.spawnSurgeCell();
+          this.lastSurgeSpawnTime = this.timerSeconds;
+        }
+      }
+
       // Fever Timer
       if (this.isFeverMode) {
         this.feverSecondsLeft--;
         if (this.feverSecondsLeft <= 0) {
           this.isFeverMode = false;
           this.pulseEnergy = 0;
-          this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
+          const cmLvl = this.getPerkLevel('combo_master');
+          this.comboMultiplier = cmLvl > 0 ? 1.5 + cmLvl * 0.5 : 1.0;
           if (this.onSoundTriggerCallback) {
             this.onSoundTriggerCallback('fever_end');
           }
         }
       } else {
-        // Natural combo pulse decay (slower in Dark Sector to allow scanning)
-        const baseDecay = this.hasPerk('time_warp') ? 2 : 4;
-        const decayRate = this.isFogActive() ? Math.max(1, Math.round(baseDecay * 0.65)) : baseDecay;
+        // Natural combo pulse decay (slower in Dark Sector, faster in Cryo-Leak)
+        const twLvl = this.getPerkLevel('time_warp');
+        const baseDecay = twLvl > 0 ? Math.max(1, 3 - twLvl) : 4;
+        const cryoMult = this.isCryoLeakActive() ? 1.6 : 1.0;
+        const fogMult = this.isFogActive() ? 0.65 : 1.0;
+        const decayRate = Math.max(1, Math.round(baseDecay * cryoMult * fogMult));
         if (this.pulseEnergy > 0) {
           this.pulseEnergy = Math.max(0, this.pulseEnergy - decayRate);
           if (this.pulseEnergy === 0) {
             this.comboCount = 0;
-            this.comboMultiplier = this.hasPerk('combo_master') ? 2.0 : 1.0;
+            const cmLvl = this.getPerkLevel('combo_master');
+            this.comboMultiplier = cmLvl > 0 ? 1.5 + cmLvl * 0.5 : 1.0;
           }
         }
       }
@@ -1110,7 +1299,27 @@ export class SudokuGame {
       totalScore: 0,
       dailyStreak: 0,
       lastDailyDate: null,
+      surgeCaptured: 0,
+      feverTriggeredCount: 0,
+      flawlessWins: 0,
+      darkSectorWins: 0,
+      expertDarkSectorWins: 0,
+      unlockedAchievements: [],
     };
+  }
+
+  private recordProgressStats(updater: (stats: PlayerStats) => void) {
+    try {
+      const stats = SudokuGame.getPlayerStats();
+      updater(stats);
+      const newlyUnlocked = evaluateNewAchievements(stats);
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+      if (newlyUnlocked.length > 0 && this.onAchievementUnlockedCallback) {
+        for (const ach of newlyUnlocked) {
+          this.onAchievementUnlockedCallback(ach);
+        }
+      }
+    } catch {}
   }
 
   private incrementGamesPlayed() {
@@ -1130,6 +1339,17 @@ export class SudokuGame {
       }
       stats.totalScore = (stats.totalScore || 0) + this.score;
       stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
+
+      if (this.mistakesCount === 0) {
+        stats.flawlessWins = (stats.flawlessWins || 0) + 1;
+      }
+
+      if (this.mode === 'fog') {
+        stats.darkSectorWins = (stats.darkSectorWins || 0) + 1;
+        if (this.difficulty === 'expert') {
+          stats.expertDarkSectorWins = (stats.expertDarkSectorWins || 0) + 1;
+        }
+      }
 
       // Best time
       const curBest = stats.bestTimeSeconds[this.difficulty];
@@ -1156,7 +1376,13 @@ export class SudokuGame {
         stats.bestRunScore = Math.max(stats.bestRunScore || 0, this.score);
       }
 
+      const newlyUnlocked = evaluateNewAchievements(stats);
       localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+      if (newlyUnlocked.length > 0 && this.onAchievementUnlockedCallback) {
+        for (const ach of newlyUnlocked) {
+          this.onAchievementUnlockedCallback(ach);
+        }
+      }
     } catch {}
   }
 
@@ -1172,6 +1398,7 @@ export class SudokuGame {
         board: serializableBoard,
         difficulty: this.difficulty,
         mode: this.mode,
+        runStage: this.runStage,
         timerSeconds: this.timerSeconds,
         mistakesCount: this.mistakesCount,
         maxMistakes: this.maxMistakes,
@@ -1184,6 +1411,8 @@ export class SudokuGame {
         feverSecondsLeft: this.feverSecondsLeft,
         activePerks: this.activePerks,
         shieldActive: this.shieldActive,
+        shieldCharges: this.shieldCharges,
+        pinnedNumber: this.pinnedNumber,
         isAutoNotesActive: this.isAutoNotesActive,
         status: this.status,
       };
@@ -1203,6 +1432,7 @@ export class SudokuGame {
 
       this.difficulty = data.difficulty || 'medium';
       this.mode = data.mode || 'classic';
+      this.runStage = data.runStage || 1;
       this.timerSeconds = data.timerSeconds || 0;
       this.mistakesCount = data.mistakesCount || 0;
       this.maxMistakes = data.maxMistakes || 3;
@@ -1214,9 +1444,12 @@ export class SudokuGame {
       this.isFeverMode = data.isFeverMode || false;
       this.feverSecondsLeft = data.feverSecondsLeft || 0;
       this.activePerks = data.activePerks || [];
-      this.shieldActive = data.shieldActive ?? false;
+      this.shieldCharges = data.shieldCharges ?? (data.shieldActive ? 1 : 0);
+      this.shieldActive = this.shieldCharges > 0;
+      this.pinnedNumber = data.pinnedNumber || null;
       this.isAutoNotesActive = data.isAutoNotesActive ?? false;
       this.status = data.status === 'completed' || data.status === 'gameover' ? 'idle' : data.status || 'playing';
+      this.lastSurgeSpawnTime = this.timerSeconds;
 
       this.board = data.board.map((row: any[]) =>
         row.map((c: any) => {
@@ -1227,6 +1460,8 @@ export class SudokuGame {
             isLocked: c.isGiven || isUserSolved,
             isInEcho: false,
             torchExpireAt: 0,
+            isSurge: false,
+            surgeExpireAt: 0,
             isBeacon: c.isBeacon !== undefined ? c.isBeacon : isUserSolved,
           };
         })

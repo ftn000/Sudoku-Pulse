@@ -29,10 +29,18 @@
     </div>
 
     <div class="menu-actions">
+      <button id="btn-menu-continue" class="btn-menu-card btn-continue-card hidden">
+        <span class="btn-icon">▶️</span>
+        <span class="btn-text">
+          <strong>Продолжить партию</strong>
+          <small id="menu-continue-meta">Сохранённая игра ждёт вас</small>
+        </span>
+      </button>
+
       <button id="btn-menu-play" class="btn-menu-primary">
         <span class="btn-icon">⚡</span>
         <span class="btn-text">
-          <strong>Играть</strong>
+          <strong>Новая игра</strong>
           <small>Выбор режима и сложности</small>
         </span>
       </button>
@@ -44,6 +52,15 @@
           <small id="menu-daily-date">Ежедневный вызов мира</small>
         </span>
         <span class="badge-streak" id="menu-daily-streak">🔥 0</span>
+      </button>
+
+      <button id="btn-menu-achievements" class="btn-menu-card">
+        <span class="btn-icon">🏅</span>
+        <span class="btn-text">
+          <strong>Достижения</strong>
+          <small>Испытания и трофеи сектора</small>
+        </span>
+        <span class="badge-streak" id="menu-ach-counter" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">0/10</span>
       </button>
 
       <div class="menu-grid-row">
@@ -329,11 +346,34 @@
       </div>
 
       <div class="section-title" style="margin-top: 4px; margin-bottom: 4px;">🌐 Глобальный Лидерборд (Топ Игроков)</div>
+      <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
+        <button class="lb-tab active" data-lb-mode="all">Все</button>
+        <button class="lb-tab" data-lb-mode="run">🚀 Забег</button>
+        <button class="lb-tab" data-lb-mode="daily">📅 Daily</button>
+        <button class="lb-tab" data-lb-mode="fog">🌌 Сектор</button>
+        <button class="lb-tab" data-lb-mode="classic">⚡ Классика</button>
+      </div>
       <div id="leaderboard-list" class="modal-stats" style="max-height: 170px; overflow-y: auto; font-size: 0.85rem;">
         <div style="text-align: center; color: var(--text-muted);">Загрузка рекордов сервера...</div>
       </div>
 
       <button id="btn-close-stats" class="btn-primary">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ACHIEVEMENTS                        -->
+  <!-- ========================================== -->
+  <div id="achievements-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+      <h2 class="modal-title">🏅 Достижения</h2>
+      <p id="achievements-subtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: -6px;">Открыто 0 из 10 трофеев</p>
+
+      <div id="achievements-list" class="achievements-list">
+        <!-- Populated by JS -->
+      </div>
+
+      <button id="btn-close-achievements" class="btn-primary">Закрыть</button>
     </div>
   </div>
 
