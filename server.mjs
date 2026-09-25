@@ -56,6 +56,26 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
+const PROFILES_FILE = path.join(DATA_DIR, 'profiles.json');
+
+function readProfiles() {
+  try {
+    ensureDb();
+    if (!fs.existsSync(PROFILES_FILE)) return {};
+    const raw = fs.readFileSync(PROFILES_FILE, 'utf-8');
+    return JSON.parse(raw) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveProfiles(profiles) {
+  try {
+    ensureDb();
+    fs.writeFileSync(PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf-8');
+  } catch {}
+}
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
@@ -137,6 +157,108 @@ const server = http.createServer((req, res) => {
         } catch {}
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Invalid payload' }));
+      });
+      return;
+    }
+  }
+
+  // Cloud Sync API (Telegram ID & Sync Key)
+  if (pathname.endsWith('/api/sync')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.method === 'GET') {
+      const key = String(parsedUrl.searchParams.get('key') || '').trim();
+      if (!key) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Key required' }));
+        return;
+      }
+      const profiles = readProfiles();
+      const profile = profiles[key];
+      if (!profile) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Profile not found' }));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: true, profile }));
+      return;
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+        if (body.length > 50000) req.destroy();
+      });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          const key = String(payload.key || payload.playerId || '').trim();
+          if (!key) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Key required' }));
+            return;
+          }
+
+          const profiles = readProfiles();
+          const existing = profiles[key] || {};
+          const incomingStats = payload.stats || {};
+          const existingStats = existing.stats || {};
+
+          // Safe merge stats (take higher values)
+          const mergedStats = {
+            gamesPlayed: Math.max(existingStats.gamesPlayed || 0, incomingStats.gamesPlayed || 0),
+            gamesWon: Math.max(existingStats.gamesWon || 0, incomingStats.gamesWon || 0),
+            totalScore: Math.max(existingStats.totalScore || 0, incomingStats.totalScore || 0),
+            maxCombo: Math.max(existingStats.maxCombo || 0, incomingStats.maxCombo || 0),
+            dailyStreak: Math.max(existingStats.dailyStreak || 0, incomingStats.dailyStreak || 0),
+            bestRunStage: Math.max(existingStats.bestRunStage || 0, incomingStats.bestRunStage || 0),
+            bestRunScore: Math.max(existingStats.bestRunScore || 0, incomingStats.bestRunScore || 0),
+            surgeCaptured: Math.max(existingStats.surgeCaptured || 0, incomingStats.surgeCaptured || 0),
+            feverTriggeredCount: Math.max(existingStats.feverTriggeredCount || 0, incomingStats.feverTriggeredCount || 0),
+            flawlessWins: Math.max(existingStats.flawlessWins || 0, incomingStats.flawlessWins || 0),
+            darkSectorWins: Math.max(existingStats.darkSectorWins || 0, incomingStats.darkSectorWins || 0),
+            expertDarkSectorWins: Math.max(existingStats.expertDarkSectorWins || 0, incomingStats.expertDarkSectorWins || 0),
+            bestTimeSeconds: {
+              easy: incomingStats.bestTimeSeconds?.easy ?? existingStats.bestTimeSeconds?.easy ?? null,
+              medium: incomingStats.bestTimeSeconds?.medium ?? existingStats.bestTimeSeconds?.medium ?? null,
+              hard: incomingStats.bestTimeSeconds?.hard ?? existingStats.bestTimeSeconds?.hard ?? null,
+              expert: incomingStats.bestTimeSeconds?.expert ?? existingStats.bestTimeSeconds?.expert ?? null,
+            },
+            unlockedAchievements: Array.from(new Set([
+              ...(existingStats.unlockedAchievements || []),
+              ...(incomingStats.unlockedAchievements || []),
+            ])),
+          };
+
+          const mergedProfile = {
+            key,
+            playerName: payload.playerName || existing.playerName || 'Игрок',
+            telegramUser: payload.telegramUser || existing.telegramUser || null,
+            theme: payload.theme || existing.theme || 'dark',
+            stats: mergedStats,
+            updatedAt: new Date().toISOString(),
+          };
+
+          profiles[key] = mergedProfile;
+          saveProfiles(profiles);
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: true, profile: mergedProfile }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
       });
       return;
     }

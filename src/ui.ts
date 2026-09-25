@@ -78,6 +78,7 @@ export class SudokuUI {
   private modalCombo!: HTMLElement;
   private modalMistakes!: HTMLElement;
   private modalMode!: HTMLElement;
+  private modalDiff!: HTMLElement;
   private runStageUpgrade!: HTMLElement;
   private nextStageNum!: HTMLElement;
   private runPerksDraft!: HTMLElement;
@@ -123,6 +124,11 @@ export class SudokuUI {
   private settingSoundBtn!: HTMLButtonElement;
   private settingThemeBtn!: HTMLButtonElement;
   private themeSkinPills: HTMLButtonElement[] = [];
+  private syncAccountBadge!: HTMLElement;
+  private syncKeyInput!: HTMLInputElement;
+  private btnSyncImport!: HTMLButtonElement;
+  private btnSyncCopyKey!: HTMLButtonElement;
+  private btnSyncCloud!: HTMLButtonElement;
 
   private adModal!: HTMLElement;
   private adRewardTitle!: HTMLElement;
@@ -262,6 +268,7 @@ export class SudokuUI {
     this.modalCombo = document.getElementById('modal-combo')!;
     this.modalMistakes = document.getElementById('modal-mistakes')!;
     this.modalMode = document.getElementById('modal-mode')!;
+    this.modalDiff = document.getElementById('modal-diff')!;
     this.runStageUpgrade = document.getElementById('run-stage-upgrade')!;
     this.nextStageNum = document.getElementById('next-stage-num')!;
     this.runPerksDraft = document.getElementById('run-perks-draft')!;
@@ -298,6 +305,11 @@ export class SudokuUI {
     this.settingSoundBtn = document.getElementById('setting-sound-btn') as HTMLButtonElement;
     this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
     this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
+    this.syncAccountBadge = document.getElementById('sync-account-badge')!;
+    this.syncKeyInput = document.getElementById('sync-key-input') as HTMLInputElement;
+    this.btnSyncImport = document.getElementById('btn-sync-import') as HTMLButtonElement;
+    this.btnSyncCopyKey = document.getElementById('btn-sync-copy-key') as HTMLButtonElement;
+    this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement;
 
     this.adModal = document.getElementById('ad-modal')!;
     this.adRewardTitle = document.getElementById('ad-reward-title')!;
@@ -325,6 +337,7 @@ export class SudokuUI {
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateThemeButtons(savedTheme);
     this.updateSoundButtons(soundManager.enabled);
+    this.updateSyncBadge();
   }
 
   public showScreen(screen: AppScreen) {
@@ -574,14 +587,46 @@ export class SudokuUI {
       this.updateDailyInfoOnMenu();
     });
 
-    // Daily Share button & Challenge Share button
+    // Share result & Challenge friend buttons
     this.btnDailyShare.addEventListener('click', () => {
-      this.copyDailyResultToClipboard();
+      this.shareResultToTelegram();
     });
 
     this.btnChallengeShare.addEventListener('click', () => {
-      this.copyChallengeLinkToClipboard();
+      this.shareChallengeToTelegram();
     });
+
+    // Cloud Sync & Device Linking
+    if (this.btnSyncCopyKey) {
+      this.btnSyncCopyKey.addEventListener('click', () => {
+        soundManager.playSelect();
+        const key = this.getSyncKey();
+        navigator.clipboard.writeText(key).then(() => {
+          this.showToast(`📋 Ключ скопирован в буфер: ${key}`);
+        }).catch(() => {
+          this.showToast(`Ключ: ${key}`);
+        });
+      });
+    }
+
+    if (this.btnSyncImport) {
+      this.btnSyncImport.addEventListener('click', async () => {
+        soundManager.playSelect();
+        const key = (this.syncKeyInput?.value || '').trim();
+        if (!key) {
+          this.showToast('⚠️ Введите ключ синхронизации');
+          return;
+        }
+        await this.importSyncKey(key);
+      });
+    }
+
+    if (this.btnSyncCloud) {
+      this.btnSyncCloud.addEventListener('click', async () => {
+        soundManager.playSelect();
+        await this.syncWithCloud(true);
+      });
+    }
 
     this.playerNameInput.addEventListener('change', async () => {
       const name = this.playerNameInput.value.trim() || 'CyberPlayer';
@@ -1108,6 +1153,16 @@ export class SudokuUI {
     };
     this.modalMode.textContent = modeLabels[stats.mode];
 
+    const diffLabels: Record<Difficulty, string> = {
+      easy: 'Легкий',
+      medium: 'Средний',
+      hard: 'Сложный',
+      expert: 'Эксперт',
+    };
+    if (this.modalDiff) {
+      this.modalDiff.textContent = diffLabels[stats.difficulty] || 'Средний';
+    }
+
     if (stats.mode === 'run') {
       const nextStage = this.game.runStage + 1;
       const stageBonus = 1500 * this.game.runStage;
@@ -1116,7 +1171,6 @@ export class SudokuUI {
       this.nextStageNum.textContent = nextStage.toString();
       this.runStageUpgrade.classList.remove('hidden');
       this.playAgainBtn.classList.add('hidden');
-      this.btnDailyShare.classList.add('hidden');
 
       this.runPerksDraft.innerHTML = '';
       const drafted = getRandomPerks(3, this.game.activePerks);
@@ -1146,13 +1200,14 @@ export class SudokuUI {
       this.modalSubtitle.textContent = 'Головоломка успешно решена!';
       this.runStageUpgrade.classList.add('hidden');
       this.playAgainBtn.classList.remove('hidden');
-      this.btnDailyShare.classList.toggle('hidden', stats.mode !== 'daily');
     }
 
     this.winModal.classList.remove('hidden');
     this.startConfetti();
     this.updateDailyInfoOnMenu();
     this.submitScoreToLeaderboard(stats);
+    // Background cloud sync on win
+    this.syncWithCloud(false).catch(() => {});
   }
 
   private checkUrlChallenge(): boolean {
@@ -1187,21 +1242,6 @@ export class SudokuUI {
     }, 100);
 
     return true;
-  }
-
-  private copyChallengeLinkToClipboard() {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const url = `${baseUrl}?seed=${this.game.currentSeed}&diff=${this.game.difficulty}&mode=${this.game.mode}`;
-    const mins = Math.floor(this.game.timerSeconds / 60);
-    const secs = this.game.timerSeconds % 60;
-    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    const text = `🎯 Вызов в Sudoku Pulse!\nМой счёт: ${this.game.score.toLocaleString('ru-RU')} за ${timeStr}.\nПопробуй побить на том же раскладе:\n${url}`;
-
-    navigator.clipboard.writeText(text).then(() => {
-      this.showToast('🔗 Ссылка-вызов скопирована в буфер обмена!');
-    }).catch(() => {
-      this.showToast('🔗 Не удалось скопировать ссылку.');
-    });
   }
 
   private async submitScoreToLeaderboard(stats: GameStats) {
@@ -1307,23 +1347,175 @@ export class SudokuUI {
     this.achievementsModal.classList.remove('hidden');
   }
 
-  private copyDailyResultToClipboard() {
+  private getSyncKey(): string {
+    const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tgUser?.id) {
+      return `tg_${tgUser.id}`;
+    }
+    const KEY = 'sudoku_cloud_sync_key';
+    let key = localStorage.getItem(KEY);
+    if (!key) {
+      const devId = SudokuGame.getOrCreatePlayerId().replace(/^dev_/, '');
+      key = `PULSE-${devId.slice(0, 4).toUpperCase()}-${devId.slice(4, 8).toUpperCase()}`;
+      localStorage.setItem(KEY, key);
+    }
+    return key;
+  }
+
+  private updateSyncBadge() {
+    if (!this.syncAccountBadge) return;
+    const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    if (tgUser) {
+      const handle = tgUser.username ? `@${tgUser.username}` : tgUser.first_name || `TG #${tgUser.id}`;
+      this.syncAccountBadge.textContent = `✈️ ${handle}`;
+      this.syncAccountBadge.style.color = '#38bdf8';
+    } else {
+      const key = this.getSyncKey();
+      this.syncAccountBadge.textContent = `🔑 ${key}`;
+      this.syncAccountBadge.style.color = '#34d399';
+    }
+  }
+
+  private async syncWithCloud(showToastNotification: boolean = false) {
+    try {
+      const key = this.getSyncKey();
+      const stats = SudokuGame.getPlayerStats();
+      const playerName = localStorage.getItem('sudoku_player_name') || 'Игрок';
+      const theme = localStorage.getItem('sudoku_theme') || 'dark';
+      const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user || null;
+
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
+      const res = await fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key,
+          stats,
+          playerName,
+          theme,
+          telegramUser: tgUser,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Sync failed');
+      const data = await res.json();
+      if (data.profile?.stats) {
+        SudokuGame.mergePlayerStats(data.profile.stats);
+        this.updateDailyInfoOnMenu();
+      }
+
+      if (showToastNotification) {
+        this.showToast('☁️ Прогресс успешно синхронизирован с облаком!');
+      }
+    } catch {
+      if (showToastNotification) {
+        this.showToast('⚠️ Офлайн: локальный прогресс сохранён');
+      }
+    }
+  }
+
+  private async importSyncKey(inputKey: string) {
+    try {
+      const key = inputKey.trim();
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
+      const res = await fetch(`${apiBase}?key=${encodeURIComponent(key)}`);
+      if (!res.ok) {
+        this.showToast('❌ Профиль с таким ключом не найден');
+        return;
+      }
+      const data = await res.json();
+      if (data.profile) {
+        if (data.profile.stats) {
+          SudokuGame.mergePlayerStats(data.profile.stats);
+        }
+        if (data.profile.playerName) {
+          localStorage.setItem('sudoku_player_name', data.profile.playerName);
+          if (this.playerNameInput) this.playerNameInput.value = data.profile.playerName;
+        }
+        if (data.profile.theme) {
+          this.setTheme(data.profile.theme);
+        }
+        localStorage.setItem('sudoku_cloud_sync_key', key);
+        this.updateSyncBadge();
+        this.updateDailyInfoOnMenu();
+        this.showToast('🎉 Прогресс успешно перенесён на это устройство!');
+      }
+    } catch {
+      this.showToast('❌ Ошибка при переносе прогресса');
+    }
+  }
+
+  private shareChallengeToTelegram() {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}?seed=${this.game.currentSeed}&diff=${this.game.difficulty}&mode=${this.game.mode}`;
     const mins = Math.floor(this.game.timerSeconds / 60);
     const secs = this.game.timerSeconds % 60;
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    const today = new Date().toISOString().split('T')[0];
+    const diffLabels: Record<Difficulty, string> = {
+      easy: 'Легкий',
+      medium: 'Средний',
+      hard: 'Сложный',
+      expert: 'Эксперт',
+    };
+    const diffName = diffLabels[this.game.difficulty] || 'Средний';
 
-    const shareText = `⚡ Sudoku Pulse Daily #${today}
-⏱️ Время: ${timeStr} | 🔥 Макс. комбо: x${this.game.maxComboAchieved}
-❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes} | 💎 Очки: ${this.game.score.toLocaleString()}
+    const text = `⚔️ Бросаю вызов в Sudoku Pulse!
+Мой результат: ${this.game.score.toLocaleString('ru-RU')} очков за ${timeStr} на сложности "${diffName}".
+Попробуй побить мой рекорд на том же раскладе:`;
+
+    navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+      this.showToast('🔗 Ссылка скопирована! Открываем Telegram...');
+    }).catch(() => {});
+
+    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+    const tgApp = (window as any).Telegram?.WebApp;
+    if (tgApp?.openTelegramLink) {
+      tgApp.openTelegramLink(tgShareUrl);
+    } else {
+      window.open(tgShareUrl, '_blank');
+    }
+  }
+
+  private shareResultToTelegram() {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const mins = Math.floor(this.game.timerSeconds / 60);
+    const secs = this.game.timerSeconds % 60;
+    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    const modeLabels: Record<GameMode, string> = {
+      classic: 'Классика',
+      fog: 'Тёмный сектор',
+      daily: 'Daily Pulse',
+      run: `Pulse Run (Этап ${this.game.runStage})`,
+    };
+    const diffLabels: Record<Difficulty, string> = {
+      easy: 'Легкий',
+      medium: 'Средний',
+      hard: 'Сложный',
+      expert: 'Эксперт',
+    };
+
+    const modeName = modeLabels[this.game.mode] || 'Классика';
+    const diffName = diffLabels[this.game.difficulty] || 'Средний';
+
+    const text = `⚡ Sudoku Pulse — Победа!
+🎮 Режим: ${modeName} (${diffName})
+⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}
+🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}
 🟩🟩🟩🟨🟩
-Сыграй в Sudoku Pulse!`;
+Сыграй в ритме Sudoku Pulse:`;
 
-    navigator.clipboard.writeText(shareText).then(() => {
-      this.showToast('📋 Результат скопирован в буфер обмена!');
-    }).catch(() => {
-      this.showToast('📋 Не удалось скопировать.');
-    });
+    navigator.clipboard.writeText(`${text}\n${baseUrl}`).then(() => {
+      this.showToast('📋 Результат скопирован! Открываем Telegram...');
+    }).catch(() => {});
+
+    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(baseUrl)}&text=${encodeURIComponent(text)}`;
+    const tgApp = (window as any).Telegram?.WebApp;
+    if (tgApp?.openTelegramLink) {
+      tgApp.openTelegramLink(tgShareUrl);
+    } else {
+      window.open(tgShareUrl, '_blank');
+    }
   }
 
   private showGameOverModal() {

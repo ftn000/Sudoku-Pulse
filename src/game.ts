@@ -1308,6 +1308,51 @@ export class SudokuGame {
     };
   }
 
+  public static savePlayerStats(stats: PlayerStats) {
+    try {
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch {}
+  }
+
+  public static mergePlayerStats(incoming: PlayerStats): PlayerStats {
+    const current = SudokuGame.getPlayerStats();
+    const merged: PlayerStats = {
+      gamesPlayed: Math.max(current.gamesPlayed || 0, incoming.gamesPlayed || 0),
+      gamesWon: Math.max(current.gamesWon || 0, incoming.gamesWon || 0),
+      totalScore: Math.max(current.totalScore || 0, incoming.totalScore || 0),
+      maxCombo: Math.max(current.maxCombo || 0, incoming.maxCombo || 0),
+      dailyStreak: Math.max(current.dailyStreak || 0, incoming.dailyStreak || 0),
+      lastDailyDate: current.lastDailyDate || incoming.lastDailyDate || null,
+      bestRunStage: Math.max(current.bestRunStage || 0, incoming.bestRunStage || 0),
+      bestRunScore: Math.max(current.bestRunScore || 0, incoming.bestRunScore || 0),
+      surgeCaptured: Math.max(current.surgeCaptured || 0, incoming.surgeCaptured || 0),
+      feverTriggeredCount: Math.max(current.feverTriggeredCount || 0, incoming.feverTriggeredCount || 0),
+      flawlessWins: Math.max(current.flawlessWins || 0, incoming.flawlessWins || 0),
+      darkSectorWins: Math.max(current.darkSectorWins || 0, incoming.darkSectorWins || 0),
+      expertDarkSectorWins: Math.max(current.expertDarkSectorWins || 0, incoming.expertDarkSectorWins || 0),
+      bestTimeSeconds: {
+        easy: (current.bestTimeSeconds?.easy !== null && incoming.bestTimeSeconds?.easy !== null)
+          ? Math.min(current.bestTimeSeconds.easy, incoming.bestTimeSeconds.easy)
+          : (current.bestTimeSeconds?.easy ?? incoming.bestTimeSeconds?.easy ?? null),
+        medium: (current.bestTimeSeconds?.medium !== null && incoming.bestTimeSeconds?.medium !== null)
+          ? Math.min(current.bestTimeSeconds.medium, incoming.bestTimeSeconds.medium)
+          : (current.bestTimeSeconds?.medium ?? incoming.bestTimeSeconds?.medium ?? null),
+        hard: (current.bestTimeSeconds?.hard !== null && incoming.bestTimeSeconds?.hard !== null)
+          ? Math.min(current.bestTimeSeconds.hard, incoming.bestTimeSeconds.hard)
+          : (current.bestTimeSeconds?.hard ?? incoming.bestTimeSeconds?.hard ?? null),
+        expert: (current.bestTimeSeconds?.expert !== null && incoming.bestTimeSeconds?.expert !== null)
+          ? Math.min(current.bestTimeSeconds.expert, incoming.bestTimeSeconds.expert)
+          : (current.bestTimeSeconds?.expert ?? incoming.bestTimeSeconds?.expert ?? null),
+      },
+      unlockedAchievements: Array.from(new Set([
+        ...(current.unlockedAchievements || []),
+        ...(incoming.unlockedAchievements || []),
+      ])),
+    };
+    SudokuGame.savePlayerStats(merged);
+    return merged;
+  }
+
   private recordProgressStats(updater: (stats: PlayerStats) => void) {
     try {
       const stats = SudokuGame.getPlayerStats();
