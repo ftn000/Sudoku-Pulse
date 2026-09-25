@@ -623,10 +623,9 @@ async function handleTelegramUpdate(update) {
   const text = msg.text.trim();
 
   if (text.startsWith('/start')) {
-    const parts = text.split(' ');
-    const startParam = parts[1] ? parts[1].trim() : '';
+    const startParam = text.replace(/^\/start(@\w+)?\s*/i, '').trim();
 
-    if (startParam && (startParam.startsWith('tg_auth_') || startParam.startsWith('auth_') || startParam.startsWith('sync_'))) {
+    if (startParam && (startParam.startsWith('tg_auth_') || startParam.startsWith('auth_') || startParam.startsWith('sync_') || startParam.startsWith('PULSE-'))) {
       const token = startParam.startsWith('auth_') ? startParam.replace(/^auth_/, 'tg_auth_') : startParam;
 
       // Update / approve auth session
@@ -643,7 +642,7 @@ async function handleTelegramUpdate(update) {
       if (!profile) {
         profile = {
           key: tgKey,
-          playerName: user.first_name || (user.username ? `@${user.username}` : 'Игрок'),
+          playerName: user.username ? `@${user.username}` : (user.first_name || 'Игрок'),
           telegramUser: user,
           theme: 'dark',
           stats: {
@@ -672,13 +671,16 @@ async function handleTelegramUpdate(update) {
       session.telegramUser = user;
       session.profile = profile;
 
+      const displayTgName = user.first_name || (user.username ? `@${user.username}` : 'Игрок');
+      const userHandle = user.username ? `@${user.username}` : (user.first_name || `ID ${user.id}`);
+
       await tgApi('sendMessage', {
         chat_id: chatId,
-        text: `⚡ <b>Авторизация в Sudoku Pulse подтверждена!</b>\n\n👋 Привет, <b>${user.first_name || user.username}</b>!\nВы успешно вошли в игру на компьютере/в браузере. Ваш прогресс, рекорды и открытые трофеи теперь синхронизированы в облаке.\n\n🎮 <i>Экран в браузере обновится автоматически, либо вы можете сыграть прямо здесь:</i>`,
+        text: `⚡ <b>Успешно авторизовался!</b>\n\n👋 Привет, <b>${displayTgName}</b>!\nТвой Telegram-аккаунт (<b>${userHandle}</b>) успешно привязан к <b>Sudoku Pulse</b> на компьютере.\n\n☁️ Все рекорды, открытые трофеи и статистика теперь автоматически синхронизируются!\n\n🎮 <i>Окно в браузере обновилось, либо нажми кнопку ниже для игры прямо в Telegram:</i>`,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⚡ Открыть Sudoku Pulse (Mini App)', web_app: { url: GAME_URL } }]
+            [{ text: '⚡ Играть в Sudoku Pulse (Mini App)', web_app: { url: GAME_URL } }]
           ]
         }
       });

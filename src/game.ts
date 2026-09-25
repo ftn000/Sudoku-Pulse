@@ -63,12 +63,21 @@ export class SudokuGame {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
-      return Boolean(
-        data &&
-        Array.isArray(data.board) &&
-        data.board.length === 9 &&
-        (data.status === 'playing' || data.status === 'paused')
-      );
+      if (!data || !Array.isArray(data.board) || data.board.length !== 9) return false;
+      if (data.status !== 'playing' && data.status !== 'paused') return false;
+
+      let hasUnsolved = false;
+      for (const row of data.board) {
+        if (!Array.isArray(row)) return false;
+        for (const cell of row) {
+          if (!cell.value || cell.value !== cell.solution) {
+            hasUnsolved = true;
+            break;
+          }
+        }
+        if (hasUnsolved) break;
+      }
+      return hasUnsolved;
     } catch {
       return false;
     }
@@ -980,6 +989,14 @@ export class SudokuGame {
   public reviveSecondChance() {
     if (this.status === 'gameover') {
       this.mistakesCount = Math.max(0, this.maxMistakes - 1);
+      this.isFeverMode = false;
+      this.feverSecondsLeft = 0;
+      this.pulseEnergy = 0;
+      this.comboCount = 0;
+      this.comboMultiplier = 1.0 + this.getPerkLevel('combo_master') * 1.0;
+      if (this.onSoundTriggerCallback) {
+        this.onSoundTriggerCallback('fever_end');
+      }
       this.status = 'playing';
       this.notify();
     }
@@ -1441,6 +1458,14 @@ export class SudokuGame {
   }
 
   public saveToStorage() {
+    if (this.status !== 'playing' && this.status !== 'paused') {
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      return;
+    }
+    if (this.checkWin()) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      return;
+    }
     try {
       const serializableBoard = this.board.map((row) =>
         row.map((cell) => ({
@@ -1481,6 +1506,12 @@ export class SudokuGame {
       const data = JSON.parse(saved);
 
       if (!data.board || !Array.isArray(data.board) || data.board.length !== 9) {
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+        return false;
+      }
+
+      if (data.status !== 'playing' && data.status !== 'paused') {
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
         return false;
       }
 

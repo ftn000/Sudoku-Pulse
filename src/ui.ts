@@ -488,6 +488,10 @@ export class SudokuUI {
 
     this.btnMenuStats.addEventListener('click', () => {
       soundManager.playSelect();
+      if (this.playerNameInput) {
+        const saved = localStorage.getItem('sudoku_player_name');
+        if (saved) this.playerNameInput.value = saved;
+      }
       this.showStatsModal();
       haptics.setBackButton(() => {
         this.statsModal.classList.add('hidden');
@@ -497,6 +501,10 @@ export class SudokuUI {
 
     this.btnMenuSettings.addEventListener('click', () => {
       soundManager.playSelect();
+      this.updateSyncBadge();
+      if (this.syncKeyInput) {
+        this.syncKeyInput.value = this.getSyncKey();
+      }
       this.settingsModal.classList.remove('hidden');
       haptics.setBackButton(() => {
         this.settingsModal.classList.add('hidden');
@@ -618,6 +626,9 @@ export class SudokuUI {
     // Game Screen Home Button
     this.btnGameHome.addEventListener('click', () => {
       soundManager.playSelect();
+      if (this.game.status === 'completed' || this.game.status === 'gameover' || this.game.checkWin()) {
+        try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
+      }
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
     });
@@ -735,6 +746,7 @@ export class SudokuUI {
     this.btnWinMenu.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
       this.stopConfetti();
+      try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
     });
@@ -809,6 +821,7 @@ export class SudokuUI {
     this.secondChanceBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
       this.showMockAd('❤️ Второй шанс: +1 Жизнь', () => {
+        soundManager.stopFeverTrack();
         this.game.reviveSecondChance();
         this.showToast('❤️ Вы получили второй шанс!');
       });
@@ -825,7 +838,9 @@ export class SudokuUI {
 
     this.btnGameOverMenu.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
+      try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
+      this.updateDailyInfoOnMenu();
     });
 
     // Keyboard support
@@ -1622,17 +1637,34 @@ export class SudokuUI {
   private applyTelegramUser(user: TelegramUser, profile?: any) {
     localStorage.setItem('sudoku_telegram_user', JSON.stringify(user));
     localStorage.setItem('sudoku_cloud_sync_key', `tg_${user.id}`);
-    if (user.username) {
-      localStorage.setItem('sudoku_player_name', `@${user.username}`);
-      if (this.playerNameInput) this.playerNameInput.value = `@${user.username}`;
-    } else if (user.first_name) {
-      localStorage.setItem('sudoku_player_name', user.first_name);
-      if (this.playerNameInput) this.playerNameInput.value = user.first_name;
+    const playerName = user.username ? `@${user.username}` : (user.first_name || `TG #${user.id}`);
+    localStorage.setItem('sudoku_player_name', playerName);
+
+    if (this.playerNameInput) {
+      this.playerNameInput.value = playerName;
+    }
+    if (this.syncKeyInput) {
+      this.syncKeyInput.value = user.username ? `@${user.username}` : `tg_${user.id}`;
     }
 
     if (profile?.stats) {
       SudokuGame.mergePlayerStats(profile.stats);
     }
+
+    // Submit rename to leaderboard so player records reflect new username immediately
+    try {
+      const playerId = SudokuGame.getOrCreatePlayerId();
+      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rename',
+          playerId,
+          name: playerName,
+        }),
+      }).catch(() => {});
+    } catch {}
 
     soundManager.playCorrect(3);
     haptics.success();
@@ -1640,7 +1672,14 @@ export class SudokuUI {
     this.updateSyncBadge();
     this.updateDailyInfoOnMenu();
     this.updateTgAuthModalView();
-    this.showToast(`🎉 Успешный вход через Telegram (@${user.username || user.first_name || user.id})!`);
+    this.showToast(`🎉 Успешный вход через Telegram (${playerName})!`);
+
+    // Auto-close QR / auth modal after 1.2s
+    setTimeout(() => {
+      if (this.tgAuthModal && !this.tgAuthModal.classList.contains('hidden')) {
+        this.closeTgAuthModal();
+      }
+    }, 1200);
   }
 
   private logoutTelegram() {
@@ -1649,6 +1688,11 @@ export class SudokuUI {
     this.stopTgAuthPolling();
     localStorage.removeItem('sudoku_telegram_user');
     localStorage.removeItem('sudoku_cloud_sync_key');
+    const defaultName = `Pulse#${Math.floor(100 + Math.random() * 899)}`;
+    localStorage.setItem('sudoku_player_name', defaultName);
+    if (this.playerNameInput) {
+      this.playerNameInput.value = defaultName;
+    }
     this.updateTgMenuPill();
     this.updateSyncBadge();
     this.updateTgAuthModalView();
@@ -1684,7 +1728,7 @@ export class SudokuUI {
   private getSyncKey(): string {
     const tgUser = this.getStoredTelegramUser();
     if (tgUser?.id) {
-      return `tg_${tgUser.id}`;
+      return tgUser.username ? `@${tgUser.username}` : `tg_${tgUser.id}`;
     }
     const KEY = 'sudoku_cloud_sync_key';
     let key = localStorage.getItem(KEY);
@@ -1712,6 +1756,9 @@ export class SudokuUI {
         this.syncAccountBadge.textContent = `🔑 ${key}`;
         this.syncAccountBadge.style.color = '#34d399';
       }
+    }
+    if (this.syncKeyInput) {
+      this.syncKeyInput.value = this.getSyncKey();
     }
     this.updateTgMenuPill();
   }
@@ -1780,6 +1827,7 @@ export class SudokuUI {
         }
         const effectiveKey = data.profile.key || key;
         localStorage.setItem('sudoku_cloud_sync_key', effectiveKey);
+        if (this.syncKeyInput) this.syncKeyInput.value = effectiveKey;
         this.updateSyncBadge();
         this.updateDailyInfoOnMenu();
         this.updateTgAuthModalView();
