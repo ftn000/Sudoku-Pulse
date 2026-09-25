@@ -1661,7 +1661,7 @@ export class SudokuUI {
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'dstu_schedule_notify_bot');
+    script.setAttribute('data-telegram-login', 'sudoku_pulse_auth_bot');
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-radius', '10');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');

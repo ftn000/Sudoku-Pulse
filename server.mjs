@@ -210,7 +210,7 @@ const server = http.createServer((req, res) => {
     // 1. Initialize Auth Session
     if (pathname.endsWith('/api/auth/init')) {
       const token = 'tg_auth_' + crypto.randomBytes(6).toString('hex');
-      const botName = process.env.BOT_USERNAME || 'dstu_schedule_notify_bot';
+      const botName = process.env.BOT_USERNAME || 'sudoku_pulse_auth_bot';
       const botUrl = `https://t.me/${botName}?start=${token}`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(botUrl)}`;
 
@@ -556,4 +556,186 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Sudoku Pulse Server & Leaderboard API listening on port ${PORT}`);
+  startTelegramBot();
 });
+
+// ==========================================
+// DEDICATED TELEGRAM BOT ENGINE (@sudoku_pulse_auth_bot)
+// ==========================================
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8957810180:AAE5BIVA8BfM9tFIF7n-YO3vp_1QT3yxaf4';
+const BOT_USERNAME = process.env.BOT_USERNAME || 'sudoku_pulse_auth_bot';
+const GAME_URL = process.env.GAME_URL || 'http://109.69.17.170/sudoku/';
+
+async function tgApi(method, body) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+async function startTelegramBot() {
+  if (!BOT_TOKEN) return;
+  console.log(`Starting Telegram Bot (@${BOT_USERNAME})...`);
+
+  // Set chat menu button to WebApp
+  try {
+    await tgApi('setChatMenuButton', {
+      menu_button: {
+        type: 'web_app',
+        text: '⚡ Играть в Sudoku',
+        web_app: { url: GAME_URL },
+      },
+    });
+  } catch {}
+
+  let offset = 0;
+  async function poll() {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=25`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.result)) {
+          for (const update of data.result) {
+            offset = update.update_id + 1;
+            await handleTelegramUpdate(update);
+          }
+        }
+      }
+    } catch {
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+    setTimeout(poll, 400);
+  }
+  poll();
+}
+
+async function handleTelegramUpdate(update) {
+  const msg = update.message;
+  if (!msg || !msg.text) return;
+  const chatId = msg.chat.id;
+  const user = msg.from;
+  const text = msg.text.trim();
+
+  if (text.startsWith('/start')) {
+    const parts = text.split(' ');
+    const startParam = parts[1] ? parts[1].trim() : '';
+
+    if (startParam && (startParam.startsWith('tg_auth_') || startParam.startsWith('auth_') || startParam.startsWith('sync_'))) {
+      const token = startParam.startsWith('auth_') ? startParam.replace(/^auth_/, 'tg_auth_') : startParam;
+
+      // Update / approve auth session
+      let session = authSessions.get(token) || authSessions.get(startParam);
+      if (!session) {
+        session = { token, createdAt: Date.now() };
+        authSessions.set(token, session);
+      }
+
+      const profiles = readProfiles();
+      const tgKey = `tg_${user.id}`;
+      let profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
+
+      if (!profile) {
+        profile = {
+          key: tgKey,
+          playerName: user.first_name || (user.username ? `@${user.username}` : 'Игрок'),
+          telegramUser: user,
+          theme: 'dark',
+          stats: {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            totalScore: 0,
+            maxCombo: 1,
+            dailyStreak: 0,
+            bestTimeSeconds: { easy: null, medium: null, hard: null, expert: null },
+            unlockedAchievements: [],
+          },
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        profile.telegramUser = { ...profile.telegramUser, ...user };
+        profile.updatedAt = new Date().toISOString();
+      }
+
+      profiles[tgKey] = profile;
+      if (user.username) {
+        profiles['@' + user.username.toLowerCase()] = profile;
+      }
+      saveProfiles(profiles);
+
+      session.status = 'authorized';
+      session.telegramUser = user;
+      session.profile = profile;
+
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `⚡ <b>Авторизация в Sudoku Pulse подтверждена!</b>\n\n👋 Привет, <b>${user.first_name || user.username}</b>!\nВы успешно вошли в игру на компьютере/в браузере. Ваш прогресс, рекорды и открытые трофеи теперь синхронизированы в облаке.\n\n🎮 <i>Экран в браузере обновится автоматически, либо вы можете сыграть прямо здесь:</i>`,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⚡ Открыть Sudoku Pulse (Mini App)', web_app: { url: GAME_URL } }]
+          ]
+        }
+      });
+      return;
+    }
+
+    // Default /start greeting
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `⚡ <b>Добро пожаловать в Sudoku Pulse!</b>\n\nКлассическое судоку в неоновом ритме с комбо-множителем и спецспособностями!\n\n✨ <b>Особенности:</b>\n• ⚡ <b>Комбо и Fever Mode</b> — динамичный темп решения\n• 🌌 <b>Тёмный сектор</b> — судоку со сканером и ограниченной видимостью\n• 🚀 <b>Pulse Run</b> — забеги с прокачкой способностей\n• ☁️ <b>Облачная синхронизация</b> между ПК и телефоном\n\nНажмите кнопку ниже, чтобы начать игру:`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]
+        ]
+      }
+    });
+    return;
+  }
+
+  if (text === '/stats' || text === '📊 Моя статистика') {
+    const profiles = readProfiles();
+    const tgKey = `tg_${user.id}`;
+    const profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
+    const stats = profile?.stats;
+
+    if (!stats || stats.gamesPlayed === 0) {
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `📊 У вас пока нет сыгранных партий. Запустите игру и установите свой первый рекорд!`,
+        reply_markup: {
+          inline_keyboard: [[{ text: '⚡ Начать игру', web_app: { url: GAME_URL } }]]
+        }
+      });
+      return;
+    }
+
+    const wonRatio = Math.round((stats.gamesWon / Math.max(1, stats.gamesPlayed)) * 100);
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `📊 <b>Статистика игрока @${user.username || user.first_name}:</b>\n\n🎮 Сыграно партий: <b>${stats.gamesPlayed}</b>\n🏆 Побед: <b>${stats.gamesWon}</b> (${wonRatio}%)\n💎 Всего очков: <b>${stats.totalScore.toLocaleString('ru-RU')}</b>\n🔥 Макс. комбо: <b>x${stats.maxCombo}</b>\n📅 Серия Daily: <b>${stats.dailyStreak} дн.</b>\n🏅 Открыто трофеев: <b>${(stats.unlockedAchievements || []).length} / 10</b>`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[{ text: '⚡ Играть', web_app: { url: GAME_URL } }]]
+      }
+    });
+    return;
+  }
+
+  if (text === '/help') {
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `ℹ️ <b>Команды бота Sudoku Pulse:</b>\n\n/play — Запустить игру в Telegram Mini App\n/stats — Посмотреть свою статистику и рекорды\n/start — Главное меню и авторизация веб-сессий`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
+      }
+    });
+  }
+}
