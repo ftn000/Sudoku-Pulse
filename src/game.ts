@@ -87,7 +87,7 @@ export class SudokuGame {
   private onStateChangeCallback?: () => void;
   private onWinCallback?: (stats: GameStats) => void;
   private onGameOverCallback?: () => void;
-  private onLineCompleteCallback?: (cells: Array<[number, number]>) => void;
+  private onLineCompleteCallback?: (cells: Array<[number, number]>, types: Array<'row' | 'col' | 'box'>) => void;
   private onSoundTriggerCallback?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
   private onSurgeCapturedCallback?: (bonusScore: number) => void;
   private onAchievementUnlockedCallback?: (ach: Achievement) => void;
@@ -101,7 +101,7 @@ export class SudokuGame {
     onStateChange?: () => void;
     onWin?: (stats: GameStats) => void;
     onGameOver?: () => void;
-    onLineComplete?: (cells: Array<[number, number]>) => void;
+    onLineComplete?: (cells: Array<[number, number]>, types: Array<'row' | 'col' | 'box'>) => void;
     onSoundTrigger?: (sound: 'select' | 'place' | 'correct' | 'error' | 'line' | 'win' | 'fever' | 'fever_end' | 'shield') => void;
     onSurgeCaptured?: (bonusScore: number) => void;
     onAchievementUnlocked?: (ach: Achievement) => void;
@@ -1027,6 +1027,7 @@ export class SudokuGame {
 
   private checkForCompletedUnits(row: number, col: number) {
     const newlyCompletedCells: Array<[number, number]> = [];
+    const completedTypes: Array<'row' | 'col' | 'box'> = [];
 
     // Check row
     if (!this.completedRows.has(row)) {
@@ -1039,6 +1040,7 @@ export class SudokuGame {
       }
       if (rowComplete) {
         this.completedRows.add(row);
+        completedTypes.push('row');
         for (let c = 0; c < 9; c++) newlyCompletedCells.push([row, c]);
         this.score += 500 * Math.round(this.comboMultiplier);
       }
@@ -1055,6 +1057,7 @@ export class SudokuGame {
       }
       if (colComplete) {
         this.completedCols.add(col);
+        completedTypes.push('col');
         for (let r = 0; r < 9; r++) newlyCompletedCells.push([r, col]);
         this.score += 500 * Math.round(this.comboMultiplier);
       }
@@ -1076,6 +1079,7 @@ export class SudokuGame {
       }
       if (boxComplete) {
         this.completedBoxes.add(boxIdx);
+        completedTypes.push('box');
         for (let r = startR; r < startR + 3; r++) {
           for (let c = startC; c < startC + 3; c++) {
             newlyCompletedCells.push([r, c]);
@@ -1086,6 +1090,13 @@ export class SudokuGame {
     }
 
     if (newlyCompletedCells.length > 0) {
+      // Extra combo score bonus for multi-clears (e.g. 2 lines = +500, 3 lines = +1500)
+      if (completedTypes.length >= 3) {
+        this.score += 1500 * Math.round(this.comboMultiplier);
+      } else if (completedTypes.length === 2) {
+        this.score += 600 * Math.round(this.comboMultiplier);
+      }
+
       for (const [cr, cc] of newlyCompletedCells) {
         this.board[cr][cc].isBeacon = true;
       }
@@ -1093,7 +1104,7 @@ export class SudokuGame {
         this.onSoundTriggerCallback('line');
       }
       if (this.onLineCompleteCallback) {
-        this.onLineCompleteCallback(newlyCompletedCells);
+        this.onLineCompleteCallback(newlyCompletedCells, completedTypes);
       }
     }
   }

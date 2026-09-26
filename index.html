@@ -293,6 +293,12 @@
         <div class="modal-stat-row"><span>Ошибки:</span><span id="modal-mistakes">0</span></div>
       </div>
 
+      <!-- Duel / Challenge Result Banner -->
+      <div id="duel-result-banner" class="hidden" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 0.88rem; text-align: center; color: var(--text-main);">
+        <div id="duel-result-title" style="font-weight: 700; color: #38bdf8; margin-bottom: 2px;">⚔️ Результат дуэли</div>
+        <div id="duel-result-text">Вы побили рекорд соперника!</div>
+      </div>
+
       <!-- Pulse Run Stage Upgrade Section -->
       <div id="run-stage-upgrade" class="run-upgrade-box hidden">
         <div class="section-title" style="margin-bottom: 6px;">⚡ Выберите усиление для Этапа <span id="next-stage-num">2</span>:</div>
@@ -400,6 +406,13 @@
         <div class="setting-item">
           <span>Тема оформления</span>
           <button id="setting-theme-btn" class="diff-pill">Cyber Neon</button>
+        </div>
+        <div class="setting-item">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span>🔔 Напоминания Daily Pulse</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Утреннее сообщение от Telegram-бота</span>
+          </div>
+          <button id="setting-notify-btn" class="diff-pill active">Вкл</button>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
           <button class="diff-pill theme-skin-pill" data-skin="dark" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
@@ -521,6 +534,36 @@
       </div>
 
       <button id="btn-close-tg-auth" class="btn-primary" style="margin-top: 8px;">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: DUEL / CHALLENGE INVITATION         -->
+  <!-- ========================================== -->
+  <div id="challenge-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon">⚔️</div>
+      <h2 class="modal-title" id="challenge-modal-title">Дуэльный вызов!</h2>
+      <p id="challenge-modal-subtitle" style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 12px;">
+        Вам бросили вызов на одинаковом раскладе Sudoku!
+      </p>
+
+      <div class="modal-stats" style="margin-bottom: 14px;">
+        <div class="modal-stat-row"><span>Соперник:</span><span id="challenge-challenger-name" style="font-weight:700; color:var(--pulse-cyan);">@Challenger</span></div>
+        <div class="modal-stat-row"><span>Сложность:</span><span id="challenge-diff" style="color:#a855f7;">Средний</span></div>
+        <div class="modal-stat-row"><span>Режим:</span><span id="challenge-mode">Классика</span></div>
+        <div class="modal-stat-row"><span>Рекорд соперника:</span><span id="challenge-target-score" style="color:#38bdf8;">14 500</span></div>
+        <div class="modal-stat-row"><span>Время соперника:</span><span id="challenge-target-time">02:45</span></div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-challenge-accept" class="btn-primary" style="flex: 2; padding: 10px;">
+          ⚔️ Принять вызов!
+        </button>
+        <button id="btn-challenge-decline" class="btn-secondary" style="flex: 1; padding: 10px;">
+          Позже
+        </button>
+      </div>
     </div>
   </div>
 

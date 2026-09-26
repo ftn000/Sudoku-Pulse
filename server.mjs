@@ -503,6 +503,9 @@ const server = http.createServer((req, res) => {
             playerName: payload.playerName || existing.playerName || 'Игрок',
             telegramUser: payload.telegramUser || existing.telegramUser || null,
             theme: payload.theme || existing.theme || 'dark',
+            notificationsEnabled: typeof payload.notificationsEnabled === 'boolean'
+              ? payload.notificationsEnabled
+              : (typeof existing.notificationsEnabled === 'boolean' ? existing.notificationsEnabled : true),
             stats: mergedStats,
             updatedAt: new Date().toISOString(),
           };
@@ -625,6 +628,7 @@ async function handleTelegramUpdate(update) {
   if (text.startsWith('/start')) {
     const startParam = text.replace(/^\/start(@\w+)?\s*/i, '').trim();
 
+    // 1. Web / QR Login Session
     if (startParam && (startParam.startsWith('tg_auth_') || startParam.startsWith('auth_') || startParam.startsWith('sync_') || startParam.startsWith('PULSE-'))) {
       const token = startParam.startsWith('auth_') ? startParam.replace(/^auth_/, 'tg_auth_') : startParam;
 
@@ -645,6 +649,7 @@ async function handleTelegramUpdate(update) {
           playerName: user.username ? `@${user.username}` : (user.first_name || 'Игрок'),
           telegramUser: user,
           theme: 'dark',
+          notificationsEnabled: true,
           stats: {
             gamesPlayed: 0,
             gamesWon: 0,
@@ -687,10 +692,41 @@ async function handleTelegramUpdate(update) {
       return;
     }
 
+    // 2. Challenge / Duel Deep-link
+    if (startParam && (startParam.startsWith('c_') || startParam.startsWith('challenge_'))) {
+      const challengeUrl = `${GAME_URL}?start_param=${encodeURIComponent(startParam)}`;
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `⚔️ <b>Тебе бросили вызов в Sudoku Pulse!</b>\n\n🎯 Соперник завершил расклад и бросил вызов твоей скорости и точности!\nСыграйте на одинаковом поле и докажите, кто быстрее!\n\nНажми кнопку ниже, чтобы принять дуэль:`,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⚔️ Принять вызов (Mini App)', web_app: { url: challengeUrl } }]
+          ]
+        }
+      });
+      return;
+    }
+
+    // 3. Daily Pulse Direct
+    if (startParam === 'daily') {
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `📅 <b>Daily Pulse — испытание дня!</b>\n\nРеши ежедневную головоломку, поддержи серию побед (Daily Streak) и забери бонусные очки!`,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📅 Решить Daily Pulse', web_app: { url: `${GAME_URL}?mode=daily` } }]
+          ]
+        }
+      });
+      return;
+    }
+
     // Default /start greeting
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `⚡ <b>Добро пожаловать в Sudoku Pulse!</b>\n\nКлассическое судоку в неоновом ритме с комбо-множителем и спецспособностями!\n\n✨ <b>Особенности:</b>\n• ⚡ <b>Комбо и Fever Mode</b> — динамичный темп решения\n• 🌌 <b>Тёмный сектор</b> — судоку со сканером и ограниченной видимостью\n• 🚀 <b>Pulse Run</b> — забеги с прокачкой способностей\n• ☁️ <b>Облачная синхронизация</b> между ПК и телефоном\n\nНажмите кнопку ниже, чтобы начать игру:`,
+      text: `⚡ <b>Добро пожаловать в Sudoku Pulse!</b>\n\nКлассическое судоку в неоновом ритме с комбо-множителем, дуэлями и спецспособностями!\n\n✨ <b>Особенности:</b>\n• ⚡ <b>Комбо и Fever Mode</b> — динамичный темп решения\n• ⚔️ <b>Дуэли и вызовы</b> — соревнования с друзьями на одинаковых сетках\n• 🌌 <b>Тёмный сектор</b> — судоку со сканером и ограниченной видимостью\n• 🚀 <b>Pulse Run</b> — забеги с прокачкой способностей\n• ☁️ <b>Облачная синхронизация</b> между ПК и телефоном\n\nНажмите кнопку ниже, чтобы начать игру:`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
@@ -698,6 +734,68 @@ async function handleTelegramUpdate(update) {
         ]
       }
     });
+    return;
+  }
+
+  if (text === '/play' || text === '⚡ Играть') {
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `⚡ Нажмите кнопку ниже для запуска Sudoku Pulse:`,
+      reply_markup: {
+        inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
+      }
+    });
+    return;
+  }
+
+  if (text === '/notify' || text === '/daily_reminder' || text === '🔔 Уведомления') {
+    const profiles = readProfiles();
+    const tgKey = `tg_${user.id}`;
+    let profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
+
+    if (!profile) {
+      profile = {
+        key: tgKey,
+        playerName: user.username ? `@${user.username}` : (user.first_name || 'Игрок'),
+        telegramUser: user,
+        theme: 'dark',
+        notificationsEnabled: true,
+        stats: {
+          gamesPlayed: 0,
+          gamesWon: 0,
+          totalScore: 0,
+          maxCombo: 1,
+          dailyStreak: 0,
+          bestTimeSeconds: { easy: null, medium: null, hard: null, expert: null },
+          unlockedAchievements: [],
+        },
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    const current = profile.notificationsEnabled !== false;
+    const newState = !current;
+    profile.notificationsEnabled = newState;
+    profiles[tgKey] = profile;
+    if (user.username) profiles['@' + user.username.toLowerCase()] = profile;
+    saveProfiles(profiles);
+
+    if (newState) {
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `🔔 <b>Утренние напоминания о Daily Pulse включены!</b>\nКаждое утро в 09:00 бот будет присылать новую головоломку дня, чтобы вы не прерывали свой победный стрик.`,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '⚡ Играть в Sudoku', web_app: { url: GAME_URL } }]]
+        }
+      });
+    } else {
+      await tgApi('sendMessage', {
+        chat_id: chatId,
+        text: `🔕 <b>Утренние напоминания отключены.</b>\nВы всегда можете включить их снова командой /notify или в настройках игры.`,
+        parse_mode: 'HTML'
+      });
+    }
     return;
   }
 
@@ -733,7 +831,7 @@ async function handleTelegramUpdate(update) {
   if (text === '/help') {
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `ℹ️ <b>Команды бота Sudoku Pulse:</b>\n\n/play — Запустить игру в Telegram Mini App\n/stats — Посмотреть свою статистику и рекорды\n/start — Главное меню и авторизация веб-сессий`,
+      text: `ℹ️ <b>Команды бота Sudoku Pulse:</b>\n\n/play — Запустить игру в Telegram Mini App\n/stats — Посмотреть свою статистику и рекорды\n/notify — Включить или отключить утренние напоминания Daily Pulse\n/start — Главное меню и авторизация веб-сессий`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
@@ -741,3 +839,59 @@ async function handleTelegramUpdate(update) {
     });
   }
 }
+
+// ==========================================
+// DAILY PULSE NOTIFICATION SCHEDULER
+// ==========================================
+function startDailyNotificationScheduler() {
+  async function checkAndSendDailyReminders() {
+    try {
+      const now = new Date();
+      // Moscow Time (UTC+3)
+      const mskHours = (now.getUTCHours() + 3) % 24;
+      const todayStr = new Date(now.getTime() + 3 * 3600 * 1000).toISOString().split('T')[0];
+
+      // Send between 09:00 and 12:00 MSK
+      if (mskHours >= 9 && mskHours <= 12) {
+        const profiles = readProfiles();
+        let changed = false;
+
+        for (const [key, profile] of Object.entries(profiles)) {
+          if (!profile || !profile.telegramUser?.id) continue;
+          if (profile.notificationsEnabled === false) continue;
+          if (profile.lastDailyReminder === todayStr) continue;
+
+          const streak = profile.stats?.dailyStreak || 0;
+          const streakText = streak > 0 ? `\n🔥 Твой текущий стрик: <b>${streak} дн.</b>` : '';
+          const name = profile.telegramUser.first_name || (profile.telegramUser.username ? `@${profile.telegramUser.username}` : 'Игрок');
+
+          await tgApi('sendMessage', {
+            chat_id: profile.telegramUser.id,
+            text: `🌅 <b>Новый Daily Pulse уже готов!</b>\n\n👋 Привет, <b>${name}</b>!\nСегодняшняя головоломка дня ждёт тебя. Решай быстро, поддерживай победную серию и ставь новые рекорды!${streakText}\n\nНажми кнопку ниже, чтобы начать:`,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '📅 Решить Daily Pulse', web_app: { url: `${GAME_URL}?mode=daily` } }]
+              ]
+            }
+          });
+
+          profile.lastDailyReminder = todayStr;
+          changed = true;
+          await new Promise((r) => setTimeout(r, 100)); // small rate limit buffer
+        }
+
+        if (changed) {
+          saveProfiles(profiles);
+        }
+      }
+    } catch {}
+  }
+
+  // Check every 10 minutes
+  setInterval(checkAndSendDailyReminders, 10 * 60 * 1000);
+  // Initial check after 30 seconds
+  setTimeout(checkAndSendDailyReminders, 30 * 1000);
+}
+
+startDailyNotificationScheduler();
