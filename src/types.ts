@@ -1,6 +1,6 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
-export type GameMode = 'classic' | 'fog' | 'daily' | 'run';
+export type GameMode = 'classic' | 'fog' | 'daily' | 'run' | 'ai_duel';
 
 export type AppScreen = 'menu' | 'mode_select' | 'perk_select' | 'game';
 

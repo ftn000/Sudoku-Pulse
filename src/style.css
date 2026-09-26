@@ -1875,4 +1875,206 @@ body {
   background: rgba(239, 68, 68, 0.05);
 }
 
+/* ========================================================
+   AI DUEL HUD
+   ======================================================== */
+.ai-duel-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+}
+
+.ai-duel-player {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-duel-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ai-duel-name {
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.ai-duel-count {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ai-duel-progress-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ai-duel-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.ai-duel-fill.player {
+  background: linear-gradient(90deg, #38bdf8, #34d399);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.ai-duel-fill.bot {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.ai-duel-vs {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--pulse-cyan);
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px var(--pulse-cyan);
+}
+
+/* ========================================================
+   SEASON ARCHIVE & TROPHIES
+   ======================================================== */
+.season-archive-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.season-trophy-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  font-size: 0.8rem;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.season-trophy-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.season-trophy-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* ========================================================
+   BOARD CELL SKINS & CUSTOMIZATION
+   ======================================================== */
+.board-skin-pill.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  position: relative;
+}
+
+/* Synthwave Grid Skin */
+[data-board-skin="synthwave"] .cell {
+  border-color: rgba(244, 114, 182, 0.35) !important;
+  background: rgba(30, 10, 45, 0.45);
+}
+[data-board-skin="synthwave"] .cell.selected {
+  background: rgba(244, 114, 182, 0.3) !important;
+  box-shadow: inset 0 0 10px rgba(244, 114, 182, 0.6) !important;
+  border-color: #f472b6 !important;
+}
+[data-board-skin="synthwave"] .cell.highlighted {
+  background: rgba(244, 114, 182, 0.12) !important;
+}
+[data-board-skin="synthwave"] .cell .cell-digit {
+  color: #f472b6;
+  text-shadow: 0 0 6px rgba(244, 114, 182, 0.7);
+}
+
+/* Matrix Grid Skin */
+[data-board-skin="matrix"] .cell {
+  border-color: rgba(74, 222, 128, 0.3) !important;
+  background: rgba(5, 25, 12, 0.5);
+  font-family: 'Courier New', monospace;
+}
+[data-board-skin="matrix"] .cell.selected {
+  background: rgba(74, 222, 128, 0.25) !important;
+  box-shadow: inset 0 0 12px rgba(74, 222, 128, 0.7) !important;
+  border-color: #4ade80 !important;
+}
+[data-board-skin="matrix"] .cell.highlighted {
+  background: rgba(74, 222, 128, 0.1) !important;
+}
+[data-board-skin="matrix"] .cell .cell-digit {
+  color: #4ade80;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+}
+
+/* Hologram Grid Skin */
+[data-board-skin="hologram"] .cell {
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.05), rgba(168, 85, 247, 0.05));
+  backdrop-filter: blur(4px);
+}
+[data-board-skin="hologram"] .cell.selected {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(168, 85, 247, 0.35)) !important;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.8), inset 0 0 8px rgba(168, 85, 247, 0.6) !important;
+  border-color: #38bdf8 !important;
+}
+[data-board-skin="hologram"] .cell.highlighted {
+  background: rgba(56, 189, 248, 0.12) !important;
+}
+[data-board-skin="hologram"] .cell .cell-digit {
+  color: #e0e7ff;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.9), 0 0 16px rgba(168, 85, 247, 0.7);
+}
+
+/* Obsidian Crown Grid Skin */
+[data-board-skin="obsidian"] .cell {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  background: rgba(18, 18, 20, 0.75);
+}
+[data-board-skin="obsidian"] .cell.selected {
+  background: rgba(245, 158, 11, 0.28) !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.8), inset 0 0 10px rgba(251, 191, 36, 0.5) !important;
+  border-color: #fbbf24 !important;
+}
+[data-board-skin="obsidian"] .cell.highlighted {
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+[data-board-skin="obsidian"] .cell .cell-digit {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
+}
+
 

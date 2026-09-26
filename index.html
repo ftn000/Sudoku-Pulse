@@ -116,6 +116,14 @@
           <p>Серия из уровней с выбором усиливающих перков перед стартом</p>
         </div>
       </div>
+
+      <div class="mode-card" data-mode="ai_duel">
+        <div class="mode-icon">🤖</div>
+        <div class="mode-info">
+          <h3>Pulse AI Дуэль</h3>
+          <p>Битва в реальном времени против виртуального ИИ-соперника!</p>
+        </div>
+      </div>
     </div>
 
     <!-- Difficulty selector section -->
@@ -196,6 +204,29 @@
         <div class="timer-box">
           <span id="timer">00:00</span>
           <button id="btn-pause" class="pause-btn" title="Пауза">⏸</button>
+        </div>
+      </div>
+
+      <!-- Live AI Duel Progress HUD -->
+      <div id="ai-duel-hud" class="ai-duel-hud hidden">
+        <div class="ai-duel-player">
+          <div class="ai-duel-info-row">
+            <span class="ai-duel-name">Вы</span>
+            <span id="player-duel-count" class="ai-duel-count">0/0</span>
+          </div>
+          <div class="ai-duel-progress-track">
+            <div id="player-duel-fill" class="ai-duel-fill player" style="width: 0%;"></div>
+          </div>
+        </div>
+        <div class="ai-duel-vs">VS</div>
+        <div class="ai-duel-player">
+          <div class="ai-duel-info-row">
+            <span id="ai-bot-name" class="ai-duel-name">🤖 PulseBot</span>
+            <span id="ai-bot-count" class="ai-duel-count">0/0</span>
+          </div>
+          <div class="ai-duel-progress-track">
+            <div id="ai-bot-fill" class="ai-duel-fill bot" style="width: 0%;"></div>
+          </div>
         </div>
       </div>
 
@@ -369,8 +400,13 @@
         <span id="stat-season-timer" style="color: var(--pulse-cyan); font-weight: 700;">3 дн. 12 ч.</span>
       </div>
 
+      <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">🏆 Награды и архив сезонов</div>
+      <div id="season-archive-list" class="season-archive-container" style="max-height: 100px; overflow-y: auto; margin-bottom: 6px;">
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Трофей сезона будет зафиксирован при завершении недели.</div>
+      </div>
+
       <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">⚔️ История дуэлей (<span id="duel-history-summary">0 дуэлей</span>)</div>
-      <div id="duel-history-list" style="max-height: 120px; overflow-y: auto; margin-bottom: 6px;">
+      <div id="duel-history-list" style="max-height: 110px; overflow-y: auto; margin-bottom: 6px;">
         <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Дуэлей пока нет. Бросьте вызов другу после победы!</div>
       </div>
 
@@ -380,6 +416,7 @@
         <button class="lb-tab" data-lb-mode="run">🚀 Забег</button>
         <button class="lb-tab" data-lb-mode="daily">📅 Daily</button>
         <button class="lb-tab" data-lb-mode="fog">🌌 Сектор</button>
+        <button class="lb-tab" data-lb-mode="ai_duel">🤖 Дуэли</button>
         <button class="lb-tab" data-lb-mode="classic">⚡ Классика</button>
       </div>
       <div id="leaderboard-list" class="modal-stats" style="max-height: 170px; overflow-y: auto; font-size: 0.85rem;">
@@ -435,6 +472,15 @@
           <button class="diff-pill theme-skin-pill" data-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
           <button class="diff-pill theme-skin-pill" data-skin="oled" style="flex:1; font-size: 0.78rem;">🌑 OLED</button>
           <button class="diff-pill theme-skin-pill" data-skin="light" style="flex:1; font-size: 0.78rem;">☀️ Светлая</button>
+        </div>
+
+        <div class="section-title" style="margin-top: 10px; margin-bottom: 4px;">🎨 Скин ячеек сетки (Лиги)</div>
+        <div class="board-skin-list" id="board-skin-selector" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
+          <button class="diff-pill board-skin-pill active" data-board-skin="neon" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synth</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="hologram" style="flex:1; font-size: 0.78rem;">💎 Hologram</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="obsidian" style="flex:1; font-size: 0.78rem;">👑 Obsidian</button>
         </div>
       </div>
 

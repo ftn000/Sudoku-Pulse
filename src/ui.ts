@@ -47,6 +47,26 @@ export function getSeasonRemainingText(): string {
   return `${days} дн. ${hours} ч.`;
 }
 
+export interface SeasonTrophy {
+  seasonId: string;
+  seasonName: string;
+  leagueId: string;
+  leagueName: string;
+  icon: string;
+  points: number;
+  dateAwarded: string;
+}
+
+export function getCurrentSeasonId(): string {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+}
+
 export class SudokuUI {
   private game: SudokuGame;
   private timerInterval?: number;
@@ -144,6 +164,7 @@ export class SudokuUI {
   private playerNameInput!: HTMLInputElement;
   private statLeagueBadge!: HTMLElement;
   private statSeasonTimer!: HTMLElement;
+  private seasonArchiveList!: HTMLElement;
   private duelHistorySummary!: HTMLElement;
   private duelHistoryList!: HTMLElement;
   private leaderboardList!: HTMLElement;
@@ -175,6 +196,7 @@ export class SudokuUI {
   private settingThemeBtn!: HTMLButtonElement;
   private settingNotifyBtn!: HTMLButtonElement;
   private themeSkinPills: HTMLButtonElement[] = [];
+  private boardSkinPills: HTMLButtonElement[] = [];
   private syncAccountBadge!: HTMLElement;
   private syncKeyInput!: HTMLInputElement;
   private btnSyncImport!: HTMLButtonElement;
@@ -182,6 +204,22 @@ export class SudokuUI {
   private btnSyncCloud!: HTMLButtonElement;
   private btnSyncTgAuth!: HTMLButtonElement;
   private notificationsEnabled: boolean = true;
+
+  // AI Duel HUD elements
+  private aiDuelHud!: HTMLElement;
+  private playerDuelCount!: HTMLElement;
+  private playerDuelFill!: HTMLElement;
+  private aiBotName!: HTMLElement;
+  private aiBotCount!: HTMLElement;
+  private aiBotFill!: HTMLElement;
+  private aiBotInterval?: number;
+  private aiBotProgress = {
+    name: 'PulseBot',
+    filled: 0,
+    total: 45,
+    score: 0,
+    stepIntervalMs: 5000,
+  };
 
   // Telegram Auth Modal Elements
   private tgAuthModal!: HTMLElement;
@@ -246,6 +284,7 @@ export class SudokuUI {
     this.initConfetti();
     this.initBgParticles();
     this.updateDailyInfoOnMenu();
+    this.checkSeasonTransition();
 
     if (!this.checkUrlChallenge()) {
       this.showScreen('menu');
@@ -352,6 +391,12 @@ export class SudokuUI {
 
     this.boardElement = document.getElementById('sudoku-board')!;
     this.multiClearContainer = document.getElementById('multi-clear-container')!;
+    this.aiDuelHud = document.getElementById('ai-duel-hud')!;
+    this.playerDuelCount = document.getElementById('player-duel-count')!;
+    this.playerDuelFill = document.getElementById('player-duel-fill')!;
+    this.aiBotName = document.getElementById('ai-bot-name')!;
+    this.aiBotCount = document.getElementById('ai-bot-count')!;
+    this.aiBotFill = document.getElementById('ai-bot-fill')!;
     this.timerElement = document.getElementById('timer')!;
     this.mistakesElement = document.getElementById('mistakes')!;
     this.pauseOverlay = document.getElementById('pause-overlay')!;
@@ -397,6 +442,7 @@ export class SudokuUI {
     this.playerNameInput = document.getElementById('player-name-input') as HTMLInputElement;
     this.statLeagueBadge = document.getElementById('stat-league-badge')!;
     this.statSeasonTimer = document.getElementById('stat-season-timer')!;
+    this.seasonArchiveList = document.getElementById('season-archive-list')!;
     this.duelHistorySummary = document.getElementById('duel-history-summary')!;
     this.duelHistoryList = document.getElementById('duel-history-list')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
@@ -419,6 +465,7 @@ export class SudokuUI {
     this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
     this.settingNotifyBtn = document.getElementById('setting-notify-btn') as HTMLButtonElement;
     this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
+    this.boardSkinPills = Array.from(document.querySelectorAll('.board-skin-pill'));
     this.syncAccountBadge = document.getElementById('sync-account-badge')!;
     this.syncKeyInput = document.getElementById('sync-key-input') as HTMLInputElement;
     this.btnSyncImport = document.getElementById('btn-sync-import') as HTMLButtonElement;
@@ -508,6 +555,10 @@ export class SudokuUI {
     this.updateSyncBadge();
     this.updateTgMenuPill();
 
+    const savedBoardSkin = this.getBoardSkin();
+    document.documentElement.setAttribute('data-board-skin', savedBoardSkin);
+    this.updateBoardSkinButtons();
+
     // Background cloud sync on start
     setTimeout(() => {
       this.syncWithCloud(false);
@@ -534,6 +585,7 @@ export class SudokuUI {
       this.render();
     } else {
       this.stopTimer();
+      this.stopAiBotDuel();
       soundManager.stopFeverTrack();
     }
   }
@@ -603,6 +655,7 @@ export class SudokuUI {
     this.btnMenuSettings.addEventListener('click', () => {
       soundManager.playSelect();
       this.updateSyncBadge();
+      this.updateBoardSkinButtons();
       if (this.syncKeyInput) {
         this.syncKeyInput.value = this.getSyncKey();
       }
@@ -749,6 +802,32 @@ export class SudokuUI {
       });
     });
 
+    this.boardSkinPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        soundManager.playSelect();
+        const skinKey = pill.getAttribute('data-board-skin') || 'neon';
+        const skinsReq: Record<string, { minScore: number; leagueName: string }> = {
+          neon: { minScore: 0, leagueName: 'Бронзовая лига' },
+          synthwave: { minScore: 10000, leagueName: 'Серебряная лига' },
+          matrix: { minScore: 30000, leagueName: 'Золотая лига' },
+          hologram: { minScore: 75000, leagueName: 'Платиновая лига' },
+          obsidian: { minScore: 150000, leagueName: 'Лига Кибер-Мастер' },
+        };
+        const req = skinsReq[skinKey];
+        const stats = SudokuGame.getPlayerStats();
+        if (req && stats.totalScore < req.minScore) {
+          const needed = (req.minScore - stats.totalScore).toLocaleString('ru-RU');
+          this.showToast(`🔒 Стиль откроется в ${req.leagueName}! Нужно ещё ${needed} очков.`);
+          haptics.error();
+          return;
+        }
+
+        this.setBoardSkin(skinKey);
+        haptics.selection();
+        this.showToast(`🎨 Применён скин сетки!`);
+      });
+    });
+
     // Pause / Resume
     this.pauseBtn.addEventListener('click', () => this.game.togglePause());
     this.resumeBtn.addEventListener('click', () => this.game.togglePause());
@@ -842,11 +921,15 @@ export class SudokuUI {
         mode: this.selectedMode,
         perks: this.game.activePerks,
       });
+      if (this.game.mode === 'ai_duel') {
+        this.startAiBotDuel();
+      }
     });
 
     this.btnWinMenu.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
       this.stopConfetti();
+      this.stopAiBotDuel();
       try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
@@ -984,10 +1067,14 @@ export class SudokuUI {
         mode: this.selectedMode,
         perks: this.game.activePerks,
       });
+      if (this.game.mode === 'ai_duel') {
+        this.startAiBotDuel();
+      }
     });
 
     this.btnGameOverMenu.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
+      this.stopAiBotDuel();
       try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
@@ -1045,17 +1132,17 @@ export class SudokuUI {
   }
 
   private updateDifficultyPillsForMode() {
-    const labels: Record<Difficulty, { normal: string; fog: string }> = {
-      easy: { normal: 'Легкий', fog: 'Легкий (5 🗼)' },
-      medium: { normal: 'Средний', fog: 'Средний (3 🗼)' },
-      hard: { normal: 'Сложный', fog: 'Сложный (1 🗼)' },
-      expert: { normal: 'Эксперт', fog: 'Эксперт (0 🗼)' },
+    const labels: Record<Difficulty, { normal: string; fog: string; ai: string }> = {
+      easy: { normal: 'Легкий', fog: 'Легкий (5 🗼)', ai: '🟢 PulseBot v1' },
+      medium: { normal: 'Средний', fog: 'Средний (3 🗼)', ai: '🟡 CyberPulse v2' },
+      hard: { normal: 'Сложный', fog: 'Сложный (1 🗼)', ai: '🔴 NeuralPulse v3' },
+      expert: { normal: 'Эксперт', fog: 'Эксперт (0 🗼)', ai: '🔥 QuantumPulse v4' },
     };
     this.diffPills.forEach((pill) => {
       const diff = (pill.getAttribute('data-diff') as Difficulty) || 'medium';
       const entry = labels[diff];
       if (entry) {
-        pill.textContent = this.selectedMode === 'fog' ? entry.fog : entry.normal;
+        pill.textContent = this.selectedMode === 'fog' ? entry.fog : this.selectedMode === 'ai_duel' ? entry.ai : entry.normal;
       }
     });
   }
@@ -1084,6 +1171,16 @@ export class SudokuUI {
           perks: [perk],
         });
         this.showScreen('game');
+        if (this.game.mode === 'ai_duel') {
+          this.startAiBotDuel();
+          const botNames: Record<Difficulty, string> = {
+            easy: 'PulseBot v1 (Новичок)',
+            medium: 'CyberPulse v2 (Профи)',
+            hard: 'NeuralPulse v3 (Гроссмейстер)',
+            expert: 'QuantumPulse v4 (Сверхразум)',
+          };
+          this.showToast(`🤖 Дуэль началась против ${botNames[this.game.difficulty] || 'PulseBot'}!`);
+        }
         if (this.game.isFogActive()) {
           const beaconsMap: Record<Difficulty, number> = { easy: 5, medium: 3, hard: 1, expert: 0 };
           const bCount = beaconsMap[this.game.difficulty];
@@ -1199,6 +1296,7 @@ export class SudokuUI {
               fog: 'Тёмный сектор',
               daily: 'Daily Pulse',
               run: `Забег (Этап ${data.runStage || 1})`,
+              ai_duel: 'Pulse AI Дуэль',
             };
             const dLabels: Record<string, string> = {
               easy: 'Легкий',
@@ -1226,6 +1324,7 @@ export class SudokuUI {
     this.renderBoard();
     this.renderToolbar();
     this.renderNumpad();
+    this.updateAiDuelHud();
   }
 
   private renderHeaderAndStatus() {
@@ -1235,6 +1334,7 @@ export class SudokuUI {
       fog: '🌌 Тёмный сектор',
       daily: '📅 Daily Pulse',
       run: `🚀 Забег (Этап ${this.game.runStage})`,
+      ai_duel: '🤖 AI Дуэль',
     };
     this.gameModeBadge.textContent = modeNames[this.game.mode];
 
@@ -1485,6 +1585,7 @@ export class SudokuUI {
       fog: 'Тёмный сектор',
       daily: 'Daily Pulse',
       run: `Pulse Run (Этап ${this.game.runStage})`,
+      ai_duel: 'Pulse AI Дуэль',
     };
     this.modalMode.textContent = modeLabels[stats.mode];
 
@@ -1498,8 +1599,36 @@ export class SudokuUI {
       this.modalDiff.textContent = diffLabels[stats.difficulty] || 'Средний';
     }
 
-    // Duel / Challenge Comparison
-    if (this.activeChallenge && this.duelResultBanner) {
+    this.stopAiBotDuel();
+
+    // AI Duel Victory Comparison
+    if (stats.mode === 'ai_duel' && this.duelResultBanner) {
+      this.duelResultBanner.classList.remove('hidden');
+      const botName = `🤖 ${this.aiBotProgress.name}`;
+      const botScore = this.aiBotProgress.score || Math.floor(stats.score * 0.8);
+      const duelRecord: DuelRecord = {
+        id: 'duel_' + Date.now(),
+        date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        challenger: botName,
+        won: true,
+        myScore: stats.score,
+        myTime: stats.timeSeconds,
+        targetScore: botScore,
+        targetTime: Math.floor(stats.timeSeconds * 1.25),
+        diff: stats.difficulty,
+        mode: stats.mode,
+      };
+      this.addDuelRecord(duelRecord);
+
+      if (this.duelResultTitle) {
+        this.duelResultTitle.textContent = '🎉 ВЫ ПОБЕДИЛИ В ИИ-ДУЭЛИ!';
+        this.duelResultTitle.style.color = '#34d399';
+      }
+      if (this.duelResultText) {
+        const scoreDiff = stats.score - botScore;
+        this.duelResultText.textContent = `Вы опередили ${botName} и решили сетку быстрее! Преимущество: +${Math.max(0, scoreDiff).toLocaleString('ru-RU')} очков.`;
+      }
+    } else if (this.activeChallenge && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       const targetScore = this.activeChallenge.targetScore;
       const targetTime = this.activeChallenge.targetTime;
@@ -1658,6 +1787,7 @@ export class SudokuUI {
       fog: 'Тёмный сектор',
       daily: 'Daily Pulse',
       run: 'Pulse Run',
+      ai_duel: 'Pulse AI Дуэль',
     };
 
     if (this.challengeChallengerName) this.challengeChallengerName.textContent = challenger;
@@ -1734,7 +1864,7 @@ export class SudokuUI {
 
     this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-      const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : '⚡ Классика';
+      const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : item.mode === 'ai_duel' ? '🤖 Дуэль' : '⚡ Классика';
       const isMe = item.playerId && item.playerId === myPlayerId;
       const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
       const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
@@ -2160,6 +2290,7 @@ export class SudokuUI {
       fog: 'Тёмный сектор',
       daily: 'Daily Pulse',
       run: `Pulse Run (Этап ${this.game.runStage})`,
+      ai_duel: 'Pulse AI Дуэль',
     };
     const diffLabels: Record<Difficulty, string> = {
       easy: 'Легкий',
@@ -2192,8 +2323,11 @@ export class SudokuUI {
   }
 
   private showGameOverModal() {
+    this.stopAiBotDuel();
     if (this.game.mode === 'run') {
       this.gameOverSubtitle.textContent = `Забег окончен на Этапе ${this.game.runStage}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
+    } else if (this.game.mode === 'ai_duel') {
+      this.gameOverSubtitle.textContent = `Вы совершили ${this.game.maxMistakes} ошибок в дуэли против ${this.aiBotProgress.name}.`;
     } else {
       this.gameOverSubtitle.textContent = `Вы совершили ${this.game.maxMistakes} ошибок.`;
     }
@@ -2211,6 +2345,7 @@ export class SudokuUI {
     const bestRunScore = stats.bestRunScore || 0;
     this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
     this.updateLeagueViews();
+    this.renderSeasonArchive();
     this.renderDuelHistory();
     this.statsModal.classList.remove('hidden');
     this.fetchAndRenderLeaderboard();
@@ -2321,6 +2456,243 @@ export class SudokuUI {
       this.tgAuthUserAvatar.classList.remove('avatar-frame-bronze', 'avatar-frame-silver', 'avatar-frame-gold', 'avatar-frame-platinum', 'avatar-frame-grandmaster');
       this.tgAuthUserAvatar.classList.add(league.frameClass);
     }
+  }
+
+  private getSeasonArchive(): SeasonTrophy[] {
+    try {
+      const raw = localStorage.getItem('sudoku_season_archive');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  }
+
+  private addSeasonTrophy(trophy: SeasonTrophy) {
+    try {
+      const list = this.getSeasonArchive();
+      if (!list.some((t) => t.seasonId === trophy.seasonId)) {
+        list.unshift(trophy);
+        localStorage.setItem('sudoku_season_archive', JSON.stringify(list));
+      }
+    } catch {}
+  }
+
+  private checkSeasonTransition() {
+    const currentSeason = getCurrentSeasonId();
+    const lastSeason = localStorage.getItem('sudoku_last_season_id');
+    const stats = SudokuGame.getPlayerStats();
+
+    if (!lastSeason) {
+      localStorage.setItem('sudoku_last_season_id', currentSeason);
+      return;
+    }
+
+    if (lastSeason !== currentSeason) {
+      const finalLeague = getLeagueForScore(stats.totalScore);
+      const trophy: SeasonTrophy = {
+        seasonId: lastSeason,
+        seasonName: `Сезон ${lastSeason.replace('-', ' ')}`,
+        leagueId: finalLeague.id,
+        leagueName: finalLeague.name,
+        icon: finalLeague.icon,
+        points: stats.totalScore,
+        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      };
+      this.addSeasonTrophy(trophy);
+      localStorage.setItem('sudoku_last_season_id', currentSeason);
+
+      setTimeout(() => {
+        this.showToast(`🏆 Итоги сезона ${lastSeason}! Вам присвоен трофей: ${finalLeague.icon} ${finalLeague.name}`);
+        soundManager.playVictory();
+        haptics.victory();
+      }, 1200);
+    }
+  }
+
+  private renderSeasonArchive() {
+    if (!this.seasonArchiveList) return;
+    const archive = this.getSeasonArchive();
+    const currentSeason = getCurrentSeasonId();
+    const stats = SudokuGame.getPlayerStats();
+    const currentLeague = getLeagueForScore(stats.totalScore);
+
+    const currentCard = `
+      <div class="season-trophy-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.06); margin-bottom: 6px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.1rem;">⏳</span>
+          <div>
+            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">Сезон ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">(Текущий)</span></div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Квалификация: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString('ru-RU')} очков)</div>
+          </div>
+        </div>
+        <span class="season-trophy-tag ${currentLeague.badgeClass}">${currentLeague.icon} В игре</span>
+      </div>
+    `;
+
+    if (archive.length === 0) {
+      this.seasonArchiveList.innerHTML = currentCard + `
+        <div style="text-align:center; color:var(--text-muted); font-size:0.78rem; padding:6px;">
+          Трофей за текущую неделю закрепится в архиве по завершению сезона!
+        </div>
+      `;
+      return;
+    }
+
+    const pastCards = archive.map((t) => {
+      const league = getLeagueForScore(t.points);
+      return `
+        <div class="season-trophy-card">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.1rem;">${t.icon}</span>
+            <div>
+              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t.seasonName}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points.toLocaleString('ru-RU')} очков</div>
+            </div>
+          </div>
+          <span class="season-trophy-tag ${league.badgeClass}">${t.leagueName}</span>
+        </div>
+      `;
+    }).join('');
+
+    this.seasonArchiveList.innerHTML = currentCard + pastCards;
+  }
+
+  private startAiBotDuel() {
+    this.stopAiBotDuel();
+    const counts = this.game.getProgressCounts();
+    const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number }> = {
+      easy: { name: 'PulseBot v1', stepMs: 8000, errorChance: 0.15 },
+      medium: { name: 'CyberPulse v2', stepMs: 5000, errorChance: 0.05 },
+      hard: { name: 'NeuralPulse v3', stepMs: 3400, errorChance: 0 },
+      expert: { name: 'QuantumPulse v4', stepMs: 2300, errorChance: 0 },
+    };
+    const profile = botProfiles[this.game.difficulty] || botProfiles.medium;
+    this.aiBotProgress = {
+      name: profile.name,
+      filled: 0,
+      total: counts.totalToFill || 45,
+      score: 0,
+      stepIntervalMs: profile.stepMs,
+    };
+
+    if (this.aiBotName) this.aiBotName.textContent = `🤖 ${profile.name}`;
+    this.updateAiDuelHud();
+
+    this.aiBotInterval = window.setInterval(() => {
+      if (this.currentScreen !== 'game' || this.game.status !== 'playing') return;
+
+      if (Math.random() < profile.errorChance) {
+        return;
+      }
+
+      this.aiBotProgress.filled++;
+      this.aiBotProgress.score += Math.floor(180 + Math.random() * 60);
+      this.updateAiDuelHud();
+
+      if (this.aiBotProgress.filled >= this.aiBotProgress.total) {
+        this.stopAiBotDuel();
+        this.handleAiDuelLoss();
+      }
+    }, profile.stepMs);
+  }
+
+  private stopAiBotDuel() {
+    if (this.aiBotInterval) {
+      clearInterval(this.aiBotInterval);
+      this.aiBotInterval = undefined;
+    }
+  }
+
+  private updateAiDuelHud() {
+    if (this.game.mode !== 'ai_duel') {
+      if (this.aiDuelHud) this.aiDuelHud.classList.add('hidden');
+      return;
+    }
+    if (this.aiDuelHud) this.aiDuelHud.classList.remove('hidden');
+
+    const counts = this.game.getProgressCounts();
+    const playerFilled = counts.filled;
+    const playerTotal = counts.totalToFill || this.aiBotProgress.total || 45;
+    const playerPct = Math.min(100, Math.round((playerFilled / playerTotal) * 100));
+
+    if (this.playerDuelCount) {
+      this.playerDuelCount.textContent = `${playerFilled}/${playerTotal}`;
+    }
+    if (this.playerDuelFill) {
+      this.playerDuelFill.style.width = `${playerPct}%`;
+    }
+
+    const botFilled = Math.min(this.aiBotProgress.filled, this.aiBotProgress.total);
+    const botTotal = this.aiBotProgress.total;
+    const botPct = Math.min(100, Math.round((botFilled / botTotal) * 100));
+
+    if (this.aiBotCount) {
+      this.aiBotCount.textContent = `${botFilled}/${botTotal}`;
+    }
+    if (this.aiBotFill) {
+      this.aiBotFill.style.width = `${botPct}%`;
+    }
+  }
+
+  private handleAiDuelLoss() {
+    const botName = `🤖 ${this.aiBotProgress.name}`;
+    const duelRecord: DuelRecord = {
+      id: 'duel_' + Date.now(),
+      date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      challenger: botName,
+      won: false,
+      myScore: this.game.score,
+      myTime: this.game.timerSeconds,
+      targetScore: this.aiBotProgress.score,
+      targetTime: this.game.timerSeconds,
+      diff: this.game.difficulty,
+      mode: this.game.mode,
+    };
+    this.addDuelRecord(duelRecord);
+
+    soundManager.playError();
+    haptics.error();
+    this.gameOverSubtitle.textContent = `${botName} первым заполнил сетку (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Счёт бота: ${this.aiBotProgress.score.toLocaleString('ru-RU')}.`;
+    this.gameOverModal.classList.remove('hidden');
+  }
+
+  private getBoardSkin(): string {
+    return localStorage.getItem('sudoku_board_skin') || 'neon';
+  }
+
+  private setBoardSkin(skin: string) {
+    document.documentElement.setAttribute('data-board-skin', skin);
+    localStorage.setItem('sudoku_board_skin', skin);
+    this.updateBoardSkinButtons();
+  }
+
+  private updateBoardSkinButtons() {
+    const currentSkin = this.getBoardSkin();
+    const stats = SudokuGame.getPlayerStats();
+    const totalScore = stats.totalScore;
+
+    const skinsReq: Record<string, { minScore: number; leagueName: string; name: string; icon: string }> = {
+      neon: { minScore: 0, leagueName: 'Бронза', name: 'Cyber', icon: '⚡' },
+      synthwave: { minScore: 10000, leagueName: 'Серебро', name: 'Synth', icon: '🌆' },
+      matrix: { minScore: 30000, leagueName: 'Золото', name: 'Matrix', icon: '🟢' },
+      hologram: { minScore: 75000, leagueName: 'Платина', name: 'Hologram', icon: '💎' },
+      obsidian: { minScore: 150000, leagueName: 'Мастер', name: 'Obsidian', icon: '👑' },
+    };
+
+    this.boardSkinPills.forEach((pill) => {
+      const skinKey = pill.getAttribute('data-board-skin') || 'neon';
+      const req = skinsReq[skinKey];
+      if (!req) return;
+
+      const isUnlocked = totalScore >= req.minScore;
+      pill.classList.toggle('active', currentSkin === skinKey);
+      pill.classList.toggle('locked', !isUnlocked);
+
+      if (isUnlocked) {
+        pill.textContent = `${req.icon} ${req.name}`;
+      } else {
+        pill.textContent = `🔒 ${req.name} (${req.leagueName})`;
+      }
+    });
   }
 
   private showMockAd(rewardTitle: string, onReward: () => void) {

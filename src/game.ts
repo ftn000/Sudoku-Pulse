@@ -1194,6 +1194,23 @@ export class SudokuGame {
     return counts;
   }
 
+  public getProgressCounts(): { filled: number; totalToFill: number } {
+    let filled = 0;
+    let totalToFill = 0;
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = this.board[r][c];
+        if (!cell.isGiven) {
+          totalToFill++;
+          if (cell.value === cell.solution && !cell.isError) {
+            filled++;
+          }
+        }
+      }
+    }
+    return { filled, totalToFill };
+  }
+
   public tickTimer() {
     if (this.status === 'playing') {
       this.timerSeconds++;
