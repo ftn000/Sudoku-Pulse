@@ -1880,10 +1880,8 @@ body {
    ======================================================== */
 .ai-duel-hud {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: rgba(15, 23, 42, 0.75);
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 12px;
@@ -1891,6 +1889,44 @@ body {
   margin-bottom: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
   transition: all 0.3s ease;
+}
+
+.ai-duel-hud-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.ai-bot-taunt {
+  margin-top: 6px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: tauntFadeIn 0.25s ease-out;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes tauntFadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.taunt-icon {
+  font-size: 0.85rem;
+}
+
+.taunt-text {
+  color: #f1f5f9;
+  font-style: italic;
+  font-size: 0.78rem;
 }
 
 .ai-duel-player {

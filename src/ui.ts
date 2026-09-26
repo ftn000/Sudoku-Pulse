@@ -170,6 +170,10 @@ export class SudokuUI {
   private leaderboardList!: HTMLElement;
   private leaderboardFilterTabs: HTMLButtonElement[] = [];
   private currentLeaderboardModeFilter: string = 'all';
+  private currentLeaderboardTimeframe: 'all' | 'season' = 'all';
+  private currentSeasonId: string = '';
+  private lbTimeframeAll!: HTMLButtonElement;
+  private lbTimeframeSeason!: HTMLButtonElement;
   private cachedLeaderboardEntries: Array<{
     playerId?: string;
     name: string;
@@ -212,6 +216,9 @@ export class SudokuUI {
   private aiBotName!: HTMLElement;
   private aiBotCount!: HTMLElement;
   private aiBotFill!: HTMLElement;
+  private aiBotTaunt!: HTMLElement;
+  private aiBotTauntText!: HTMLElement;
+  private aiBotTauntTimeout?: number;
   private aiBotInterval?: number;
   private aiBotProgress = {
     name: 'PulseBot',
@@ -219,6 +226,8 @@ export class SudokuUI {
     total: 45,
     score: 0,
     stepIntervalMs: 5000,
+    reachedHalf: false,
+    reachedEighty: false,
   };
 
   // Telegram Auth Modal Elements
@@ -327,9 +336,25 @@ export class SudokuUI {
         } else if (sound === 'correct') {
           soundManager.playCorrect(this.game.comboCount);
           haptics.success();
+          if (this.game.mode === 'ai_duel' && this.game.comboCount >= 4) {
+            const comboTaunts = [
+              `Ого, комбо x${this.game.comboCount}?! Неплохой разгон!`,
+              `Комбо x${this.game.comboCount}! Но я всё равно быстрее.`,
+              'Впечатляющий темп... Принимаю вызов!',
+            ];
+            this.showAiBotTaunt(comboTaunts[Math.floor(Math.random() * comboTaunts.length)], 2600);
+          }
         } else if (sound === 'error') {
           soundManager.playError();
           haptics.error();
+          if (this.game.mode === 'ai_duel') {
+            const mistakeTaunts = [
+              'Ошибочка! Мой алгоритм таких промахов не делает.',
+              'Минус попытка! Твоя концентрация падает.',
+              'Нервы сдают? Скорость требует предельной точности!',
+            ];
+            this.showAiBotTaunt(mistakeTaunts[Math.floor(Math.random() * mistakeTaunts.length)], 2800);
+          }
         } else if (sound === 'line') {
           // Handled via onLineComplete with chord synthesizer
         } else if (sound === 'win') {
@@ -338,6 +363,9 @@ export class SudokuUI {
         } else if (sound === 'fever') {
           soundManager.playFeverStart();
           haptics.fever();
+          if (this.game.mode === 'ai_duel') {
+            this.showAiBotTaunt('🔥 Режим FEVER?! Форсирую ядра процессора!', 3000);
+          }
         } else if (sound === 'fever_end') {
           soundManager.stopFeverTrack();
         } else if (sound === 'shield') {
@@ -397,6 +425,8 @@ export class SudokuUI {
     this.aiBotName = document.getElementById('ai-bot-name')!;
     this.aiBotCount = document.getElementById('ai-bot-count')!;
     this.aiBotFill = document.getElementById('ai-bot-fill')!;
+    this.aiBotTaunt = document.getElementById('ai-bot-taunt')!;
+    this.aiBotTauntText = document.getElementById('ai-bot-taunt-text')!;
     this.timerElement = document.getElementById('timer')!;
     this.mistakesElement = document.getElementById('mistakes')!;
     this.pauseOverlay = document.getElementById('pause-overlay')!;
@@ -447,6 +477,8 @@ export class SudokuUI {
     this.duelHistoryList = document.getElementById('duel-history-list')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
     this.leaderboardFilterTabs = Array.from(document.querySelectorAll('.lb-tab'));
+    this.lbTimeframeAll = document.getElementById('lb-timeframe-all') as HTMLButtonElement;
+    this.lbTimeframeSeason = document.getElementById('lb-timeframe-season') as HTMLButtonElement;
     this.statPlayed = document.getElementById('stat-played')!;
     this.statWon = document.getElementById('stat-won')!;
     this.statCombo = document.getElementById('stat-combo')!;
@@ -557,6 +589,7 @@ export class SudokuUI {
 
     const savedBoardSkin = this.getBoardSkin();
     document.documentElement.setAttribute('data-board-skin', savedBoardSkin);
+    soundManager.setSoundTheme(savedBoardSkin);
     this.updateBoardSkinButtons();
 
     // Background cloud sync on start
@@ -686,6 +719,28 @@ export class SudokuUI {
         this.renderLeaderboardList();
       });
     });
+
+    if (this.lbTimeframeAll) {
+      this.lbTimeframeAll.addEventListener('click', () => {
+        if (this.currentLeaderboardTimeframe === 'all') return;
+        soundManager.playSelect();
+        this.currentLeaderboardTimeframe = 'all';
+        this.lbTimeframeAll.classList.add('active');
+        this.lbTimeframeSeason?.classList.remove('active');
+        this.fetchAndRenderLeaderboard();
+      });
+    }
+
+    if (this.lbTimeframeSeason) {
+      this.lbTimeframeSeason.addEventListener('click', () => {
+        if (this.currentLeaderboardTimeframe === 'season') return;
+        soundManager.playSelect();
+        this.currentLeaderboardTimeframe = 'season';
+        this.lbTimeframeSeason.classList.add('active');
+        this.lbTimeframeAll?.classList.remove('active');
+        this.fetchAndRenderLeaderboard();
+      });
+    }
 
     // Telegram Auth Modal Event Listeners
     if (this.btnCloseTgAuth) {
@@ -1838,10 +1893,12 @@ export class SudokuUI {
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
     try {
       const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
-      const res = await fetch(apiBase);
+      const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
       this.cachedLeaderboardEntries = data.entries || data.leaderboard || [];
+      this.currentSeasonId = data.seasonId || data.currentSeason || '';
       this.renderLeaderboardList();
     } catch {
       this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Онлайн-сервер недоступен (офлайн-режим)</div>`;
@@ -1857,12 +1914,23 @@ export class SudokuUI {
       entries = entries.filter((e) => e.mode === this.currentLeaderboardModeFilter);
     }
 
+    let seasonHeader = '';
+    if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
+      const parts = this.currentSeasonId.split('-W');
+      const weekLabel = parts.length === 2 ? `Неделя ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
+      seasonHeader = `
+        <div style="font-size:0.75rem; color:var(--accent); font-weight:600; text-align:center; margin-bottom:8px; padding:4px 8px; background:rgba(99,102,241,0.12); border-radius:6px; border:1px solid rgba(99,102,241,0.25);">
+          ⏳ Текущий сезон: ${weekLabel}
+        </div>
+      `;
+    }
+
     if (entries.length === 0) {
-      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей в этом режиме.</div>`;
+      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей в этом режиме.</div>`;
       return;
     }
 
-    this.leaderboardList.innerHTML = entries.slice(0, 15).map((item, idx) => {
+    this.leaderboardList.innerHTML = seasonHeader + entries.slice(0, 15).map((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
       const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : item.mode === 'ai_duel' ? '🤖 Дуэль' : '⚡ Классика';
       const isMe = item.playerId && item.playerId === myPlayerId;
@@ -2556,14 +2624,35 @@ export class SudokuUI {
     this.seasonArchiveList.innerHTML = currentCard + pastCards;
   }
 
+  private showAiBotTaunt(text: string, durationMs: number = 3000) {
+    if (!this.aiBotTaunt || !this.aiBotTauntText) return;
+    if (this.game.mode !== 'ai_duel') return;
+
+    if (this.aiBotTauntTimeout) {
+      window.clearTimeout(this.aiBotTauntTimeout);
+      this.aiBotTauntTimeout = undefined;
+    }
+
+    this.aiBotTauntText.textContent = text;
+    this.aiBotTaunt.classList.remove('hidden');
+    soundManager.playBotBeep();
+
+    this.aiBotTauntTimeout = window.setTimeout(() => {
+      if (this.aiBotTaunt) {
+        this.aiBotTaunt.classList.add('hidden');
+      }
+      this.aiBotTauntTimeout = undefined;
+    }, durationMs);
+  }
+
   private startAiBotDuel() {
     this.stopAiBotDuel();
     const counts = this.game.getProgressCounts();
-    const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number }> = {
-      easy: { name: 'PulseBot v1', stepMs: 8000, errorChance: 0.15 },
-      medium: { name: 'CyberPulse v2', stepMs: 5000, errorChance: 0.05 },
-      hard: { name: 'NeuralPulse v3', stepMs: 3400, errorChance: 0 },
-      expert: { name: 'QuantumPulse v4', stepMs: 2300, errorChance: 0 },
+    const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number; startTaunt: string }> = {
+      easy: { name: 'PulseBot v1', stepMs: 8000, errorChance: 0.15, startTaunt: 'Привет, человек! Покажи, как ты решаешь сетку.' },
+      medium: { name: 'CyberPulse v2', stepMs: 5000, errorChance: 0.05, startTaunt: 'Мои нейронные цепи прогреты. Готовься к дуэли!' },
+      hard: { name: 'NeuralPulse v3', stepMs: 3400, errorChance: 0, startTaunt: 'Высокая сложность? Отлично, я не буду поддаваться.' },
+      expert: { name: 'QuantumPulse v4', stepMs: 2300, errorChance: 0, startTaunt: '01000111 01001111! Полное квантовое доминирование.' },
     };
     const profile = botProfiles[this.game.difficulty] || botProfiles.medium;
     this.aiBotProgress = {
@@ -2572,21 +2661,47 @@ export class SudokuUI {
       total: counts.totalToFill || 45,
       score: 0,
       stepIntervalMs: profile.stepMs,
+      reachedHalf: false,
+      reachedEighty: false,
     };
 
     if (this.aiBotName) this.aiBotName.textContent = `🤖 ${profile.name}`;
     this.updateAiDuelHud();
 
+    // Opening greeting taunt
+    setTimeout(() => {
+      if (this.game.mode === 'ai_duel' && this.currentScreen === 'game') {
+        this.showAiBotTaunt(profile.startTaunt, 3200);
+      }
+    }, 1000);
+
     this.aiBotInterval = window.setInterval(() => {
       if (this.currentScreen !== 'game' || this.game.status !== 'playing') return;
 
       if (Math.random() < profile.errorChance) {
+        const errorTaunts = [
+          'Сбой в вычислениях... Перезагрузка логики!',
+          'Похоже, мой датчик ошибся... Твой шанс!',
+          'Критическая погрешность потока... Исправляю!',
+        ];
+        this.showAiBotTaunt(errorTaunts[Math.floor(Math.random() * errorTaunts.length)], 2500);
         return;
       }
 
       this.aiBotProgress.filled++;
       this.aiBotProgress.score += Math.floor(180 + Math.random() * 60);
       this.updateAiDuelHud();
+
+      // Milestone taunts
+      const halfCount = Math.floor(this.aiBotProgress.total * 0.5);
+      const eightyCount = Math.floor(this.aiBotProgress.total * 0.8);
+      if (!this.aiBotProgress.reachedHalf && this.aiBotProgress.filled >= halfCount) {
+        this.aiBotProgress.reachedHalf = true;
+        this.showAiBotTaunt('Половина сетки за мной! Догоняй!', 2800);
+      } else if (!this.aiBotProgress.reachedEighty && this.aiBotProgress.filled >= eightyCount) {
+        this.aiBotProgress.reachedEighty = true;
+        this.showAiBotTaunt('Финишная прямая! Победа уже близко!', 2800);
+      }
 
       if (this.aiBotProgress.filled >= this.aiBotProgress.total) {
         this.stopAiBotDuel();
@@ -2599,6 +2714,13 @@ export class SudokuUI {
     if (this.aiBotInterval) {
       clearInterval(this.aiBotInterval);
       this.aiBotInterval = undefined;
+    }
+    if (this.aiBotTauntTimeout) {
+      clearTimeout(this.aiBotTauntTimeout);
+      this.aiBotTauntTimeout = undefined;
+    }
+    if (this.aiBotTaunt) {
+      this.aiBotTaunt.classList.add('hidden');
     }
   }
 
@@ -2662,6 +2784,7 @@ export class SudokuUI {
   private setBoardSkin(skin: string) {
     document.documentElement.setAttribute('data-board-skin', skin);
     localStorage.setItem('sudoku_board_skin', skin);
+    soundManager.setSoundTheme(skin);
     this.updateBoardSkinButtons();
   }
 

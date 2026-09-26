@@ -4,9 +4,34 @@ export class SoundManager {
   private feverLoopId: number | null = null;
   private feverStep: number = 0;
 
+  public soundTheme: string = 'neon';
+
   constructor() {
     const saved = localStorage.getItem('sudoku_sound_enabled');
     this.enabled = saved !== null ? saved === 'true' : true;
+    this.soundTheme = localStorage.getItem('sudoku_board_skin') || 'neon';
+  }
+
+  public setSoundTheme(theme: string) {
+    this.soundTheme = theme;
+  }
+
+  public playBotBeep() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [640, 1080].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.045);
+      gain.gain.setValueAtTime(0.04, now + idx * 0.045);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.04);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.045);
+      osc.stop(now + idx * 0.045 + 0.045);
+    });
   }
 
   private getContext(): AudioContext | null {
@@ -41,14 +66,45 @@ export class SoundManager {
     if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    gain.gain.setValueAtTime(0.03, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+
+    switch (this.soundTheme) {
+      case 'matrix':
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.025, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+        break;
+      case 'synthwave':
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(330, ctx.currentTime);
+        gain.gain.setValueAtTime(0.035, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        break;
+      case 'hologram':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+        break;
+      case 'obsidian':
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        break;
+      case 'neon':
+      default:
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gain.gain.setValueAtTime(0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        break;
+    }
+
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.05);
+    osc.stop(ctx.currentTime + 0.07);
   }
 
   public playCorrect(combo: number = 1) {
@@ -58,19 +114,57 @@ export class SoundManager {
 
     // Pitch scales with combo count (up to 8 steps)
     const baseFreq = 440 * Math.pow(2, Math.min(combo - 1, 8) / 12);
-    const triad = [baseFreq, baseFreq * 1.25, baseFreq * 1.5];
+
+    let oscType: OscillatorType = 'triangle';
+    let triad = [baseFreq, baseFreq * 1.25, baseFreq * 1.5];
+    let noteDuration = 0.14;
+    let volume = 0.07;
+
+    switch (this.soundTheme) {
+      case 'matrix':
+        oscType = 'square';
+        triad = [baseFreq * 0.75, baseFreq, baseFreq * 1.5];
+        volume = 0.04;
+        noteDuration = 0.1;
+        break;
+      case 'synthwave':
+        oscType = 'sawtooth';
+        triad = [baseFreq * 0.5, baseFreq, baseFreq * 1.25];
+        volume = 0.05;
+        noteDuration = 0.18;
+        break;
+      case 'hologram':
+        oscType = 'sine';
+        triad = [baseFreq * 1.5, baseFreq * 2, baseFreq * 2.5];
+        volume = 0.06;
+        noteDuration = 0.2;
+        break;
+      case 'obsidian':
+        oscType = 'triangle';
+        triad = [baseFreq * 0.75, baseFreq * 1.25, baseFreq * 1.75];
+        volume = 0.06;
+        noteDuration = 0.16;
+        break;
+      case 'neon':
+      default:
+        oscType = 'triangle';
+        triad = [baseFreq, baseFreq * 1.25, baseFreq * 1.5];
+        volume = 0.07;
+        noteDuration = 0.14;
+        break;
+    }
 
     triad.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'triangle';
+      osc.type = oscType;
       osc.frequency.setValueAtTime(freq, now + i * 0.04);
-      gain.gain.setValueAtTime(0.07, now + i * 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.14);
+      gain.gain.setValueAtTime(volume, now + i * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + noteDuration);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now + i * 0.04);
-      osc.stop(now + i * 0.04 + 0.15);
+      osc.stop(now + i * 0.04 + noteDuration + 0.02);
     });
   }
 

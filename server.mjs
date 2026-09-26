@@ -109,6 +109,15 @@ function findProfileByTelegram(profiles, query) {
   return null;
 }
 
+function getIsoSeasonId(d = new Date()) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
@@ -126,11 +135,24 @@ const server = http.createServer((req, res) => {
     }
 
     if (req.method === 'GET') {
-      const list = readLeaderboard()
+      const period = parsedUrl.searchParams.get('period') || 'all';
+      const currentSeason = getIsoSeasonId();
+      const requestedSeason = parsedUrl.searchParams.get('seasonId') || currentSeason;
+
+      const allEntries = readLeaderboard();
+      let filtered = allEntries;
+      if (period === 'season') {
+        filtered = allEntries.filter((e) => {
+          const sId = e.seasonId || (e.date ? getIsoSeasonId(new Date(e.date)) : currentSeason);
+          return sId === requestedSeason;
+        });
+      }
+
+      const list = filtered
         .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
         .slice(0, 15);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ entries: list, leaderboard: list }));
+      res.end(JSON.stringify({ entries: list, leaderboard: list, seasonId: requestedSeason, currentSeason, period }));
       return;
     }
 
@@ -164,6 +186,7 @@ const server = http.createServer((req, res) => {
           const combo = Math.max(1, Number(payload.combo) || 1);
           const runStage = Math.max(1, Number(payload.runStage) || 1);
           const date = new Date().toISOString().split('T')[0];
+          const seasonId = String(payload.seasonId || '').trim() || getIsoSeasonId();
 
           if (score > 0) {
             const list = readLeaderboard();
@@ -174,17 +197,17 @@ const server = http.createServer((req, res) => {
             if (existingIdx !== -1) {
               list[existingIdx].name = name;
               if (score >= list[existingIdx].score) {
-                list[existingIdx] = { playerId, name, score, timeSeconds, mode, combo, runStage, date };
+                list[existingIdx] = { playerId, name, score, timeSeconds, mode, combo, runStage, date, seasonId };
               }
             } else {
-              list.push({ playerId, name, score, timeSeconds, mode, combo, runStage, date });
+              list.push({ playerId, name, score, timeSeconds, mode, combo, runStage, date, seasonId });
             }
             const sorted = list
               .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
-              .slice(0, 50);
+              .slice(0, 100);
             saveLeaderboard(sorted);
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ entries: sorted.slice(0, 15), leaderboard: sorted.slice(0, 15) }));
+            res.end(JSON.stringify({ entries: sorted.slice(0, 15), leaderboard: sorted.slice(0, 15), seasonId, currentSeason: getIsoSeasonId() }));
             return;
           }
         } catch {}

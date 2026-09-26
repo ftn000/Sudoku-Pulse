@@ -209,24 +209,30 @@
 
       <!-- Live AI Duel Progress HUD -->
       <div id="ai-duel-hud" class="ai-duel-hud hidden">
-        <div class="ai-duel-player">
-          <div class="ai-duel-info-row">
-            <span class="ai-duel-name">Вы</span>
-            <span id="player-duel-count" class="ai-duel-count">0/0</span>
+        <div class="ai-duel-hud-top">
+          <div class="ai-duel-player">
+            <div class="ai-duel-info-row">
+              <span class="ai-duel-name">Вы</span>
+              <span id="player-duel-count" class="ai-duel-count">0/0</span>
+            </div>
+            <div class="ai-duel-progress-track">
+              <div id="player-duel-fill" class="ai-duel-fill player" style="width: 0%;"></div>
+            </div>
           </div>
-          <div class="ai-duel-progress-track">
-            <div id="player-duel-fill" class="ai-duel-fill player" style="width: 0%;"></div>
+          <div class="ai-duel-vs">VS</div>
+          <div class="ai-duel-player">
+            <div class="ai-duel-info-row">
+              <span id="ai-bot-name" class="ai-duel-name">🤖 PulseBot</span>
+              <span id="ai-bot-count" class="ai-duel-count">0/0</span>
+            </div>
+            <div class="ai-duel-progress-track">
+              <div id="ai-bot-fill" class="ai-duel-fill bot" style="width: 0%;"></div>
+            </div>
           </div>
         </div>
-        <div class="ai-duel-vs">VS</div>
-        <div class="ai-duel-player">
-          <div class="ai-duel-info-row">
-            <span id="ai-bot-name" class="ai-duel-name">🤖 PulseBot</span>
-            <span id="ai-bot-count" class="ai-duel-count">0/0</span>
-          </div>
-          <div class="ai-duel-progress-track">
-            <div id="ai-bot-fill" class="ai-duel-fill bot" style="width: 0%;"></div>
-          </div>
+        <div id="ai-bot-taunt" class="ai-bot-taunt hidden">
+          <span class="taunt-icon">💬</span>
+          <span id="ai-bot-taunt-text" class="taunt-text">Посмотрим, на что ты способен!</span>
         </div>
       </div>
 
@@ -410,7 +416,13 @@
         <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Дуэлей пока нет. Бросьте вызов другу после победы!</div>
       </div>
 
-      <div class="section-title" style="margin-top: 4px; margin-bottom: 4px;">🌐 Глобальный Лидерборд (Топ Игроков)</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 4px;">
+        <div class="section-title" style="margin: 0;">🌐 Лидерборд</div>
+        <div class="lb-timeframe-bar" style="display: flex; gap: 4px;">
+          <button id="lb-timeframe-all" class="diff-pill lb-tf-btn active" style="font-size: 0.72rem; padding: 2px 8px;">All-Time</button>
+          <button id="lb-timeframe-season" class="diff-pill lb-tf-btn" style="font-size: 0.72rem; padding: 2px 8px;">⏳ Сезон</button>
+        </div>
+      </div>
       <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
         <button class="lb-tab active" data-lb-mode="all">Все</button>
         <button class="lb-tab" data-lb-mode="run">🚀 Забег</button>
