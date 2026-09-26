@@ -1,3 +1,5 @@
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+
 // Declare Telegram WebApp types
 export interface TelegramUser {
   id: number;
@@ -117,73 +119,177 @@ export class HapticsManager {
     }
   }
 
-  public selection() {
+  public async selection() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.selectionChanged(); } catch {}
       return;
     }
+    try {
+      await Haptics.selectionChanged();
+      return;
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate(8); } catch {}
     }
   }
 
-  public light() {
+  public async light() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch {}
       return;
     }
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+      return;
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate(12); } catch {}
     }
   }
 
-  public medium() {
+  public async medium() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch {}
       return;
     }
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+      return;
+    } catch {}
     if (this.hasVibration) {
-      try { navigator.vibrate(18); } catch {}
+      try { navigator.vibrate(20); } catch {}
     }
   }
 
-  public success() {
+  public async heavy() {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
+      return;
+    }
+    try {
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+      return;
+    } catch {}
+    if (this.hasVibration) {
+      try { navigator.vibrate(35); } catch {}
+    }
+  }
+
+  public async success() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {}
       return;
     }
+    try {
+      await Haptics.notification({ type: NotificationType.Success });
+      return;
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate([15, 30, 25]); } catch {}
     }
   }
 
-  public error() {
+  public async error() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch {}
       return;
     }
+    try {
+      await Haptics.notification({ type: NotificationType.Error });
+      return;
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate([40, 50, 40]); } catch {}
     }
   }
 
-  public fever() {
+  public async fever() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
       return;
     }
+    try {
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+      return;
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate([60, 40, 80]); } catch {}
     }
   }
 
-  public victory() {
+  public async victory() {
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {}
       return;
     }
+    try {
+      await Haptics.notification({ type: NotificationType.Success });
+    } catch {}
     if (this.hasVibration) {
       try { navigator.vibrate([30, 40, 40, 40, 90]); } catch {}
+    }
+  }
+
+  // Specialized tactile feedback for Overdrive Combos (Dual, Triple, Quad)
+  public async overdrive(count: number = 2) {
+    if (count >= 4) {
+      // Quad+ Overdrive: mega haptic sequence
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        try {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          setTimeout(() => window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'), 120);
+        } catch {}
+      }
+      try {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        setTimeout(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}), 110);
+      } catch {}
+      if (this.hasVibration) {
+        try { navigator.vibrate([60, 30, 80, 30, 140]); } catch {}
+      }
+    } else if (count === 3) {
+      // Triple Overdrive: rhythmic triple pulse
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        try {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+          setTimeout(() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'), 90);
+        } catch {}
+      }
+      try {
+        await Haptics.impact({ style: ImpactStyle.Heavy });
+        setTimeout(() => Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}), 90);
+      } catch {}
+      if (this.hasVibration) {
+        try { navigator.vibrate([45, 35, 60, 35, 90]); } catch {}
+      }
+    } else {
+      // Dual Clear: swift double punch
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch {}
+      }
+      try {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      } catch {}
+      if (this.hasVibration) {
+        try { navigator.vibrate([25, 30, 40]); } catch {}
+      }
+    }
+  }
+
+  // Specialized tactile feedback for Achievement Unlock
+  public async achievement() {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      try {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        setTimeout(() => window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy'), 150);
+      } catch {}
+    }
+    try {
+      await Haptics.notification({ type: NotificationType.Success });
+      setTimeout(() => Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {}), 120);
+    } catch {}
+    if (this.hasVibration) {
+      try { navigator.vibrate([35, 40, 50, 40, 80, 50, 120]); } catch {}
     }
   }
 }

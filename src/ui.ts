@@ -326,15 +326,17 @@ export class SudokuUI {
         this.triggerLineWave(cells);
         const count = types?.length || 1;
         if (count >= 2) {
-          const bonus = count === 2 ? 600 : 1500;
+          const bonus = count >= 4 ? 3000 : (count === 3 ? 1500 : 600);
           this.showMultiClearBanner(count, bonus);
+          haptics.overdrive(count);
+        } else {
+          haptics.success();
         }
         soundManager.playLineChord(count, types || ['row']);
-        haptics.success();
       },
       onAchievementUnlocked: (ach) => {
-        soundManager.playVictory();
-        haptics.victory();
+        soundManager.playAchievement();
+        haptics.achievement();
         this.updateDailyInfoOnMenu();
         setTimeout(() => {
           this.showToast(`🏅 Открыто достижение: ${ach.icon} ${ach.title}!`);
@@ -2580,16 +2582,17 @@ export class SudokuUI {
   private showMultiClearBanner(count: number, bonusScore: number) {
     if (!this.multiClearContainer) return;
     const badge = document.createElement('div');
-    const isTriple = count >= 3;
-    badge.className = `multi-clear-badge ${isTriple ? 'triple' : 'dual'}`;
-    const icon = isTriple ? '🔥' : '⚡';
-    const title = isTriple ? 'TRIPLE OVERDRIVE!' : 'DUAL CLEAR!';
+    const isQuad = count >= 4;
+    const isTriple = count === 3;
+    badge.className = `multi-clear-badge ${isQuad ? 'quad' : (isTriple ? 'triple' : 'dual')}`;
+    const icon = isQuad ? '⚡💥' : (isTriple ? '🔥' : '⚡');
+    const title = isQuad ? 'QUAD OVERDRIVE!' : (isTriple ? 'TRIPLE OVERDRIVE!' : 'DUAL CLEAR!');
     badge.innerHTML = `<span>${icon} ${title}</span> <span style="opacity:0.9; font-size:0.9em; margin-left:4px;">+${bonusScore}</span>`;
     this.multiClearContainer.appendChild(badge);
 
     setTimeout(() => {
       badge.remove();
-    }, 1700);
+    }, 1800);
   }
 
   private getDuelHistory(): DuelRecord[] {

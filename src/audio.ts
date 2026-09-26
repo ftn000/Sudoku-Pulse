@@ -374,6 +374,39 @@ export class SoundManager {
       });
     });
   }
+
+  public playAchievement() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    // Sparkle bells: E5, G#5, B5, E6, G#6
+    const bells = [659.25, 830.61, 987.77, 1318.51, 1661.22];
+    bells.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+      gain.gain.setValueAtTime(0.09, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.05);
+      osc.stop(now + idx * 0.05 + 0.38);
+    });
+    // Golden chord sustaining at the end
+    [523.25, 659.25, 1046.5].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + 0.25);
+      gain.gain.setValueAtTime(0.07, now + 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25 + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + 0.25);
+      osc.stop(now + 0.25 + 0.52);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

@@ -631,18 +631,54 @@ async function tgApi(method, body) {
   }
 }
 
+const MAIN_KEYBOARD = {
+  keyboard: [
+    [{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }],
+    [{ text: '📱 Скачать APK' }, { text: '📊 Статистика' }],
+    [{ text: '🔔 Напоминания' }, { text: 'ℹ️ Помощь' }],
+  ],
+  resize_keyboard: true,
+  is_persistent: true,
+};
+
 async function startTelegramBot() {
   if (!BOT_TOKEN) return;
   console.log(`Starting Telegram Bot (@${BOT_USERNAME})...`);
 
-  // Set chat menu button to WebApp
+  // 1. Set chat menu button to WebApp (bottom-left button in Telegram chat input)
   try {
-    await tgApi('setChatMenuButton', {
+    const res = await tgApi('setChatMenuButton', {
       menu_button: {
         type: 'web_app',
-        text: '⚡ Играть в Sudoku',
+        text: '⚡ Играть в Sudoku Pulse',
         web_app: { url: GAME_URL },
       },
+    });
+    console.log('setChatMenuButton result:', res);
+  } catch (e) {
+    console.error('Failed to set chat menu button:', e);
+  }
+
+  // 2. Set Bot Commands list
+  try {
+    await tgApi('setMyCommands', {
+      commands: [
+        { command: 'play', description: '⚡ Запустить игру в Telegram Mini App' },
+        { command: 'apk', description: '📱 Скачать оффлайн Android APK (4.6 MB)' },
+        { command: 'stats', description: '📊 Рекорды и статистика профиля' },
+        { command: 'notify', description: '🔔 Вкл/выкл утренние напоминания Daily Pulse' },
+        { command: 'help', description: 'ℹ️ Правила и команды игры' },
+      ],
+    });
+  } catch {}
+
+  // 3. Set Bot Description & Short Description
+  try {
+    await tgApi('setMyDescription', {
+      description: '⚡ Sudoku Pulse — динамичное неоновое судоку с комбо, дуэлями против друзей и ИИ, Тёмным сектором и забегами Pulse Run!\n\n🎮 Играй прямо в Telegram или скачай Android APK для игры без интернета.',
+    });
+    await tgApi('setMyShortDescription', {
+      short_description: '⚡ Неоновое судоку с комбо-множителем, дуэлями и Telegram Mini App!',
     });
   } catch {}
 
@@ -775,7 +811,7 @@ async function handleTelegramUpdate(update) {
     // Default /start greeting
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `⚡ <b>Добро пожаловать в Sudoku Pulse!</b>\n\nКлассическое судоку в неоновом ритме с комбо-множителем, дуэлями и спецспособностями!\n\n✨ <b>Особенности:</b>\n• ⚡ <b>Комбо и Fever Mode</b> — динамичный темп решения\n• ⚔️ <b>Дуэли и вызовы</b> — соревнования с друзьями на одинаковых сетках\n• 🌌 <b>Тёмный сектор</b> — судоку со сканером и ограниченной видимостью\n• 🚀 <b>Pulse Run</b> — забеги с прокачкой способностей\n• ☁️ <b>Облачная синхронизация</b> между ПК и телефоном\n\nНажмите кнопку ниже, чтобы начать игру:`,
+      text: `⚡ <b>Добро пожаловать в Sudoku Pulse!</b>\n\nКлассическое судоку в неоновом ритме с комбо-множителем, дуэлями и спецспособностями!\n\n✨ <b>Особенности:</b>\n• ⚡ <b>Комбо и Fever Mode</b> — динамичный темп решения\n• ⚔️ <b>Дуэли и вызовы</b> — соревнования с друзьями на одинаковых сетках\n• 🌌 <b>Тёмный сектор</b> — судоку со сканером и ограниченной видимостью\n• 🚀 <b>Pulse Run</b> — забеги с прокачкой способностей\n• ☁️ <b>Облачная синхронизация</b> между ПК и телефоном\n\nНажмите кнопку ниже или меню внизу слева, чтобы запустить игру:`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
@@ -784,17 +820,23 @@ async function handleTelegramUpdate(update) {
         ]
       }
     });
+
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `🎮 Быстрое меню управления:`,
+      reply_markup: MAIN_KEYBOARD
+    });
     return;
   }
 
-  if (text === '/apk' || text === 'скачать' || text === 'apk' || text === 'апк') {
+  if (text === '/apk' || text === 'скачать' || text === 'apk' || text === 'апк' || text === '📱 Скачать APK') {
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `📱 <b>Android APK (Офлайн-приложение)</b>\n\nВы можете скачать и установить игру прямо на свой Android-смартфон!\n\n✨ <b>Преимущества APK:</b>\n• Работает на 100% без интернета в любой точке мира\n• Полноэкранный режим без элементов браузера\n• Сохранение всего прогресса, уровней и рекордов на устройстве\n• Размер: 4.6 МБ\n\nНажмите кнопку ниже для загрузки установочного файла:`,
+      text: `📱 <b>Android APK (Офлайн-приложение)</b>\n\nВы можете скачать и установить игру прямо на свой Android-смартфон!\n\n✨ <b>Преимущества APK:</b>\n• Работает на 100% без интернета в любой точке мира\n• Полноэкранный режим без элементов браузера\n• Сохранение всего прогресса, уровней и рекордов на устройстве\n• Размер: ~13 МБ\n\nНажмите кнопку ниже для загрузки установочного файла:`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '📥 Скачать SudokuPulse.apk (4.6 MB)', url: `${GAME_URL}SudokuPulse.apk` }],
+          [{ text: '📥 Скачать SudokuPulse.apk', url: `${GAME_URL}SudokuPulse.apk` }],
           [{ text: '⚡ Играть онлайн в Mini App', web_app: { url: GAME_URL } }]
         ]
       }
@@ -802,13 +844,13 @@ async function handleTelegramUpdate(update) {
     return;
   }
 
-  if (text === '/play' || text === '⚡ Играть') {
+  if (text === '/play' || text === '⚡ Играть' || text === '⚡ Играть в Sudoku Pulse' || text === 'играть') {
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `⚡ Нажмите кнопку ниже для запуска Sudoku Pulse:`,
+      text: `⚡ Нажмите кнопку ниже для запуска Sudoku Pulse в Telegram:`,
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }],
+          [{ text: '⚡ Запустить Mini App', web_app: { url: GAME_URL } }],
           [{ text: '📥 Скачать Android APK', url: `${GAME_URL}SudokuPulse.apk` }]
         ]
       }
@@ -816,7 +858,7 @@ async function handleTelegramUpdate(update) {
     return;
   }
 
-  if (text === '/notify' || text === '/daily_reminder' || text === '🔔 Уведомления') {
+  if (text === '/notify' || text === '/daily_reminder' || text === '🔔 Уведомления' || text === '🔔 Напоминания') {
     const profiles = readProfiles();
     const tgKey = `tg_${user.id}`;
     let profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
@@ -867,7 +909,7 @@ async function handleTelegramUpdate(update) {
     return;
   }
 
-  if (text === '/stats' || text === '📊 Моя статистика') {
+  if (text === '/stats' || text === '📊 Моя статистика' || text === '📊 Статистика' || text === 'статистика') {
     const profiles = readProfiles();
     const tgKey = `tg_${user.id}`;
     const profile = profiles[tgKey] || (user.username ? profiles['@' + user.username.toLowerCase()] : null);
@@ -891,16 +933,16 @@ async function handleTelegramUpdate(update) {
       text: `📊 <b>Статистика игрока @${user.username || user.first_name}:</b>\n\n🎮 Сыграно партий: <b>${stats.gamesPlayed}</b>\n🏆 Побед: <b>${stats.gamesWon}</b> (${wonRatio}%)\n💎 Всего очков: <b>${stats.totalScore.toLocaleString('ru-RU')}</b>\n🔥 Макс. комбо: <b>x${stats.maxCombo}</b>\n📅 Серия Daily: <b>${stats.dailyStreak} дн.</b>\n🏅 Открыто трофеев: <b>${(stats.unlockedAchievements || []).length} / 10</b>`,
       parse_mode: 'HTML',
       reply_markup: {
-        inline_keyboard: [[{ text: '⚡ Играть', web_app: { url: GAME_URL } }]]
+        inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
       }
     });
     return;
   }
 
-  if (text === '/help') {
+  if (text === '/help' || text === 'ℹ️ Помощь' || text === 'помощь' || text === 'справка' || text === 'меню') {
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `ℹ️ <b>Команды бота Sudoku Pulse:</b>\n\n/play — Запустить игру в Telegram Mini App\n/stats — Посмотреть свою статистику и рекорды\n/notify — Включить или отключить утренние напоминания Daily Pulse\n/start — Главное меню и авторизация веб-сессий`,
+      text: `ℹ️ <b>Команды бота Sudoku Pulse:</b>\n\n/play — Запустить игру в Telegram Mini App\n/stats — Посмотреть свою статистику и рекорды\n/notify — Включить или отключить утренние напоминания Daily Pulse\n/apk — Скачать оффлайн-версию для Android\n/start — Главное меню и авторизация веб-сессий`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
