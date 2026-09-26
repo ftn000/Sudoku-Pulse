@@ -55,6 +55,7 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.apk': 'application/vnd.android.package-archive',
 };
 
 const PROFILES_FILE = path.join(DATA_DIR, 'profiles.json');
@@ -569,10 +570,14 @@ const server = http.createServer((req, res) => {
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     const content = fs.readFileSync(filePath);
     const isNoCache = ext === '.html' || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json');
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': contentType,
       'Cache-Control': isNoCache ? 'no-store, no-cache, must-revalidate, max-age=0' : 'public, max-age=604800',
-    });
+    };
+    if (ext === '.apk') {
+      headers['Content-Disposition'] = 'attachment; filename="SudokuPulse.apk"';
+    }
+    res.writeHead(200, headers);
     res.end(content);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -753,7 +758,23 @@ async function handleTelegramUpdate(update) {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]
+          [{ text: '⚡ Играть в Sudoku Pulse (Mini App)', web_app: { url: GAME_URL } }],
+          [{ text: '📥 Скачать Android APK (офлайн)', url: `${GAME_URL}SudokuPulse.apk` }]
+        ]
+      }
+    });
+    return;
+  }
+
+  if (text === '/apk' || text === 'скачать' || text === 'apk' || text === 'апк') {
+    await tgApi('sendMessage', {
+      chat_id: chatId,
+      text: `📱 <b>Android APK (Офлайн-приложение)</b>\n\nВы можете скачать и установить игру прямо на свой Android-смартфон!\n\n✨ <b>Преимущества APK:</b>\n• Работает на 100% без интернета в любой точке мира\n• Полноэкранный режим без элементов браузера\n• Сохранение всего прогресса, уровней и рекордов на устройстве\n• Размер: 4.6 МБ\n\nНажмите кнопку ниже для загрузки установочного файла:`,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📥 Скачать SudokuPulse.apk (4.6 MB)', url: `${GAME_URL}SudokuPulse.apk` }],
+          [{ text: '⚡ Играть онлайн в Mini App', web_app: { url: GAME_URL } }]
         ]
       }
     });
@@ -765,7 +786,10 @@ async function handleTelegramUpdate(update) {
       chat_id: chatId,
       text: `⚡ Нажмите кнопку ниже для запуска Sudoku Pulse:`,
       reply_markup: {
-        inline_keyboard: [[{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }]]
+        inline_keyboard: [
+          [{ text: '⚡ Играть в Sudoku Pulse', web_app: { url: GAME_URL } }],
+          [{ text: '📥 Скачать Android APK', url: `${GAME_URL}SudokuPulse.apk` }]
+        ]
       }
     });
     return;

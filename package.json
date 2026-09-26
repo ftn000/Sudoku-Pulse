@@ -1,7 +1,7 @@
 {
   "name": "sudoku-pulse",
   "private": true,
-  "version": "1.15.1",
+  "version": "1.16.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "typescript": "^5.4.0",
     "vite": "^5.2.0"
   }
