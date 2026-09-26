@@ -1,12 +1,13 @@
 {
   "name": "sudoku-pulse",
   "private": true,
-  "version": "1.16.4",
+  "version": "1.17.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "export:yandex": "node scripts/export-yandex.mjs"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

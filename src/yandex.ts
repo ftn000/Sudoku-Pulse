@@ -94,6 +94,13 @@ export class YandexGamesBridge {
     );
   }
 
+  public getLanguage(): string {
+    if (this.ysdk?.environment?.i18n?.lang) {
+      return this.ysdk.environment.i18n.lang.toLowerCase();
+    }
+    return '';
+  }
+
   public async initPlayer(): Promise<YandexPlayer | null> {
     if (!this.ysdk) return null;
     try {

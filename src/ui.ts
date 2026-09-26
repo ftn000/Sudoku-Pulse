@@ -5,6 +5,7 @@ import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
 import { haptics, TelegramUser } from './haptics';
 import { yandexBridge } from './yandex';
+import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS } from './i18n';
 
 export function getApiBaseUrl(): string {
   const isNative = Boolean(
@@ -624,9 +625,26 @@ export class SudokuUI {
     // Platform adaptation: Yandex Games
     if (yandexBridge.isYandex()) {
       document.body.classList.add('platform-yandex');
+      const yLang = yandexBridge.getLanguage();
+      if (yLang && !localStorage.getItem('sudoku_pulse_lang')) {
+        const isRu = yLang.startsWith('ru') || yLang.startsWith('be') || yLang.startsWith('kk') || yLang.startsWith('uk');
+        i18n.setLanguage(isRu ? 'ru' : 'en');
+      }
       this.updateYandexSettingsBox();
       this.loadYandexCloudData();
     }
+
+    // Initialize i18n DOM translations and event listener
+    i18n.detectLanguage();
+    i18n.applyTranslationsToDOM();
+    i18n.onLanguageChange(() => {
+      this.updateDifficultyPillsForMode();
+      this.updateBoardSkinButtons();
+      this.updateDailyInfoOnMenu();
+      this.updateTgMenuPill();
+      this.updateYandexSettingsBox();
+      this.updateSoundButtons(soundManager.isSoundEnabled());
+    });
 
     // Background cloud sync on start
     setTimeout(() => {
@@ -1006,6 +1024,20 @@ export class SudokuUI {
       this.updateDailyInfoOnMenu();
     });
 
+    // Language switch buttons
+    const btnRu = document.getElementById('lang-btn-ru');
+    const btnEn = document.getElementById('lang-btn-en');
+    btnRu?.addEventListener('click', () => {
+      soundManager.playSelect();
+      haptics.selection();
+      i18n.setLanguage('ru');
+    });
+    btnEn?.addEventListener('click', () => {
+      soundManager.playSelect();
+      haptics.selection();
+      i18n.setLanguage('en');
+    });
+
     // Sound / Theme toggles
     this.soundToggleBtn.addEventListener('click', () => this.toggleSound());
     this.settingSoundBtn.addEventListener('click', () => this.toggleSound());
@@ -1372,11 +1404,29 @@ export class SudokuUI {
   }
 
   private updateDifficultyPillsForMode() {
+    const lang = i18n.getLanguage();
+    const isEn = lang === 'en';
     const labels: Record<Difficulty, { normal: string; fog: string; ai: string }> = {
-      easy: { normal: 'Легкий', fog: 'Легкий (5 🗼)', ai: '🟢 PulseBot v1' },
-      medium: { normal: 'Средний', fog: 'Средний (3 🗼)', ai: '🟡 CyberPulse v2' },
-      hard: { normal: 'Сложный', fog: 'Сложный (1 🗼)', ai: '🔴 NeuralPulse v3' },
-      expert: { normal: 'Эксперт', fog: 'Эксперт (0 🗼)', ai: '🔥 QuantumPulse v4' },
+      easy: {
+        normal: isEn ? 'Easy' : 'Легкий',
+        fog: isEn ? 'Easy (5 🗼)' : 'Легкий (5 🗼)',
+        ai: '🟢 PulseBot v1',
+      },
+      medium: {
+        normal: isEn ? 'Medium' : 'Средний',
+        fog: isEn ? 'Medium (3 🗼)' : 'Средний (3 🗼)',
+        ai: '🟡 CyberPulse v2',
+      },
+      hard: {
+        normal: isEn ? 'Hard' : 'Сложный',
+        fog: isEn ? 'Hard (1 🗼)' : 'Сложный (1 🗼)',
+        ai: '🔴 NeuralPulse v3',
+      },
+      expert: {
+        normal: isEn ? 'Expert' : 'Эксперт',
+        fog: isEn ? 'Expert (0 🗼)' : 'Эксперт (0 🗼)',
+        ai: '🔥 QuantumPulse v4',
+      },
     };
     this.diffPills.forEach((pill) => {
       const diff = (pill.getAttribute('data-diff') as Difficulty) || 'medium';
@@ -1390,15 +1440,20 @@ export class SudokuUI {
   private renderPerkDraft() {
     this.perksListContainer.innerHTML = '';
     const perks = getRandomPerks(3);
+    const lang = i18n.getLanguage();
 
     perks.forEach((perk) => {
+      const perkTr = PERK_TRANSLATIONS[perk.id]?.[lang];
+      const pName = perkTr?.name || perk.name;
+      const pDesc = perkTr?.desc || perk.description;
+
       const card = document.createElement('div');
       card.className = 'perk-card';
       card.innerHTML = `
         <div class="perk-icon-lg">${perk.icon}</div>
         <div class="perk-info">
-          <div class="perk-title">${perk.name}</div>
-          <div class="perk-desc">${perk.description}</div>
+          <div class="perk-title">${pName}</div>
+          <div class="perk-desc">${pDesc}</div>
         </div>
       `;
 
@@ -1414,20 +1469,21 @@ export class SudokuUI {
         if (this.game.mode === 'ai_duel') {
           this.startAiBotDuel();
           const botNames: Record<Difficulty, string> = {
-            easy: 'PulseBot v1 (Новичок)',
-            medium: 'CyberPulse v2 (Профи)',
-            hard: 'NeuralPulse v3 (Гроссмейстер)',
-            expert: 'QuantumPulse v4 (Сверхразум)',
+            easy: lang === 'en' ? 'PulseBot v1 (Novice)' : 'PulseBot v1 (Новичок)',
+            medium: lang === 'en' ? 'CyberPulse v2 (Pro)' : 'CyberPulse v2 (Профи)',
+            hard: lang === 'en' ? 'NeuralPulse v3 (Grandmaster)' : 'NeuralPulse v3 (Гроссмейстер)',
+            expert: lang === 'en' ? 'QuantumPulse v4 (Overmind)' : 'QuantumPulse v4 (Сверхразум)',
           };
-          this.showToast(`🤖 Дуэль началась против ${botNames[this.game.difficulty] || 'PulseBot'}!`);
+          const duelStartedMsg = lang === 'en' ? `🤖 Duel started vs ${botNames[this.game.difficulty] || 'PulseBot'}!` : `🤖 Дуэль началась против ${botNames[this.game.difficulty] || 'PulseBot'}!`;
+          this.showToast(duelStartedMsg);
         }
         if (this.game.isFogActive()) {
           const beaconsMap: Record<Difficulty, number> = { easy: 5, medium: 3, hard: 1, expert: 0 };
           const bCount = beaconsMap[this.game.difficulty];
           if (bCount === 0) {
-            this.showToast('🌌 Тёмный сектор (Эксперт): 0 маяков! Сканируйте поле курсором (эхо 3 сек).');
+            this.showToast(lang === 'en' ? '🌌 Dark Sector (Expert): 0 beacons! Scan with cursor (3s echo).' : '🌌 Тёмный сектор (Эксперт): 0 маяков! Сканируйте поле курсором (эхо 3 сек).');
           } else {
-            this.showToast(`🌌 Тёмный сектор: стартовых маяков — ${bCount}. Эхо-след сканера: 3 сек!`);
+            this.showToast(lang === 'en' ? `🌌 Dark Sector: starting beacons — ${bCount}. Scanner echo: 3s!` : `🌌 Тёмный сектор: стартовых маяков — ${bCount}. Эхо-след сканера: 3 сек!`);
           }
         }
       });
@@ -1444,7 +1500,9 @@ export class SudokuUI {
 
   private updateSoundButtons(enabled: boolean) {
     this.soundToggleBtn.textContent = enabled ? '🔊' : '🔇';
-    this.settingSoundBtn.textContent = enabled ? 'Вкл' : 'Выкл';
+    const onLabel = t('setting_btn_on', 'Вкл');
+    const offLabel = t('setting_btn_off', 'Выкл');
+    this.settingSoundBtn.textContent = enabled ? onLabel : offLabel;
     this.settingSoundBtn.classList.toggle('active', enabled);
   }
 
@@ -1509,16 +1567,18 @@ export class SudokuUI {
   }
 
   private updateDailyInfoOnMenu() {
-    const today = new Date().toLocaleDateString('ru-RU', {
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : 'ru-RU';
+    const today = new Date().toLocaleDateString(locale, {
       day: 'numeric',
       month: 'long',
     });
-    this.menuDailyDate.textContent = `Вызов на сегодня: ${today}`;
+    this.menuDailyDate.textContent = lang === 'en' ? `Today's Challenge: ${today}` : `Вызов на сегодня: ${today}`;
 
     const stats = SudokuGame.getPlayerStats();
     evaluateAllAchievements(stats);
     SudokuGame.savePlayerStats(stats);
-    this.menuDailyStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+    this.menuDailyStreak.textContent = lang === 'en' ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
 
     // Unlocked achievements counter (robust synchronization)
     const unlockedIds = new Set(stats.unlockedAchievements || []);
@@ -2164,20 +2224,28 @@ export class SudokuUI {
     }
     this.achievementsList.innerHTML = '';
 
+    const lang = i18n.getLanguage();
+    const unlockedLabel = t('ach_unlocked', '✅ Получено');
+
     ACHIEVEMENTS.forEach((ach) => {
       const isUnlocked = unlockedIds.has(ach.id) || ach.checkUnlocked(stats);
       const { current, target } = ach.getProgress(stats);
       const progress = isUnlocked ? 100 : Math.min(100, Math.round((current / target) * 100));
+
+      const achTr = ACHIEVEMENT_TRANSLATIONS[ach.id]?.[lang];
+      const achTitle = achTr?.title || ach.title;
+      const achDesc = achTr?.desc || ach.description;
+
       const card = document.createElement('div');
       card.className = `ach-card ${isUnlocked ? 'unlocked' : 'locked'}`;
       card.innerHTML = `
         <div class="ach-icon">${ach.icon}</div>
         <div class="ach-info">
           <div class="ach-title-row">
-            <span class="ach-title">${ach.title}</span>
-            <span class="ach-status-badge">${isUnlocked ? '✅ Получено' : `${current}/${target}`}</span>
+            <span class="ach-title">${achTitle}</span>
+            <span class="ach-status-badge">${isUnlocked ? unlockedLabel : `${current}/${target}`}</span>
           </div>
-          <div class="ach-desc">${ach.description}</div>
+          <div class="ach-desc">${achDesc}</div>
           <div class="ach-progress-track">
             <div class="ach-progress-fill" style="width: ${progress}%;"></div>
           </div>
@@ -3200,13 +3268,15 @@ export class SudokuUI {
     const currentSkin = this.getBoardSkin();
     const stats = SudokuGame.getPlayerStats();
     const totalScore = stats.totalScore;
+    const lang = i18n.getLanguage();
+    const isEn = lang === 'en';
 
     const skinsReq: Record<string, { minScore: number; leagueName: string; name: string; icon: string }> = {
-      neon: { minScore: 0, leagueName: 'Бронза', name: 'Cyber', icon: '⚡' },
-      synthwave: { minScore: 10000, leagueName: 'Серебро', name: 'Synth', icon: '🌆' },
-      matrix: { minScore: 30000, leagueName: 'Золото', name: 'Matrix', icon: '🟢' },
-      hologram: { minScore: 75000, leagueName: 'Платина', name: 'Hologram', icon: '💎' },
-      obsidian: { minScore: 150000, leagueName: 'Мастер', name: 'Obsidian', icon: '👑' },
+      neon: { minScore: 0, leagueName: isEn ? 'Bronze' : 'Бронза', name: 'Cyber', icon: '⚡' },
+      synthwave: { minScore: 10000, leagueName: isEn ? 'Silver' : 'Серебро', name: 'Synth', icon: '🌆' },
+      matrix: { minScore: 30000, leagueName: isEn ? 'Gold' : 'Золото', name: 'Matrix', icon: '🟢' },
+      hologram: { minScore: 75000, leagueName: isEn ? 'Platinum' : 'Платина', name: 'Hologram', icon: '💎' },
+      obsidian: { minScore: 150000, leagueName: isEn ? 'Master' : 'Мастер', name: 'Obsidian', icon: '👑' },
     };
 
     this.boardSkinPills.forEach((pill) => {

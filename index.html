@@ -49,15 +49,15 @@
       <button id="btn-menu-play" class="btn-menu-primary">
         <span class="btn-icon">⚡</span>
         <span class="btn-text">
-          <strong>Новая игра</strong>
-          <small>Выбор режима и сложности</small>
+          <strong data-i18n="menu_play">Новая игра</strong>
+          <small data-i18n="menu_daily_desc">Выбор режима и сложности</small>
         </span>
       </button>
 
       <button id="btn-menu-daily" class="btn-menu-card">
         <span class="btn-icon">📅</span>
         <span class="btn-text">
-          <strong>Daily Pulse</strong>
+          <strong data-i18n="menu_daily">Daily Pulse</strong>
           <small id="menu-daily-date">Ежедневный вызов мира</small>
         </span>
         <span class="badge-streak" id="menu-daily-streak">🔥 0</span>
@@ -66,18 +66,18 @@
       <button id="btn-menu-achievements" class="btn-menu-card">
         <span class="btn-icon">🏅</span>
         <span class="btn-text">
-          <strong>Достижения</strong>
-          <small>Испытания и трофеи сектора</small>
+          <strong data-i18n="menu_achievements">Достижения</strong>
+          <small data-i18n="achievements_title">Испытания и трофеи сектора</small>
         </span>
         <span class="badge-streak" id="menu-ach-counter" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">0/10</span>
       </button>
 
       <div class="menu-grid-row">
         <button id="btn-menu-stats" class="btn-menu-secondary">
-          <span>📊</span> Рекорды
+          <span>📊</span> <span data-i18n="menu_stats">Рекорды</span>
         </button>
         <button id="btn-menu-settings" class="btn-menu-secondary">
-          <span>⚙️</span> Настройки
+          <span>⚙️</span> <span data-i18n="menu_settings">Настройки</span>
         </button>
       </div>
     </div>
@@ -89,7 +89,7 @@
   <div id="screen-modes" class="screen hidden">
     <div class="screen-header">
       <button id="btn-modes-back" class="icon-btn" title="Назад в меню">◀</button>
-      <h2>Выберите режим</h2>
+      <h2 data-i18n="mode_select_title">Выберите режим</h2>
       <div style="width: 38px;"></div>
     </div>
 
@@ -97,46 +97,46 @@
       <div class="mode-card selected" data-mode="classic">
         <div class="mode-icon">⚡</div>
         <div class="mode-info">
-          <h3>Классический</h3>
-          <p>Чистое судоку с комбо-множителем очков и режимом Fever</p>
+          <h3 data-i18n="mode_classic_title">Классический</h3>
+          <p data-i18n="mode_classic_desc">Чистое судоку с комбо-множителем очков и режимом Fever</p>
         </div>
       </div>
 
       <div class="mode-card" data-mode="fog">
         <div class="mode-icon">🌌</div>
         <div class="mode-info">
-          <h3>Тёмный сектор</h3>
-          <p>Матрица во тьме! Луч сканера (эхо 3 сек) и маяки-созвездия освещают сектор</p>
+          <h3 data-i18n="mode_fog_title">Тёмный сектор</h3>
+          <p data-i18n="mode_fog_desc">Матрица во тьме! Луч сканера (эхо 3 сек) и маяки-созвездия освещают сектор</p>
         </div>
       </div>
 
       <div class="mode-card" data-mode="run">
         <div class="mode-icon">🚀</div>
         <div class="mode-info">
-          <h3>Pulse Run (Забег)</h3>
-          <p>Серия из уровней с выбором усиливающих перков перед стартом</p>
+          <h3 data-i18n="mode_run_title">Pulse Run (Забег)</h3>
+          <p data-i18n="mode_run_desc">Серия из уровней с выбором усиливающих перков перед стартом</p>
         </div>
       </div>
 
       <div class="mode-card" data-mode="ai_duel">
         <div class="mode-icon">🤖</div>
         <div class="mode-info">
-          <h3>Pulse AI Дуэль</h3>
-          <p>Битва в реальном времени против виртуального ИИ-соперника!</p>
+          <h3 data-i18n="mode_duel_title">Pulse AI Дуэль</h3>
+          <p data-i18n="mode_duel_desc">Битва в реальном времени против виртуального ИИ-соперника!</p>
         </div>
       </div>
     </div>
 
     <!-- Difficulty selector section -->
-    <div class="section-title">Сложность</div>
+    <div class="section-title" data-i18n="diff_title">Сложность</div>
     <div class="difficulty-pills">
-      <button class="diff-pill" data-diff="easy">Легкий</button>
-      <button class="diff-pill active" data-diff="medium">Средний</button>
-      <button class="diff-pill" data-diff="hard">Сложный</button>
-      <button class="diff-pill" data-diff="expert">Эксперт</button>
+      <button class="diff-pill" data-diff="easy" data-i18n="diff_easy">Легкий</button>
+      <button class="diff-pill active" data-diff="medium" data-i18n="diff_medium">Средний</button>
+      <button class="diff-pill" data-diff="hard" data-i18n="diff_hard">Сложный</button>
+      <button class="diff-pill" data-diff="expert" data-i18n="diff_expert">Эксперт</button>
     </div>
 
-    <button id="btn-start-selected-mode" class="btn-primary btn-block">
+    <button id="btn-start-selected-mode" class="btn-primary btn-block" data-i18n="btn_choose_perk">
       Выбрать перк &rarr;
     </button>
   </div>
@@ -486,11 +486,18 @@
       
       <div class="settings-list">
         <div class="setting-item">
-          <span>Звуковые эффекты</span>
+          <span data-i18n="setting_lang">🌐 Язык интерфейса</span>
+          <div style="display: flex; gap: 4px;">
+            <button id="lang-btn-ru" class="diff-pill active" style="padding: 4px 10px; font-size: 0.8rem;">🇷🇺 RU</button>
+            <button id="lang-btn-en" class="diff-pill" style="padding: 4px 10px; font-size: 0.8rem;">🇬🇧 EN</button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <span data-i18n="setting_sound">Звуковые эффекты</span>
           <button id="setting-sound-btn" class="diff-pill active">Вкл</button>
         </div>
         <div class="setting-item">
-          <span>Тема оформления</span>
+          <span data-i18n="setting_theme">Тема оформления</span>
           <button id="setting-theme-btn" class="diff-pill">Cyber Neon</button>
         </div>
         <div class="setting-item">

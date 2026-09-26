@@ -16,6 +16,10 @@ export class SoundManager {
     this.soundTheme = theme;
   }
 
+  public isSoundEnabled(): boolean {
+    return this.enabled;
+  }
+
   public playBotBeep() {
     const ctx = this.getContext();
     if (!ctx) return;
