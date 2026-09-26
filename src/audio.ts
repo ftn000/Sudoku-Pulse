@@ -61,6 +61,21 @@ export class SoundManager {
     return this.enabled;
   }
 
+  private wasMutedByAd: boolean = false;
+
+  public muteForAd() {
+    this.wasMutedByAd = this.enabled;
+    this.enabled = false;
+    this.stopFeverTrack();
+  }
+
+  public unmuteAfterAd() {
+    if (this.wasMutedByAd) {
+      this.enabled = true;
+      this.wasMutedByAd = false;
+    }
+  }
+
   public playSelect() {
     const ctx = this.getContext();
     if (!ctx) return;

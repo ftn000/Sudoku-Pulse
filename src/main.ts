@@ -1,11 +1,15 @@
 import { SudokuGame } from './game';
 import { SudokuUI } from './ui';
 import { haptics } from './haptics';
+import { yandexBridge } from './yandex';
 import './style.css';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Telegram WebApp bridge
   haptics.initTelegram();
+
+  // Initialize Yandex Games SDK
+  yandexBridge.init().catch(() => {});
 
   // Register PWA Service Worker and purge outdated caches
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'http:')) {

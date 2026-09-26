@@ -4,6 +4,7 @@ import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
 import { haptics, TelegramUser } from './haptics';
+import { yandexBridge } from './yandex';
 
 export function getApiBaseUrl(): string {
   const isNative = Boolean(
@@ -620,6 +621,13 @@ export class SudokuUI {
     soundManager.setSoundTheme(savedBoardSkin);
     this.updateBoardSkinButtons();
 
+    // Platform adaptation: Yandex Games
+    if (yandexBridge.isYandex()) {
+      document.body.classList.add('platform-yandex');
+      this.updateYandexSettingsBox();
+      this.loadYandexCloudData();
+    }
+
     // Background cloud sync on start
     setTimeout(() => {
       this.syncWithCloud(false);
@@ -639,12 +647,15 @@ export class SudokuUI {
       this.updateDailyInfoOnMenu();
       this.updateSyncBadge();
       this.updateTgMenuPill();
+      this.updateYandexSettingsBox();
     }
 
     if (screen === 'game') {
+      yandexBridge.gameplayStart();
       this.startTimer();
       this.render();
     } else {
+      yandexBridge.gameplayStop();
       this.stopTimer();
       this.stopAiBotDuel();
       soundManager.stopFeverTrack();
@@ -666,7 +677,28 @@ export class SudokuUI {
 
     if (this.btnMenuTgAuth) {
       this.btnMenuTgAuth.addEventListener('click', () => {
+        if (yandexBridge.isYandex()) {
+          soundManager.playSelect();
+          yandexBridge.openAuth().then(() => {
+            this.updateTgMenuPill();
+            this.updateYandexSettingsBox();
+            this.loadYandexCloudData();
+          });
+          return;
+        }
         this.openTgAuthModal();
+      });
+    }
+
+    const btnYandexAuth = document.getElementById('btn-yandex-auth');
+    if (btnYandexAuth) {
+      btnYandexAuth.addEventListener('click', () => {
+        soundManager.playSelect();
+        yandexBridge.openAuth().then(() => {
+          this.updateTgMenuPill();
+          this.updateYandexSettingsBox();
+          this.loadYandexCloudData();
+        });
       });
     }
 
@@ -789,6 +821,7 @@ export class SudokuUI {
       btnCloseWinX.addEventListener('click', () => {
         this.winModal.classList.add('hidden');
         this.updateScreenBackButton();
+        this.triggerInterstitialAd();
       });
     }
 
@@ -797,6 +830,7 @@ export class SudokuUI {
       btnCloseGameOverX.addEventListener('click', () => {
         this.gameOverModal.classList.add('hidden');
         this.updateScreenBackButton();
+        this.triggerInterstitialAd();
       });
     }
 
@@ -1101,6 +1135,7 @@ export class SudokuUI {
     this.playAgainBtn.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
       this.stopConfetti();
+      this.triggerInterstitialAd();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
         mode: this.selectedMode,
@@ -1115,6 +1150,7 @@ export class SudokuUI {
       this.winModal.classList.add('hidden');
       this.stopConfetti();
       this.stopAiBotDuel();
+      this.triggerInterstitialAd();
       try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
@@ -1247,6 +1283,7 @@ export class SudokuUI {
 
     this.restartGameOverBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
+      this.triggerInterstitialAd();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
         mode: this.selectedMode,
@@ -1260,56 +1297,74 @@ export class SudokuUI {
     this.btnGameOverMenu.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
       this.stopAiBotDuel();
+      this.triggerInterstitialAd();
       try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       this.showScreen('menu');
       this.updateDailyInfoOnMenu();
     });
 
-    // Keyboard support
+    // Keyboard support (Arrows, WASD, Russian keys, Numpad)
     window.addEventListener('keydown', (e: KeyboardEvent) => {
       if (this.currentScreen !== 'game') return;
       if (this.game.status === 'completed' || this.game.status === 'gameover') return;
 
+      const code = e.code;
+      const key = e.key.toLowerCase();
+
+      // Desktop navigation: Arrow keys or WASD / ЦФЫВ
+      let moveDir: 'up' | 'down' | 'left' | 'right' | null = null;
+      if (e.key === 'ArrowUp' || code === 'KeyW' || key === 'w' || key === 'ц') moveDir = 'up';
+      else if (e.key === 'ArrowDown' || code === 'KeyS' || key === 's' || key === 'ы') moveDir = 'down';
+      else if (e.key === 'ArrowLeft' || code === 'KeyA' || key === 'a' || key === 'ф') moveDir = 'left';
+      else if (e.key === 'ArrowRight' || code === 'KeyD' || key === 'd' || key === 'в') moveDir = 'right';
+
+      if (moveDir) {
+        e.preventDefault();
+        this.handleMoveKey(moveDir);
+        return;
+      }
+
+      // Number input (1-9 and Numpad 1-9)
       const num = parseInt(e.key, 10);
       if (!isNaN(num) && num >= 1 && num <= 9) {
         this.game.inputNumber(num);
         return;
       }
 
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        this.handleArrowKey(e.key);
-        return;
-      }
-
-      if (e.key === 'Backspace' || e.key === 'Delete') {
+      // Erase (Backspace, Delete, 0, Numpad0)
+      if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0' || code === 'Numpad0') {
         e.preventDefault();
         this.game.eraseCell();
         return;
       }
 
-      if (e.key.toLowerCase() === 'n') {
+      // Notes mode toggle ('n' / 'т')
+      if (key === 'n' || key === 'т') {
         this.game.toggleNotesMode();
         return;
       }
 
-      if (e.key.toLowerCase() === 'a') {
+      // Auto-notes ('u' / 'г' or 'm')
+      if (key === 'u' || key === 'г' || key === 'm' || key === 'ь') {
         this.btnAutoNotes.click();
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      // Undo (Ctrl+Z / Cmd+Z or 'z' / 'я')
+      if ((e.ctrlKey || e.metaKey) && (key === 'z' || key === 'я')) {
         e.preventDefault();
         this.game.undo();
         return;
       }
 
-      if (e.key.toLowerCase() === 'h') {
+      // Hint ('h' / 'р')
+      if (key === 'h' || key === 'р') {
         this.hintBtn.click();
         return;
       }
 
-      if (e.key === 'Escape' || e.key.toLowerCase() === 'p') {
+      // Pause ('Escape', 'p' / 'з')
+      if (e.key === 'Escape' || key === 'p' || key === 'з') {
         this.game.togglePause();
         return;
       }
@@ -1423,17 +1478,19 @@ export class SudokuUI {
     });
   }
 
-  private handleArrowKey(key: string) {
+  private handleMoveKey(dir: 'up' | 'down' | 'left' | 'right') {
     let r = this.game.selectedCell?.row ?? 4;
     let c = this.game.selectedCell?.col ?? 4;
 
-    switch (key) {
-      case 'ArrowUp': r = Math.max(0, r - 1); break;
-      case 'ArrowDown': r = Math.min(8, r + 1); break;
-      case 'ArrowLeft': c = Math.max(0, c - 1); break;
-      case 'ArrowRight': c = Math.min(8, c + 1); break;
+    switch (dir) {
+      case 'up': r = (r - 1 + 9) % 9; break;
+      case 'down': r = (r + 1) % 9; break;
+      case 'left': c = (c - 1 + 9) % 9; break;
+      case 'right': c = (c + 1) % 9; break;
     }
 
+    soundManager.playSelect();
+    haptics.selection();
     this.game.selectCell(r, c);
   }
 
@@ -2000,6 +2057,11 @@ export class SudokuUI {
   }
 
   private async submitScoreToLeaderboard(stats: GameStats) {
+    if (yandexBridge.isYandex()) {
+      yandexBridge.submitLeaderboardScore(stats.score).catch(() => {});
+      this.saveYandexCloudData().catch(() => {});
+    }
+
     try {
       const playerId = SudokuGame.getOrCreatePlayerId();
       const playerName = (localStorage.getItem('sudoku_player_name') || this.playerNameInput?.value || 'Игрок').trim() || 'Игрок';
@@ -2139,6 +2201,23 @@ export class SudokuUI {
 
   private updateTgMenuPill() {
     if (!this.btnMenuTgAuth || !this.menuTgAuthLabel) return;
+
+    if (yandexBridge.isYandex()) {
+      const yName = yandexBridge.getPlayerName();
+      if (yName) {
+        this.menuTgAuthLabel.textContent = `Яндекс: ${yName}`;
+        this.btnMenuTgAuth.style.borderColor = '#fc3f1d';
+        this.btnMenuTgAuth.style.color = '#ff6b4a';
+        this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.15)';
+      } else {
+        this.menuTgAuthLabel.textContent = 'Войти в Яндекс';
+        this.btnMenuTgAuth.style.borderColor = 'rgba(252, 63, 29, 0.4)';
+        this.btnMenuTgAuth.style.color = '#ff6b4a';
+        this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.12)';
+      }
+      return;
+    }
+
     const tgUser = this.getStoredTelegramUser();
     if (tgUser) {
       const name = tgUser.username ? `@${tgUser.username}` : (tgUser.first_name || `TG #${tgUser.id}`);
@@ -2463,6 +2542,81 @@ export class SudokuUI {
       }
     } catch {
       this.showToast('❌ Ошибка при связывании устройств');
+    }
+  }
+
+  private updateYandexSettingsBox() {
+    if (!yandexBridge.isYandex()) return;
+    const box = document.getElementById('section-yandex-profile');
+    if (box) box.classList.remove('hidden');
+
+    const badge = document.getElementById('yandex-account-badge');
+    const btn = document.getElementById('btn-yandex-auth');
+    const name = yandexBridge.getPlayerName();
+
+    if (name) {
+      if (badge) {
+        badge.textContent = name;
+        badge.style.color = '#34d399';
+      }
+      if (btn) {
+        btn.textContent = '✓ Яндекс аккаунт подключен';
+        btn.setAttribute('disabled', 'true');
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'default';
+      }
+    } else {
+      if (badge) {
+        badge.textContent = 'Гость';
+        badge.style.color = '#f87171';
+      }
+      if (btn) {
+        btn.textContent = '🔴 Войти через Яндекс Паспорт';
+        btn.removeAttribute('disabled');
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+      }
+    }
+  }
+
+  private async loadYandexCloudData() {
+    if (!yandexBridge.isYandex()) return;
+    try {
+      const data = await yandexBridge.loadCloudData(['stats', 'theme']);
+      if (data && data.stats) {
+        SudokuGame.mergePlayerStats(data.stats);
+        this.updateDailyInfoOnMenu();
+      }
+      if (data && data.theme) {
+        this.setTheme(data.theme);
+      }
+    } catch (err) {
+      console.warn('[Yandex] Cloud load error:', err);
+    }
+  }
+
+  private async saveYandexCloudData() {
+    if (!yandexBridge.isYandex()) return;
+    try {
+      const stats = SudokuGame.getPlayerStats();
+      const theme = localStorage.getItem('sudoku_theme') || 'dark';
+      await yandexBridge.saveCloudData({
+        stats,
+        theme,
+        lastSaved: Date.now(),
+      });
+    } catch (err) {
+      console.warn('[Yandex] Cloud save error:', err);
+    }
+  }
+
+  private triggerInterstitialAd() {
+    if (yandexBridge.isYandex()) {
+      soundManager.muteForAd();
+      yandexBridge.showFullscreenAdv({
+        onClose: () => soundManager.unmuteAfterAd(),
+        onError: () => soundManager.unmuteAfterAd(),
+      });
     }
   }
 
@@ -3073,6 +3227,27 @@ export class SudokuUI {
   }
 
   private showMockAd(rewardTitle: string, onReward: () => void) {
+    if (yandexBridge.isYandex()) {
+      soundManager.muteForAd();
+      yandexBridge.showRewardedVideo({
+        onOpen: () => soundManager.muteForAd(),
+        onRewarded: () => {
+          soundManager.unmuteAfterAd();
+          soundManager.playCorrect();
+          onReward();
+        },
+        onClose: () => {
+          soundManager.unmuteAfterAd();
+        },
+        onError: (err) => {
+          console.warn('[Yandex Ad] Rewarded video error:', err);
+          soundManager.unmuteAfterAd();
+          this.showToast('⚠️ Реклама временно недоступна');
+        },
+      });
+      return;
+    }
+
     this.adRewardTitle.textContent = rewardTitle;
     this.adProgressFill.style.width = '0%';
     this.adTimerText.textContent = 'Осталось 3 сек...';

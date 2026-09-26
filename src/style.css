@@ -1477,8 +1477,24 @@ body {
 
 .tg-menu-auth-pill:hover {
   background: rgba(14, 165, 233, 0.22);
-  border-color: #38bdf8;
-  transform: translateY(-1px);
+}
+
+/* ========================================== */
+/* PLATFORM ADAPTATION: YANDEX GAMES          */
+/* ========================================== */
+body.platform-yandex .yandex-hidden {
+  display: none !important;
+}
+
+body.platform-yandex .tg-menu-auth-pill {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+body.platform-yandex .tg-menu-auth-pill:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
 }
 
 .tg-auth-modal-card {

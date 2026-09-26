@@ -9,8 +9,9 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#06b6d4">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Yandex Games SDK v2 -->
+  <script src="https://yandex.ru/games/sdk/v2"></script>
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -517,8 +518,8 @@
         </div>
       </div>
 
-      <div class="section-title" style="margin-top: 14px; margin-bottom: 6px;">✈️ Облачная синхронизация (Telegram & Cloud)</div>
-      <div class="sync-box" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left;">
+      <div class="section-title yandex-hidden" style="margin-top: 14px; margin-bottom: 6px;">✈️ Облачная синхронизация (Telegram & Cloud)</div>
+      <div class="sync-box yandex-hidden" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="color: var(--text-muted);">Аккаунт:</span>
           <span id="sync-account-badge" style="font-weight: 700; color: var(--pulse-cyan);">Гость</span>
@@ -538,8 +539,20 @@
         </div>
       </div>
 
-      <div class="section-title" style="margin-top: 14px; margin-bottom: 6px;">📱 Приложение для Android (Офлайн)</div>
-      <a href="./SudokuPulse.apk" download="SudokuPulse.apk" class="btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 10px 14px; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border-radius: var(--radius); margin-bottom: 12px;">
+      <!-- Yandex Cloud Profile Box (Shown on Yandex Games) -->
+      <div id="section-yandex-profile" class="yandex-profile-box hidden" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left; margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted);">Профиль Яндекса:</span>
+          <span id="yandex-account-badge" style="font-weight: 700; color: #f87171;">Гость</span>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">Синхронизация рекордов и трофеев с вашим аккаунтом Яндекс Игр</p>
+        <button id="btn-yandex-auth" class="btn-primary" style="background: linear-gradient(135deg, #ef4444, #dc2626); font-size: 0.82rem; padding: 8px 12px; width: 100%;">
+          🔴 Войти через Яндекс Паспорт
+        </button>
+      </div>
+
+      <div class="section-title yandex-hidden" style="margin-top: 14px; margin-bottom: 6px;">📱 Приложение для Android (Офлайн)</div>
+      <a href="./SudokuPulse.apk" download="SudokuPulse.apk" class="btn-primary yandex-hidden" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 10px 14px; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border-radius: var(--radius); margin-bottom: 12px;">
         <span>📥</span>
         <span>Скачать Android APK (4.6 MB)</span>
       </a>
