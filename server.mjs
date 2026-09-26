@@ -590,7 +590,7 @@ server.listen(PORT, '0.0.0.0', () => {
 // ==========================================
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8957810180:AAE5BIVA8BfM9tFIF7n-YO3vp_1QT3yxaf4';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'sudoku_pulse_auth_bot';
-const GAME_URL = process.env.GAME_URL || 'http://109.69.17.170/sudoku/';
+const GAME_URL = process.env.GAME_URL || 'https://109.69.17.170.sslip.io/sudoku/';
 
 async function tgApi(method, body) {
   try {
