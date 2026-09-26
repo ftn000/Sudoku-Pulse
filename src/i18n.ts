@@ -247,6 +247,14 @@ export const PERK_TRANSLATIONS: Record<string, { ru: { name: string; desc: strin
     ru: { name: 'Хроно-буст', desc: 'Первые 2 минуты игры начисляют удвоенные очки' },
     en: { name: 'Chrono Boost', desc: 'First 2 minutes of match award 2x bonus score' },
   },
+  emp_pulse: {
+    ru: { name: 'Импульс ЭМИ', desc: 'В начале раунда автоматически расшифровывает +1 ячейку (+2 на Ур. II)' },
+    en: { name: 'EMP Pulse', desc: 'Auto-solves +1 random cell at the start of each stage (+2 on Lvl II)' },
+  },
+  overcharge: {
+    ru: { name: 'Оверчардж', desc: 'В режиме Fever множитель очков взлетает до x4.0 вместо x2.0' },
+    en: { name: 'Overcharge', desc: 'In Fever mode, score multiplier skyrockets to x4.0 instead of x2.0' },
+  },
 };
 
 export const ACHIEVEMENT_TRANSLATIONS: Record<string, { ru: { title: string; desc: string }; en: { title: string; desc: string } }> = {

@@ -64,6 +64,27 @@ export const ALL_PERKS: Perk[] = [
     icon: '🧠',
     level: 1,
   },
+  {
+    id: 'emp_pulse',
+    name: 'Импульс ЭМИ',
+    description: 'В начале раунда автоматически расшифровывает +1 ячейку (+2 на Ур. II)',
+    icon: '💥',
+    level: 1,
+  },
+  {
+    id: 'overcharge',
+    name: 'Оверчардж',
+    description: 'В режиме Fever множитель очков взлетает до x4.0 вместо x2.0',
+    icon: '⚡',
+    level: 1,
+  },
+  {
+    id: 'chrono_boost',
+    name: 'Хроно-буст',
+    description: 'Первые 2 минуты игры начисляют удвоенные очки за ход',
+    icon: '⏱️',
+    level: 1,
+  },
 ];
 
 export function formatRomanLevel(level: number = 1): string {

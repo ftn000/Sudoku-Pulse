@@ -2226,6 +2226,60 @@ body.platform-yandex .tg-menu-auth-pill:hover {
   text-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
 }
 
+/* Aqua Cyber Grid Skin */
+[data-board-skin="aqua"] .cell {
+  border-color: rgba(6, 182, 212, 0.35) !important;
+  background: rgba(8, 47, 73, 0.45);
+}
+[data-board-skin="aqua"] .cell.selected {
+  background: rgba(6, 182, 212, 0.3) !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.7), inset 0 0 8px rgba(34, 211, 238, 0.5) !important;
+  border-color: #22d3ee !important;
+}
+[data-board-skin="aqua"] .cell.highlighted {
+  background: rgba(6, 182, 212, 0.12) !important;
+}
+[data-board-skin="aqua"] .cell .cell-digit {
+  color: #22d3ee;
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.9);
+}
+
+/* Crimson Pulse Grid Skin */
+[data-board-skin="crimson"] .cell {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(69, 10, 10, 0.45);
+}
+[data-board-skin="crimson"] .cell.selected {
+  background: rgba(239, 68, 68, 0.32) !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.8), inset 0 0 8px rgba(248, 113, 113, 0.5) !important;
+  border-color: #f87171 !important;
+}
+[data-board-skin="crimson"] .cell.highlighted {
+  background: rgba(239, 68, 68, 0.12) !important;
+}
+[data-board-skin="crimson"] .cell .cell-digit {
+  color: #f87171;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.9);
+}
+
+/* Retro Arcade 1984 Grid Skin */
+[data-board-skin="retro"] .cell {
+  border-color: rgba(168, 85, 247, 0.35) !important;
+  background: rgba(59, 7, 100, 0.45);
+}
+[data-board-skin="retro"] .cell.selected {
+  background: rgba(168, 85, 247, 0.32) !important;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.8), inset 0 0 8px rgba(234, 179, 8, 0.5) !important;
+  border-color: #c084fc !important;
+}
+[data-board-skin="retro"] .cell.highlighted {
+  background: rgba(168, 85, 247, 0.12) !important;
+}
+[data-board-skin="retro"] .cell .cell-digit {
+  color: #c084fc;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.9), 0 0 14px rgba(234, 179, 8, 0.6);
+}
+
 /* AI Bot Cyber Avatar & Emotions */
 .ai-bot-avatar-wrap {
   display: flex;
@@ -2429,6 +2483,91 @@ body.platform-yandex .tg-menu-auth-pill:hover {
     width: 128px;
     height: 128px;
   }
+}
+
+/* ========================================== */
+/* INTERACTIVE TUTORIAL / ONBOARDING STYLES   */
+/* ========================================== */
+.tutorial-modal-card {
+  max-width: 440px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  position: relative;
+  background: var(--surface-bg);
+  border: 1px solid var(--pulse-cyan);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+}
+
+.tutorial-step-badge {
+  display: inline-block;
+  align-self: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--pulse-cyan);
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.tutorial-visual-box {
+  width: 100%;
+  min-height: 120px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+}
+
+.tutorial-description {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text-main);
+  margin: 0;
+  min-height: 52px;
+}
+
+.tutorial-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.tutorial-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-border);
+  transition: all 0.25s ease;
+}
+
+.tutorial-dots .dot.active {
+  width: 22px;
+  border-radius: 999px;
+  background: var(--pulse-cyan);
+  box-shadow: 0 0 8px var(--pulse-cyan);
+}
+
+.tutorial-nav-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
 }
 
 

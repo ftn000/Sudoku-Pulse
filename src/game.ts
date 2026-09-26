@@ -257,12 +257,42 @@ export class SudokuGame {
       this.fillAllCandidates();
     }
 
+    const empLevel = this.getPerkLevel('emp_pulse');
+    if (empLevel > 0) {
+      this.triggerEmpPulse(empLevel);
+    }
+
     // Spawn an initial surge cell after 3 seconds in non-daily modes
     if (this.mode !== 'daily') {
       this.spawnSurgeCell();
     }
 
     this.notify();
+  }
+
+  public triggerEmpPulse(count: number = 1): number {
+    let revealed = 0;
+    for (let i = 0; i < count; i++) {
+      const emptyCells: { r: number; c: number }[] = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (this.board[r][c].value === 0) {
+            emptyCells.push({ r, c });
+          }
+        }
+      }
+      if (emptyCells.length === 0) break;
+      const pick = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      const cell = this.board[pick.r][pick.c];
+      cell.value = cell.solution;
+      cell.isLocked = true;
+      cell.isBeacon = true;
+      cell.isError = false;
+      cell.notes.clear();
+      this.removeConflictingNotes(pick.r, pick.c, cell.solution);
+      revealed++;
+    }
+    return revealed;
   }
 
   private pickInitialBeacons(count: number, seed: number) {
@@ -599,7 +629,10 @@ export class SudokuGame {
         // Add score (doubled in Cryo-Leak anomaly)
         const pointsBase = this.isCryoLeakActive() ? 200 : 100;
         const perkScoreMult = 1.0 + surgePerkLvl * 0.5;
-        this.score += Math.round(pointsBase * this.comboMultiplier * perkScoreMult);
+        const chronoLevel = this.getPerkLevel('chrono_boost');
+        const isChronoActive = chronoLevel > 0 && this.timerSeconds < 120;
+        const chronoMult = isChronoActive ? (2.0 + (chronoLevel - 1) * 0.5) : 1.0;
+        this.score += Math.round(pointsBase * this.comboMultiplier * perkScoreMult * chronoMult);
 
         // Trigger Fever Mode if full
         if (this.pulseEnergy >= 100 && !this.isFeverMode) {
@@ -684,7 +717,8 @@ export class SudokuGame {
   private triggerFeverMode() {
     this.isFeverMode = true;
     this.feverSecondsLeft = 12 + this.getPerkLevel('fever_overdrive') * 5;
-    this.comboMultiplier = 10.0;
+    const ocLvl = this.getPerkLevel('overcharge');
+    this.comboMultiplier = ocLvl > 0 ? (15.0 + (ocLvl - 1) * 5.0) : 10.0;
     this.recordProgressStats((stats) => {
       stats.feverTriggeredCount = (stats.feverTriggeredCount || 0) + 1;
     });

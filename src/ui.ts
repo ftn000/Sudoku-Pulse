@@ -300,6 +300,19 @@ export class SudokuUI {
   private adProgressFill!: HTMLElement;
   private adTimerText!: HTMLElement;
 
+  // Tutorial Modal Elements
+  private tutorialModal!: HTMLElement;
+  private btnCloseTutorialX!: HTMLButtonElement;
+  private tutorialStepBadge!: HTMLElement;
+  private tutorialTitle!: HTMLElement;
+  private tutorialVisualBox!: HTMLElement;
+  private tutorialDescription!: HTMLElement;
+  private tutorialDots!: HTMLElement;
+  private btnTutorialPrev!: HTMLButtonElement;
+  private btnTutorialNext!: HTMLButtonElement;
+  private btnMenuTutorial!: HTMLButtonElement;
+  private currentTutorialStep: number = 0;
+
   // Background Particles & Confetti
   private bgParticlesCanvas!: HTMLCanvasElement;
   private bgParticlesCtx!: CanvasRenderingContext2D | null;
@@ -360,7 +373,12 @@ export class SudokuUI {
           soundManager.playCorrect(this.game.comboCount);
           haptics.success();
           if (this.game.mode === 'ai_duel' && this.game.comboCount >= 4) {
-            const comboTaunts = [
+            const isEn = i18n.getLanguage() === 'en';
+            const comboTaunts = isEn ? [
+              `Whoa, combo x${this.game.comboCount}?! Nice acceleration!`,
+              `Combo x${this.game.comboCount}! But I'm still faster.`,
+              'Impressive tempo... Challenge accepted!',
+            ] : [
               `Ого, комбо x${this.game.comboCount}?! Неплохой разгон!`,
               `Комбо x${this.game.comboCount}! Но я всё равно быстрее.`,
               'Впечатляющий темп... Принимаю вызов!',
@@ -372,7 +390,12 @@ export class SudokuUI {
           haptics.error();
           if (this.game.mode === 'ai_duel') {
             this.setAiBotEmotion('smug', 2800);
-            const mistakeTaunts = [
+            const isEn = i18n.getLanguage() === 'en';
+            const mistakeTaunts = isEn ? [
+              'A mistake! My algorithm never makes such misses.',
+              'Lost an attempt! Your focus is slipping.',
+              'Nerves breaking? Speed demands pure precision!',
+            ] : [
               'Ошибочка! Мой алгоритм таких промахов не делает.',
               'Минус попытка! Твоя концентрация падает.',
               'Нервы сдают? Скорость требует предельной точности!',
@@ -389,7 +412,8 @@ export class SudokuUI {
           haptics.fever();
           if (this.game.mode === 'ai_duel') {
             this.setAiBotEmotion('fever');
-            this.showAiBotTaunt('🔥 Режим FEVER?! Форсирую ядра процессора!', 3000);
+            const isEn = i18n.getLanguage() === 'en';
+            this.showAiBotTaunt(isEn ? '🔥 FEVER Mode?! Overclocking processor cores!' : '🔥 Режим FEVER?! Форсирую ядра процессора!', 3000);
           }
         } else if (sound === 'fever_end') {
           soundManager.stopFeverTrack();
@@ -573,6 +597,18 @@ export class SudokuUI {
     this.adProgressFill = document.getElementById('ad-progress-fill')!;
     this.adTimerText = document.getElementById('ad-timer-text')!;
 
+    // Tutorial Modal
+    this.btnMenuTutorial = document.getElementById('btn-menu-tutorial') as HTMLButtonElement;
+    this.tutorialModal = document.getElementById('tutorial-modal')!;
+    this.btnCloseTutorialX = document.getElementById('btn-close-tutorial-x') as HTMLButtonElement;
+    this.tutorialStepBadge = document.getElementById('tutorial-step-badge')!;
+    this.tutorialTitle = document.getElementById('tutorial-title')!;
+    this.tutorialVisualBox = document.getElementById('tutorial-visual-box')!;
+    this.tutorialDescription = document.getElementById('tutorial-description')!;
+    this.tutorialDots = document.getElementById('tutorial-dots')!;
+    this.btnTutorialPrev = document.getElementById('btn-tutorial-prev') as HTMLButtonElement;
+    this.btnTutorialNext = document.getElementById('btn-tutorial-next') as HTMLButtonElement;
+
     this.bgParticlesCanvas = document.getElementById('bg-particles-canvas') as HTMLCanvasElement;
     this.bgParticlesCtx = this.bgParticlesCanvas.getContext('2d');
     this.confettiCanvas = document.getElementById('confetti-canvas') as HTMLCanvasElement;
@@ -650,6 +686,13 @@ export class SudokuUI {
     setTimeout(() => {
       this.syncWithCloud(false);
     }, 800);
+
+    // First launch onboarding tutorial check
+    setTimeout(() => {
+      if (!localStorage.getItem('sudoku_pulse_tutorial_seen')) {
+        this.openTutorial(0);
+      }
+    }, 600);
   }
 
   public showScreen(screen: AppScreen) {
@@ -786,6 +829,40 @@ export class SudokuUI {
       this.settingsModal.classList.add('hidden');
       this.updateScreenBackButton();
     });
+
+    if (this.btnMenuTutorial) {
+      this.btnMenuTutorial.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.openTutorial(0);
+      });
+    }
+
+    if (this.btnCloseTutorialX) {
+      this.btnCloseTutorialX.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeTutorial();
+      });
+    }
+
+    if (this.btnTutorialPrev) {
+      this.btnTutorialPrev.addEventListener('click', () => {
+        soundManager.playSelect();
+        if (this.currentTutorialStep > 0) {
+          this.renderTutorialStep(this.currentTutorialStep - 1);
+        }
+      });
+    }
+
+    if (this.btnTutorialNext) {
+      this.btnTutorialNext.addEventListener('click', () => {
+        soundManager.playSelect();
+        if (this.currentTutorialStep < 4) {
+          this.renderTutorialStep(this.currentTutorialStep + 1);
+        } else {
+          this.closeTutorial();
+        }
+      });
+    }
 
     // Leaderboard Filter Tabs
     this.leaderboardFilterTabs.forEach((tab) => {
@@ -2773,12 +2850,19 @@ export class SudokuUI {
 
   private showGameOverModal() {
     this.stopAiBotDuel();
+    const isEn = i18n.getLanguage() === 'en';
     if (this.game.mode === 'run') {
-      this.gameOverSubtitle.textContent = `Забег окончен на Этапе ${this.game.runStage}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
+      this.gameOverSubtitle.textContent = isEn
+        ? `Pulse Run ended at Stage ${this.game.runStage}. Your score: ${this.game.score.toLocaleString('en-US')}`
+        : `Забег окончен на Этапе ${this.game.runStage}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
     } else if (this.game.mode === 'ai_duel') {
-      this.gameOverSubtitle.textContent = `Вы совершили ${this.game.maxMistakes} ошибок в дуэли против ${this.aiBotProgress.name}.`;
+      this.gameOverSubtitle.textContent = isEn
+        ? `You committed ${this.game.maxMistakes} mistakes in duel against ${this.aiBotProgress.name}.`
+        : `Вы совершили ${this.game.maxMistakes} ошибок в дуэли против ${this.aiBotProgress.name}.`;
     } else {
-      this.gameOverSubtitle.textContent = `Вы совершили ${this.game.maxMistakes} ошибок.`;
+      this.gameOverSubtitle.textContent = isEn
+        ? `You made ${this.game.maxMistakes} mistakes.`
+        : `Вы совершили ${this.game.maxMistakes} ошибок.`;
     }
     this.gameOverModal.classList.remove('hidden');
   }
@@ -3119,12 +3203,33 @@ export class SudokuUI {
   private startAiBotDuel() {
     this.stopAiBotDuel();
     this.setAiBotEmotion('idle');
+    const isEn = i18n.getLanguage() === 'en';
     const counts = this.game.getProgressCounts();
     const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number; startTaunt: string }> = {
-      easy: { name: 'PulseBot v1', stepMs: 8000, errorChance: 0.15, startTaunt: 'Привет, человек! Покажи, как ты решаешь сетку.' },
-      medium: { name: 'CyberPulse v2', stepMs: 5000, errorChance: 0.05, startTaunt: 'Мои нейронные цепи прогреты. Готовься к дуэли!' },
-      hard: { name: 'NeuralPulse v3', stepMs: 3400, errorChance: 0, startTaunt: 'Высокая сложность? Отлично, я не буду поддаваться.' },
-      expert: { name: 'QuantumPulse v4', stepMs: 2300, errorChance: 0, startTaunt: '01000111 01001111! Полное квантовое доминирование.' },
+      easy: {
+        name: 'PulseBot v1',
+        stepMs: 8000,
+        errorChance: 0.15,
+        startTaunt: isEn ? 'Hello, human! Show me your grid solving skills.' : 'Привет, человек! Покажи, как ты решаешь сетку.'
+      },
+      medium: {
+        name: 'CyberPulse v2',
+        stepMs: 5000,
+        errorChance: 0.05,
+        startTaunt: isEn ? 'My neural circuits are heated. Prepare for the duel!' : 'Мои нейронные цепи прогреты. Готовься к дуэли!'
+      },
+      hard: {
+        name: 'NeuralPulse v3',
+        stepMs: 3400,
+        errorChance: 0,
+        startTaunt: isEn ? 'High difficulty? Excellent, I won\'t hold back.' : 'Высокая сложность? Отлично, я не буду поддаваться.'
+      },
+      expert: {
+        name: 'QuantumPulse v4',
+        stepMs: 2300,
+        errorChance: 0,
+        startTaunt: isEn ? '01000111 01001111! Full quantum dominance.' : '01000111 01001111! Полное квантовое доминирование.'
+      },
     };
     const profile = botProfiles[this.game.difficulty] || botProfiles.medium;
     this.aiBotProgress = {
@@ -3152,7 +3257,11 @@ export class SudokuUI {
 
       if (Math.random() < profile.errorChance) {
         this.setAiBotEmotion('glitch', 2400);
-        const errorTaunts = [
+        const errorTaunts = isEn ? [
+          'Calculation glitch... Logic rebooting!',
+          'My sensor misfired... Here is your chance!',
+          'Critical stream drift... Correcting!',
+        ] : [
           'Сбой в вычислениях... Перезагрузка логики!',
           'Похоже, мой датчик ошибся... Твой шанс!',
           'Критическая погрешность потока... Исправляю!',
@@ -3171,11 +3280,11 @@ export class SudokuUI {
       if (!this.aiBotProgress.reachedHalf && this.aiBotProgress.filled >= halfCount) {
         this.aiBotProgress.reachedHalf = true;
         this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt('Половина сетки за мной! Догоняй!', 2800);
+        this.showAiBotTaunt(isEn ? 'Half the grid is mine! Catch up!' : 'Половина сетки за мной! Догоняй!', 2800);
       } else if (!this.aiBotProgress.reachedEighty && this.aiBotProgress.filled >= eightyCount) {
         this.aiBotProgress.reachedEighty = true;
         this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt('Финишная прямая! Победа уже близко!', 2800);
+        this.showAiBotTaunt(isEn ? 'Home stretch! Victory is near!' : 'Финишная прямая! Победа уже близко!', 2800);
       }
 
       if (this.aiBotProgress.filled >= this.aiBotProgress.total) {
@@ -3232,10 +3341,11 @@ export class SudokuUI {
   }
 
   private handleAiDuelLoss() {
+    const isEn = i18n.getLanguage() === 'en';
     const botName = `🤖 ${this.aiBotProgress.name}`;
     const duelRecord: DuelRecord = {
       id: 'duel_' + Date.now(),
-      date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      date: new Date().toLocaleDateString(isEn ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'short' }),
       challenger: botName,
       won: false,
       myScore: this.game.score,
@@ -3249,7 +3359,9 @@ export class SudokuUI {
 
     soundManager.playError();
     haptics.error();
-    this.gameOverSubtitle.textContent = `${botName} первым заполнил сетку (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Счёт бота: ${this.aiBotProgress.score.toLocaleString('ru-RU')}.`;
+    this.gameOverSubtitle.textContent = isEn
+      ? `${botName} filled the grid first (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Bot score: ${this.aiBotProgress.score.toLocaleString('en-US')}.`
+      : `${botName} первым заполнил сетку (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Счёт бота: ${this.aiBotProgress.score.toLocaleString('ru-RU')}.`;
     this.gameOverModal.classList.remove('hidden');
   }
 
@@ -3273,9 +3385,12 @@ export class SudokuUI {
 
     const skinsReq: Record<string, { minScore: number; leagueName: string; name: string; icon: string }> = {
       neon: { minScore: 0, leagueName: isEn ? 'Bronze' : 'Бронза', name: 'Cyber', icon: '⚡' },
-      synthwave: { minScore: 10000, leagueName: isEn ? 'Silver' : 'Серебро', name: 'Synth', icon: '🌆' },
+      synthwave: { minScore: 5000, leagueName: isEn ? 'Silver' : 'Серебро', name: 'Synth', icon: '🌆' },
+      aqua: { minScore: 15000, leagueName: isEn ? 'Aqua' : 'Аква', name: 'Aqua', icon: '🌊' },
       matrix: { minScore: 30000, leagueName: isEn ? 'Gold' : 'Золото', name: 'Matrix', icon: '🟢' },
+      crimson: { minScore: 50000, leagueName: isEn ? 'Ruby' : 'Рубин', name: 'Crimson', icon: '🩸' },
       hologram: { minScore: 75000, leagueName: isEn ? 'Platinum' : 'Платина', name: 'Hologram', icon: '💎' },
+      retro: { minScore: 100000, leagueName: isEn ? 'Diamond' : 'Алмаз', name: 'Retro', icon: '👾' },
       obsidian: { minScore: 150000, leagueName: isEn ? 'Master' : 'Мастер', name: 'Obsidian', icon: '👑' },
     };
 
@@ -3502,6 +3617,170 @@ export class SudokuUI {
     };
 
     renderParticles();
+  }
+
+  public openTutorial(stepIndex: number = 0) {
+    if (!this.tutorialModal) return;
+    this.tutorialModal.classList.remove('hidden');
+    this.renderTutorialStep(stepIndex);
+    haptics.setBackButton(() => this.closeTutorial());
+  }
+
+  public closeTutorial() {
+    if (!this.tutorialModal) return;
+    this.tutorialModal.classList.add('hidden');
+    localStorage.setItem('sudoku_pulse_tutorial_seen', 'true');
+    this.updateScreenBackButton();
+  }
+
+  public renderTutorialStep(stepIndex: number) {
+    this.currentTutorialStep = Math.max(0, Math.min(4, stepIndex));
+    const isEn = i18n.getLanguage() === 'en';
+
+    if (this.tutorialStepBadge) {
+      this.tutorialStepBadge.textContent = isEn
+        ? `STEP ${this.currentTutorialStep + 1} OF 5`
+        : `ШАГ ${this.currentTutorialStep + 1} ИЗ 5`;
+    }
+
+    if (this.tutorialDots) {
+      this.tutorialDots.innerHTML = [0, 1, 2, 3, 4]
+        .map((i) => `<span class="dot ${i === this.currentTutorialStep ? 'active' : ''}"></span>`)
+        .join('');
+    }
+
+    if (this.btnTutorialPrev) {
+      this.btnTutorialPrev.disabled = this.currentTutorialStep === 0;
+      this.btnTutorialPrev.style.opacity = this.currentTutorialStep === 0 ? '0.4' : '1';
+    }
+
+    if (this.btnTutorialNext) {
+      if (this.currentTutorialStep === 4) {
+        this.btnTutorialNext.textContent = isEn ? "Let's Play! 🚀" : 'Погнали! 🚀';
+      } else {
+        this.btnTutorialNext.textContent = isEn ? 'Next ▶' : 'Далее ▶';
+      }
+    }
+
+    switch (this.currentTutorialStep) {
+      case 0: {
+        this.tutorialTitle.textContent = isEn ? '🧩 Classic Sudoku Rules' : '🧩 Классические правила Судоку';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(3, 38px);grid-template-rows:repeat(3, 38px);gap:4px;padding:6px;background:rgba(0,243,255,0.08);border:1px solid #00f3ff;border-radius:10px;">
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.05);border-radius:6px;">5</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">3</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#ff0055;background:rgba(255,0,85,0.15);border:1px dashed #ff0055;border-radius:6px;">?</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">6</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.05);border-radius:6px;">7</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">2</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">1</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">9</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">8</div>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.7);">${isEn ? '1 to 9 without repeats in row, column, block' : '1 до 9 без повторений в строке, столбце и блоке'}</span>
+          </div>
+        `;
+        this.tutorialDescription.textContent = isEn
+          ? 'Fill the 9×9 grid with digits 1 through 9. Each row, column, and 3×3 sector must contain each number exactly once. Tap an empty cell, then select a digit on the keypad below.'
+          : 'Заполните сетку 9×9 цифрами от 1 до 9. В каждой строке, столбце и блоке 3×3 каждая цифра должна встречаться ровно один раз без повторений. Нажмите на пустую клетку и выберите цифру на панели снизу.';
+        break;
+      }
+      case 1: {
+        this.tutorialTitle.textContent = isEn ? '⚡ Pulse & Fever Multipliers' : '⚡ Механика Пульса и Fever';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:85%;font-size:13px;font-weight:800;color:#ff0055;">
+              <span>🔥 FEVER MODE ACTIVE</span>
+              <span>x4.0 – x20.0</span>
+            </div>
+            <div style="width:85%;height:14px;background:rgba(255,255,255,0.1);border-radius:7px;overflow:hidden;border:1px solid #ff0055;box-shadow:0 0 10px rgba(255,0,85,0.5);">
+              <div style="width:100%;height:100%;background:linear-gradient(90deg, #ff0055, #ffe600);"></div>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);">${isEn ? 'Maintain tempo to chain combos and maximize score!' : 'Держите темп без ошибок, чтобы копить бешеное комбо!'}</span>
+          </div>
+        `;
+        this.tutorialDescription.textContent = isEn
+          ? 'Every correct entry charges your Pulse meter. Consecutive swift moves trigger FEVER Mode, boosting score gains up to x20! Beware: mistakes reset your combo chain and drain your pulse.'
+          : 'Каждый правильный ход заряжает шкалу Пульса. Серия быстрых ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо и расходуют драгоценный пульс.';
+        break;
+      }
+      case 2: {
+        this.tutorialTitle.textContent = isEn ? '🌑 Dark Sector: Fog of War' : '🌑 Dark Sector: Туман войны';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="display:grid;grid-template-columns:repeat(3, 38px);grid-template-rows:repeat(3, 38px);gap:4px;padding:6px;background:#0d1117;border:1px solid #ffaa00;border-radius:10px;">
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#ffaa00;background:rgba(255,170,0,0.15);border:1px solid #ffaa00;border-radius:6px;font-weight:900;">4</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#00f3ff;background:rgba(0,243,255,0.2);border:1px solid #00f3ff;border-radius:6px;font-weight:900;">7</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+            </div>
+            <span style="font-size:12px;color:rgba(255,255,255,0.7);">${isEn ? '📡 Radar pulse illuminates neighboring cells' : '📡 Радарный импульс подсвечивает соседние клетки'}</span>
+          </div>
+        `;
+        this.tutorialDescription.textContent = isEn
+          ? 'In Dark Sector mode, numbers are shrouded in dense fog. Fill cells or deploy the 📡 Radar Scanner to temporarily unveil surrounding cells. Blind deduction earns huge bonus rating!'
+          : 'В режиме Тёмного Сектора поле окутано туманом. Заполнение клеток и использование 📡 Сканера временно освещают соседние клетки. Дедукция вслепую приносит колоссальный бонусный рейтинг!';
+        break;
+      }
+      case 3: {
+        this.tutorialTitle.textContent = isEn ? '🤖 AI Duel & Roguelite Perks' : '🤖 Дуэль с ИИ и Перки';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
+            <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
+              <div style="background:rgba(0,243,255,0.12);border:1px solid #00f3ff;padding:8px 12px;border-radius:8px;text-align:center;">
+                <div style="font-size:11px;color:#00f3ff;font-weight:700;">YOU</div>
+                <div style="font-size:16px;font-weight:900;color:#fff;">⚡ 32/45</div>
+              </div>
+              <div style="font-size:18px;font-weight:900;color:#ffaa00;">VS</div>
+              <div style="background:rgba(255,0,85,0.12);border:1px solid #ff0055;padding:8px 12px;border-radius:8px;text-align:center;">
+                <div style="font-size:11px;color:#ff0055;font-weight:700;">CYBER BOT</div>
+                <div style="font-size:16px;font-weight:900;color:#fff;">🤖 28/45</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:center;font-size:12px;color:rgba(255,255,255,0.8);">
+              <span>🛡️ ${isEn ? 'Shield' : 'Щит'}</span> • <span>💥 EMP</span> • <span>⏱️ ${isEn ? 'Chrono' : 'Хроно'}</span>
+            </div>
+          </div>
+        `;
+        this.tutorialDescription.textContent = isEn
+          ? 'Compete speed-for-speed against PulseBot in real-time Duels! In Pulse Run, conquer consecutive stages and pick game-changing perks: Aegis Shields, Overcharge, EMP Pulses, and Freeze.'
+          : 'Соревнуйтесь на скорость против PulseBot в реальном времени! В режиме забега Pulse Run проходите этапы и выбирайте кибер-перки: силовые щиты, EMP-импульсы, Хроно-буст и Overcharge.';
+        break;
+      }
+      case 4: {
+        this.tutorialTitle.textContent = isEn ? '🎮 Controls, Notes & Hints' : '🎮 Управление, Заметки и Подсказки';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:4px;">
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
+              <div style="font-size:18px;">📝</div>
+              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Notes (N)' : 'Заметки (N)'}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
+              <div style="font-size:18px;">💡</div>
+              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Hint (H)' : 'Подсказка (H)'}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
+              <div style="font-size:18px;">✨</div>
+              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Auto-Notes' : 'Автозаметки'}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
+              <div style="font-size:18px;">⌫</div>
+              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Erase / Undo' : 'Стереть / Undo'}</div>
+            </div>
+          </div>
+        `;
+        this.tutorialDescription.textContent = isEn
+          ? 'Use the onscreen keypad or keyboard numbers 1–9. Toggle Notes mode to mark candidate digits, use Auto-Notes for smart candidates, or ask for a Hint if you ever get stuck!'
+          : 'Управляйте нажатиями на экранную клавиатуру или клавишами 1–9. Включайте режим Заметок для проверки вариантов, используйте Автозаметки или берите Подсказку, если возникли трудности!';
+        break;
+      }
+    }
   }
 }
 

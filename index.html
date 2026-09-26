@@ -76,6 +76,9 @@
         <button id="btn-menu-stats" class="btn-menu-secondary">
           <span>📊</span> <span data-i18n="menu_stats">Рекорды</span>
         </button>
+        <button id="btn-menu-tutorial" class="btn-menu-secondary">
+          <span>🎓</span> <span data-i18n="menu_tutorial">Обучение</span>
+        </button>
         <button id="btn-menu-settings" class="btn-menu-secondary">
           <span>⚙️</span> <span data-i18n="menu_settings">Настройки</span>
         </button>
@@ -519,8 +522,11 @@
         <div class="board-skin-list" id="board-skin-selector" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
           <button class="diff-pill board-skin-pill active" data-board-skin="neon" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
           <button class="diff-pill board-skin-pill" data-board-skin="synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synth</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="aqua" style="flex:1; font-size: 0.78rem;">🌊 Aqua</button>
           <button class="diff-pill board-skin-pill" data-board-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="crimson" style="flex:1; font-size: 0.78rem;">🩸 Crimson</button>
           <button class="diff-pill board-skin-pill" data-board-skin="hologram" style="flex:1; font-size: 0.78rem;">💎 Hologram</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="retro" style="flex:1; font-size: 0.78rem;">👾 Retro</button>
           <button class="diff-pill board-skin-pill" data-board-skin="obsidian" style="flex:1; font-size: 0.78rem;">👑 Obsidian</button>
         </div>
       </div>
@@ -685,6 +691,38 @@
         <button id="btn-challenge-decline" class="btn-secondary" style="flex: 1; padding: 10px;">
           Позже
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: INTERACTIVE TUTORIAL / ONBOARDING   -->
+  <!-- ========================================== -->
+  <div id="tutorial-modal" class="modal-overlay hidden">
+    <div class="modal-card tutorial-modal-card">
+      <button id="btn-close-tutorial-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div class="tutorial-step-badge" id="tutorial-step-badge">ШАГ 1 ИЗ 5</div>
+      <h2 id="tutorial-title" class="modal-title">🧩 Классические правила Судоку</h2>
+
+      <div class="tutorial-visual-box" id="tutorial-visual-box">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <p id="tutorial-description" class="tutorial-description">
+        Заполните сетку 9×9 цифрами от 1 до 9. В каждой строке, столбце и малом блоке 3×3 каждая цифра должна встречаться ровно один раз без повторений.
+      </p>
+
+      <div class="tutorial-dots" id="tutorial-dots">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+
+      <div class="tutorial-nav-buttons">
+        <button id="btn-tutorial-prev" class="btn-secondary" style="flex: 1; padding: 10px;">◀ Назад</button>
+        <button id="btn-tutorial-next" class="btn-primary" style="flex: 2; padding: 10px;">Далее ▶</button>
       </div>
     </div>
   </div>
