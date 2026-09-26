@@ -1689,4 +1689,190 @@ body {
   50% { transform: scale(1.25); opacity: 1; }
 }
 
+/* ========================================== */
+/* MULTI-CLEAR POPUP NOTIFICATIONS            */
+/* ========================================== */
+.multi-clear-container {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.multi-clear-badge {
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 1.12rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  animation: multiClearPop 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.multi-clear-badge.dual {
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+  color: #ffffff;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.75);
+}
+
+.multi-clear-badge.triple {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #ec4899 100%);
+  color: #ffffff;
+  border: 2px solid #fde047;
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.9);
+  font-size: 1.25rem;
+}
+
+@keyframes multiClearPop {
+  0% {
+    transform: scale(0.3) translateY(20px);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.16) translateY(0);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(1.0) translateY(0);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.0) translateY(-8px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.88) translateY(-28px);
+    opacity: 0;
+  }
+}
+
+/* ========================================== */
+/* LEAGUES & AVATAR FRAMES                    */
+/* ========================================== */
+.league-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.league-badge.bronze {
+  background: rgba(180, 83, 9, 0.18);
+  color: #d97706;
+  border-color: rgba(180, 83, 9, 0.35);
+}
+
+.league-badge.silver {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.league-badge.gold {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+  border-color: rgba(234, 179, 8, 0.45);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.25);
+}
+
+.league-badge.platinum {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.league-badge.grandmaster {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.25));
+  color: #f472b6;
+  border-color: #c084fc;
+  box-shadow: 0 0 15px rgba(192, 132, 252, 0.45);
+  animation: gmGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes gmGlow {
+  0% { box-shadow: 0 0 8px rgba(192, 132, 252, 0.3); }
+  100% { box-shadow: 0 0 18px rgba(236, 72, 153, 0.65); }
+}
+
+/* Avatar Frames */
+.avatar-frame {
+  position: relative;
+  border-radius: 50%;
+  display: inline-flex;
+  transition: all 0.3s ease;
+}
+
+.avatar-frame-bronze {
+  box-shadow: 0 0 0 2px #d97706;
+}
+
+.avatar-frame-silver {
+  box-shadow: 0 0 0 2px #cbd5e1;
+}
+
+.avatar-frame-gold {
+  box-shadow: 0 0 0 2px #facc15, 0 0 12px rgba(250, 204, 21, 0.5);
+}
+
+.avatar-frame-platinum {
+  box-shadow: 0 0 0 2px #38bdf8, 0 0 15px rgba(56, 189, 248, 0.6);
+}
+
+.avatar-frame-grandmaster {
+  box-shadow: 0 0 0 2px #c084fc, 0 0 20px rgba(236, 72, 153, 0.7);
+  animation: gmGlow 2s ease-in-out infinite alternate;
+}
+
+/* Season countdown box */
+.season-countdown-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin: 6px 0;
+  font-size: 0.8rem;
+}
+
+/* Duel History */
+.duel-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  margin-bottom: 6px;
+}
+
+.duel-card.won {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.duel-card.lost {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.05);
+}
+
 

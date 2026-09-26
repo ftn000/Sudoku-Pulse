@@ -5,6 +5,48 @@ import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS } from './achievements';
 import { haptics, TelegramUser } from './haptics';
 
+export interface DuelRecord {
+  id: string;
+  date: string;
+  challenger: string;
+  won: boolean;
+  myScore: number;
+  myTime: number;
+  targetScore: number;
+  targetTime: number;
+  diff: Difficulty;
+  mode: GameMode;
+}
+
+export interface LeagueInfo {
+  id: 'bronze' | 'silver' | 'gold' | 'platinum' | 'grandmaster';
+  name: string;
+  icon: string;
+  badgeClass: string;
+  frameClass: string;
+  minScore: number;
+}
+
+export function getLeagueForScore(totalScore: number): LeagueInfo {
+  if (totalScore >= 150000) return { id: 'grandmaster', name: 'Кибер-Мастер', icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
+  if (totalScore >= 75000) return { id: 'platinum', name: 'Платиновая', icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
+  if (totalScore >= 30000) return { id: 'gold', name: 'Золотая', icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
+  if (totalScore >= 10000) return { id: 'silver', name: 'Серебряная', icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
+  return { id: 'bronze', name: 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
+}
+
+export function getSeasonRemainingText(): string {
+  const now = new Date();
+  const currentDay = now.getUTCDay();
+  const daysUntilMonday = ((8 - currentDay) % 7) || 7;
+  const nextMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday, 0, 0, 0));
+  const diffMs = Math.max(0, nextMonday.getTime() - now.getTime());
+  const diffHoursTotal = Math.floor(diffMs / (1000 * 3600));
+  const days = Math.floor(diffHoursTotal / 24);
+  const hours = diffHoursTotal % 24;
+  return `${days} дн. ${hours} ч.`;
+}
+
 export class SudokuUI {
   private game: SudokuGame;
   private timerInterval?: number;
@@ -33,6 +75,7 @@ export class SudokuUI {
   private menuDailyStreak!: HTMLElement;
   private btnMenuTgAuth!: HTMLButtonElement;
   private menuTgAuthLabel!: HTMLElement;
+  private menuLeagueBadge!: HTMLElement;
 
   // Mode Select Elements
   private btnModesBack!: HTMLButtonElement;
@@ -54,6 +97,7 @@ export class SudokuUI {
   private pulseStatusText!: HTMLElement;
 
   private boardElement!: HTMLElement;
+  private multiClearContainer!: HTMLElement;
   private timerElement!: HTMLElement;
   private mistakesElement!: HTMLElement;
   private pauseOverlay!: HTMLElement;
@@ -98,6 +142,10 @@ export class SudokuUI {
   private statsModal!: HTMLElement;
   private btnCloseStats!: HTMLButtonElement;
   private playerNameInput!: HTMLInputElement;
+  private statLeagueBadge!: HTMLElement;
+  private statSeasonTimer!: HTMLElement;
+  private duelHistorySummary!: HTMLElement;
+  private duelHistoryList!: HTMLElement;
   private leaderboardList!: HTMLElement;
   private leaderboardFilterTabs: HTMLButtonElement[] = [];
   private currentLeaderboardModeFilter: string = 'all';
@@ -209,7 +257,12 @@ export class SudokuUI {
       onGameOver: () => this.showGameOverModal(),
       onLineComplete: (cells, types) => {
         this.triggerLineWave(cells);
-        soundManager.playLineChord(types?.length || 1, types || ['row']);
+        const count = types?.length || 1;
+        if (count >= 2) {
+          const bonus = count === 2 ? 600 : 1500;
+          this.showMultiClearBanner(count, bonus);
+        }
+        soundManager.playLineChord(count, types || ['row']);
         haptics.success();
       },
       onAchievementUnlocked: (ach) => {
@@ -276,6 +329,7 @@ export class SudokuUI {
     this.menuDailyStreak = document.getElementById('menu-daily-streak')!;
     this.btnMenuTgAuth = document.getElementById('btn-menu-tg-auth') as HTMLButtonElement;
     this.menuTgAuthLabel = document.getElementById('menu-tg-auth-label')!;
+    this.menuLeagueBadge = document.getElementById('menu-league-badge')!;
 
     // Mode Select
     this.btnModesBack = document.getElementById('btn-modes-back') as HTMLButtonElement;
@@ -297,6 +351,7 @@ export class SudokuUI {
     this.pulseStatusText = document.getElementById('pulse-status-text')!;
 
     this.boardElement = document.getElementById('sudoku-board')!;
+    this.multiClearContainer = document.getElementById('multi-clear-container')!;
     this.timerElement = document.getElementById('timer')!;
     this.mistakesElement = document.getElementById('mistakes')!;
     this.pauseOverlay = document.getElementById('pause-overlay')!;
@@ -340,6 +395,10 @@ export class SudokuUI {
     this.statsModal = document.getElementById('stats-modal')!;
     this.btnCloseStats = document.getElementById('btn-close-stats') as HTMLButtonElement;
     this.playerNameInput = document.getElementById('player-name-input') as HTMLInputElement;
+    this.statLeagueBadge = document.getElementById('stat-league-badge')!;
+    this.statSeasonTimer = document.getElementById('stat-season-timer')!;
+    this.duelHistorySummary = document.getElementById('duel-history-summary')!;
+    this.duelHistoryList = document.getElementById('duel-history-list')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
     this.leaderboardFilterTabs = Array.from(document.querySelectorAll('.lb-tab'));
     this.statPlayed = document.getElementById('stat-played')!;
@@ -1155,6 +1214,8 @@ export class SudokuUI {
         } catch {}
       }
     }
+
+    this.updateLeagueViews();
   }
 
   public render() {
@@ -1445,6 +1506,20 @@ export class SudokuUI {
       const challenger = this.activeChallenge.challenger;
       const wonDuel = stats.score > targetScore || (stats.score === targetScore && stats.timeSeconds <= targetTime);
 
+      const duelRecord: DuelRecord = {
+        id: 'duel_' + Date.now(),
+        date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        challenger,
+        won: wonDuel,
+        myScore: stats.score,
+        myTime: stats.timeSeconds,
+        targetScore,
+        targetTime,
+        diff: stats.difficulty,
+        mode: stats.mode,
+      };
+      this.addDuelRecord(duelRecord);
+
       if (wonDuel) {
         if (this.duelResultTitle) {
           this.duelResultTitle.textContent = '🎉 ВЫ ПОБЕДИЛИ В ДУЭЛИ!';
@@ -1663,10 +1738,12 @@ export class SudokuUI {
       const isMe = item.playerId && item.playerId === myPlayerId;
       const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
       const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
+      const league = getLeagueForScore(item.score);
       return `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-weight:700; min-width:24px;">${medal}</span>
+            <span title="Лига: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
             <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>' : ''}</span>
             <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
           </div>
@@ -2133,8 +2210,117 @@ export class SudokuUI {
     const bestRun = stats.bestRunStage || 0;
     const bestRunScore = stats.bestRunScore || 0;
     this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
+    this.updateLeagueViews();
+    this.renderDuelHistory();
     this.statsModal.classList.remove('hidden');
     this.fetchAndRenderLeaderboard();
+  }
+
+  private showMultiClearBanner(count: number, bonusScore: number) {
+    if (!this.multiClearContainer) return;
+    const badge = document.createElement('div');
+    const isTriple = count >= 3;
+    badge.className = `multi-clear-badge ${isTriple ? 'triple' : 'dual'}`;
+    const icon = isTriple ? '🔥' : '⚡';
+    const title = isTriple ? 'TRIPLE OVERDRIVE!' : 'DUAL CLEAR!';
+    badge.innerHTML = `<span>${icon} ${title}</span> <span style="opacity:0.9; font-size:0.9em; margin-left:4px;">+${bonusScore}</span>`;
+    this.multiClearContainer.appendChild(badge);
+
+    setTimeout(() => {
+      badge.remove();
+    }, 1700);
+  }
+
+  private getDuelHistory(): DuelRecord[] {
+    try {
+      const raw = localStorage.getItem('sudoku_duel_history');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  }
+
+  private addDuelRecord(record: DuelRecord) {
+    try {
+      const list = this.getDuelHistory();
+      list.unshift(record);
+      if (list.length > 30) list.length = 30;
+      localStorage.setItem('sudoku_duel_history', JSON.stringify(list));
+    } catch {}
+  }
+
+  private renderDuelHistory() {
+    if (!this.duelHistoryList || !this.duelHistorySummary) return;
+    const history = this.getDuelHistory();
+    if (history.length === 0) {
+      this.duelHistorySummary.textContent = '0 дуэлей сыграно';
+      this.duelHistoryList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:10px;">Вы еще не участвовали в дуэлях. Поделитесь вызовом после победы!</div>`;
+      return;
+    }
+
+    const wins = history.filter((d) => d.won).length;
+    const losses = history.length - wins;
+    const winRate = Math.round((wins / history.length) * 100);
+    this.duelHistorySummary.textContent = `Побед: ${wins} | Поражений: ${losses} (${winRate}% винрейт)`;
+
+    const diffLabels: Record<Difficulty, string> = {
+      easy: 'Легкий',
+      medium: 'Средний',
+      hard: 'Сложный',
+      expert: 'Эксперт',
+    };
+
+    this.duelHistoryList.innerHTML = history.slice(0, 10).map((d) => {
+      const statusIcon = d.won ? '🏆' : '💀';
+      const statusClass = d.won ? 'won' : 'lost';
+      const statusText = d.won ? 'Победа' : 'Поражение';
+      const myMins = Math.floor(d.myTime / 60);
+      const mySecs = d.myTime % 60;
+      const myTimeStr = `${myMins.toString().padStart(2, '0')}:${mySecs.toString().padStart(2, '0')}`;
+      const diffName = diffLabels[d.diff] || 'Средний';
+
+      const scoreDiff = d.myScore - d.targetScore;
+      const diffStr = scoreDiff >= 0 ? `+${scoreDiff.toLocaleString('ru-RU')}` : `${scoreDiff.toLocaleString('ru-RU')}`;
+
+      return `
+        <div class="duel-card ${statusClass}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; align-items:center; gap:6px; font-weight:700;">
+              <span>${statusIcon}</span>
+              <span style="color:${d.won ? '#34d399' : '#f43f5e'};">${statusText} vs ${d.challenger.replace(/</g, '&lt;')}</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${d.date}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted);">
+            <span>${diffName} | ⏱️ ${myTimeStr}</span>
+            <span>Счёт: <strong style="color:var(--text-main);">${d.myScore.toLocaleString('ru-RU')}</strong> (<span style="color:${d.won ? '#34d399' : '#f43f5e'};">${diffStr}</span>)</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  private updateLeagueViews() {
+    const stats = SudokuGame.getPlayerStats();
+    const league = getLeagueForScore(stats.totalScore);
+
+    if (this.menuLeagueBadge) {
+      this.menuLeagueBadge.className = league.badgeClass;
+      this.menuLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>${league.name}</span>`;
+    }
+
+    if (this.statLeagueBadge) {
+      this.statLeagueBadge.className = league.badgeClass;
+      this.statLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>Лига: ${league.name}</span>`;
+    }
+
+    if (this.statSeasonTimer) {
+      this.statSeasonTimer.textContent = `⏳ Сезон: ${getSeasonRemainingText()}`;
+    }
+
+    if (this.tgAuthUserAvatar) {
+      this.tgAuthUserAvatar.classList.remove('avatar-frame-bronze', 'avatar-frame-silver', 'avatar-frame-gold', 'avatar-frame-platinum', 'avatar-frame-grandmaster');
+      this.tgAuthUserAvatar.classList.add(league.frameClass);
+    }
   }
 
   private showMockAd(rewardTitle: string, onReward: () => void) {

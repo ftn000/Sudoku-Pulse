@@ -19,11 +19,12 @@
   <!-- SCREEN 1: MAIN MENU                        -->
   <!-- ========================================== -->
   <div id="screen-menu" class="screen">
-    <div class="menu-top-bar">
+    <div class="menu-top-bar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
       <button id="btn-menu-tg-auth" class="tg-menu-auth-pill" title="Профиль и облачная синхронизация">
         <span class="tg-pill-icon">✈️</span>
         <span id="menu-tg-auth-label">Войти через Telegram</span>
       </button>
+      <div id="menu-league-badge" class="league-badge bronze" title="Текущая лига">🥉 Бронза</div>
     </div>
 
     <div class="menu-hero">
@@ -199,8 +200,11 @@
       </div>
 
       <!-- Sudoku Board Wrapper -->
-      <div class="board-wrapper">
+      <div class="board-wrapper" style="position: relative;">
         <div id="sudoku-board" class="board-grid"></div>
+
+        <!-- Floating Multi-Clear Popups -->
+        <div id="multi-clear-container" class="multi-clear-container hidden"></div>
 
         <!-- Pause Overlay -->
         <div id="pause-overlay" class="pause-overlay hidden">
@@ -352,11 +356,22 @@
       </div>
       
       <div class="modal-stats">
+        <div class="modal-stat-row"><span>Кибер-Лига:</span><span id="stat-league-badge" class="league-badge bronze">🥉 Бронзовая</span></div>
         <div class="modal-stat-row"><span>Партий сыграно / Побед:</span><span><span id="stat-played">0</span> / <span id="stat-won">0</span></span></div>
         <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
         <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
         <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
         <div class="modal-stat-row"><span>Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
+      </div>
+
+      <div class="season-countdown-box">
+        <span style="display: flex; align-items: center; gap: 4px;">⏳ <strong>Сезон Лиги:</strong></span>
+        <span id="stat-season-timer" style="color: var(--pulse-cyan); font-weight: 700;">3 дн. 12 ч.</span>
+      </div>
+
+      <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">⚔️ История дуэлей (<span id="duel-history-summary">0 дуэлей</span>)</div>
+      <div id="duel-history-list" style="max-height: 120px; overflow-y: auto; margin-bottom: 6px;">
+        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Дуэлей пока нет. Бросьте вызов другу после победы!</div>
       </div>
 
       <div class="section-title" style="margin-top: 4px; margin-bottom: 4px;">🌐 Глобальный Лидерборд (Топ Игроков)</div>
