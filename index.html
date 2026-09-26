@@ -249,12 +249,12 @@
         </div>
       </div>
 
+      <!-- Floating Multi-Clear Popups (Safe Zone: Above Board) -->
+      <div id="multi-clear-container" class="multi-clear-container"></div>
+
       <!-- Sudoku Board Wrapper -->
       <div class="board-wrapper" style="position: relative;">
         <div id="sudoku-board" class="board-grid"></div>
-
-        <!-- Floating Multi-Clear Popups -->
-        <div id="multi-clear-container" class="multi-clear-container hidden"></div>
 
         <!-- Pause Overlay -->
         <div id="pause-overlay" class="pause-overlay hidden">
@@ -334,6 +334,7 @@
   <!-- ========================================== -->
   <div id="win-modal" class="modal-overlay hidden">
     <div class="modal-card">
+      <button id="btn-close-win-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <div class="modal-icon">🏆</div>
       <h2 id="modal-win-title" class="modal-title">Победа!</h2>
       <p id="modal-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Головоломка успешно решена!</p>
@@ -381,6 +382,7 @@
   <!-- ========================================== -->
   <div id="gameover-modal" class="modal-overlay hidden">
     <div class="modal-card">
+      <button id="btn-close-gameover-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <div class="modal-icon">💔</div>
       <h2 class="modal-title">Игра окончена</h2>
       <p id="gameover-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили максимум ошибок.</p>
@@ -397,7 +399,7 @@
   <!-- MODAL: STATS / RECORDS                     -->
   <!-- ========================================== -->
   <div id="stats-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-height: 90vh; overflow-y: auto; position: relative;">
+    <div class="modal-card">
       <button id="btn-close-stats-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">📊 Рекорды и Лидерборд</h2>
 
@@ -460,7 +462,7 @@
   <!-- MODAL: ACHIEVEMENTS                        -->
   <!-- ========================================== -->
   <div id="achievements-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-height: 90vh; overflow-y: auto; position: relative;">
+    <div class="modal-card">
       <button id="btn-close-achievements-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">🏅 Достижения</h2>
       <p id="achievements-subtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: -6px;">Открыто 0 из 10 трофеев</p>
@@ -477,7 +479,7 @@
   <!-- MODAL: SETTINGS                            -->
   <!-- ========================================== -->
   <div id="settings-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="position: relative;">
+    <div class="modal-card">
       <button id="btn-close-settings-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">⚙️ Настройки</h2>
       
@@ -641,6 +643,7 @@
   <!-- ========================================== -->
   <div id="challenge-modal" class="modal-overlay hidden">
     <div class="modal-card">
+      <button id="btn-close-challenge-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <div class="modal-icon">⚔️</div>
       <h2 class="modal-title" id="challenge-modal-title">Дуэльный вызов!</h2>
       <p id="challenge-modal-subtitle" style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 12px;">

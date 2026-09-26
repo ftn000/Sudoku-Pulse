@@ -1084,7 +1084,7 @@ body {
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 16px 12px;
   z-index: 1000;
@@ -1098,6 +1098,7 @@ body {
 }
 
 .modal-card {
+  position: relative;
   background: var(--modal-bg);
   border: 1px solid var(--surface-border);
   border-radius: 20px;
@@ -1212,23 +1213,37 @@ body {
   transition: width 0.1s linear;
 }
 
-/* Toast */
+/* Toast Notification (Safe Zone: Top of Screen, Non-blocking) */
 .toast {
   position: fixed;
-  bottom: 24px;
-  background: #34d399;
-  color: #064e3b;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(6, 182, 212, 0.95));
+  color: #ffffff;
   font-weight: 700;
-  padding: 12px 22px;
-  border-radius: 30px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  z-index: 200;
-  animation: slideUp 0.3s ease-out;
+  font-size: 0.88rem;
+  padding: 10px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(52, 211, 153, 0.35);
+  z-index: 1050;
+  pointer-events: none; /* CRITICAL: Never block numpad or cells! */
+  animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  max-width: 90vw;
+  backdrop-filter: blur(8px);
 }
 
-@keyframes slideUp {
-  0% { transform: translateY(30px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+.toast.achievement-toast {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.96), rgba(234, 88, 12, 0.96));
+  border: 1px solid rgba(254, 240, 138, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.6);
+}
+
+@keyframes slideDownToast {
+  0% { transform: translate(-50%, -30px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
 }
 
 #confetti-canvas {
@@ -1489,8 +1504,8 @@ body {
 
 .modal-close-icon-btn {
   position: absolute;
-  right: 0;
-  top: 0;
+  right: 14px;
+  top: 14px;
   font-size: 1.15rem;
   width: 32px;
   height: 32px;
@@ -1503,12 +1518,18 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
+  z-index: 10;
 }
 
 .modal-close-icon-btn:hover {
   background: rgba(255, 255, 255, 0.16);
   color: var(--text-main);
   transform: scale(1.05);
+}
+
+.tg-auth-header .modal-close-icon-btn {
+  right: 0;
+  top: 0;
 }
 
 .tg-auth-icon {
@@ -1732,16 +1753,18 @@ body {
 /* MULTI-CLEAR POPUP NOTIFICATIONS            */
 /* ========================================== */
 .multi-clear-container {
-  position: absolute;
-  top: 45%;
+  position: fixed;
+  top: 66px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   pointer-events: none;
-  z-index: 50;
+  z-index: 850;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  max-width: 440px;
 }
 
 .multi-clear-badge {

@@ -782,6 +782,30 @@ export class SudokuUI {
       });
     }
 
+    const btnCloseWinX = document.getElementById('btn-close-win-x');
+    if (btnCloseWinX) {
+      btnCloseWinX.addEventListener('click', () => {
+        this.winModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    const btnCloseGameOverX = document.getElementById('btn-close-gameover-x');
+    if (btnCloseGameOverX) {
+      btnCloseGameOverX.addEventListener('click', () => {
+        this.gameOverModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    const btnCloseChallengeX = document.getElementById('btn-close-challenge-x');
+    if (btnCloseChallengeX) {
+      btnCloseChallengeX.addEventListener('click', () => {
+        this.challengeModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
     const btnCloseStatsX = document.getElementById('btn-close-stats-x');
     if (btnCloseStatsX) {
       btnCloseStatsX.addEventListener('click', () => {
@@ -806,8 +830,17 @@ export class SudokuUI {
       });
     }
 
-    // Modal background overlay click dismissal
-    [this.statsModal, this.achievementsModal, this.settingsModal, this.tgAuthModal].forEach((modal) => {
+    // Modal background overlay click dismissal for ALL modals
+    [
+      this.winModal,
+      this.gameOverModal,
+      this.statsModal,
+      this.achievementsModal,
+      this.settingsModal,
+      this.tgAuthModal,
+      this.challengeModal,
+      this.adModal
+    ].forEach((modal) => {
       if (modal) {
         modal.addEventListener('click', (e) => {
           if (e.target === modal) {
@@ -3070,7 +3103,8 @@ export class SudokuUI {
     if (existing) existing.remove();
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    const isAchievement = message.includes('🏅') || message.toLowerCase().includes('достижение');
+    toast.className = isAchievement ? 'toast achievement-toast' : 'toast';
     toast.textContent = message;
     document.body.appendChild(toast);
 
