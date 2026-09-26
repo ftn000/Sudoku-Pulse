@@ -2,8 +2,24 @@ import { SudokuGame } from './game';
 import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
-import { ACHIEVEMENTS } from './achievements';
+import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
 import { haptics, TelegramUser } from './haptics';
+
+export function getApiBaseUrl(): string {
+  const isNative = Boolean(
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    (window as any).Capacitor ||
+    window.location.protocol === 'capacitor:' ||
+    window.location.protocol === 'file:' ||
+    (window.location.hostname === 'localhost' && window.location.port !== '5173')
+  );
+
+  if (isNative) {
+    return 'https://109.69.17.170.sslip.io/sudoku/api';
+  }
+
+  return window.location.pathname.startsWith('/sudoku') ? '/sudoku/api' : '/api';
+}
 
 export interface DuelRecord {
   id: string;
@@ -570,7 +586,7 @@ export class SudokuUI {
     // Register Telegram Login Widget Callback
     (window as any).onTelegramAuth = async (user: any) => {
       try {
-        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/widget' : '/api/auth/widget';
+        const apiBase = `${getApiBaseUrl()}/auth/widget`;
         const res = await fetch(apiBase, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -756,6 +772,75 @@ export class SudokuUI {
     if (this.btnCloseTgAuth) {
       this.btnCloseTgAuth.addEventListener('click', () => {
         this.closeTgAuthModal();
+      });
+    }
+
+    const btnCloseTgAuthX = document.getElementById('btn-close-tg-auth-x');
+    if (btnCloseTgAuthX) {
+      btnCloseTgAuthX.addEventListener('click', () => {
+        this.closeTgAuthModal();
+      });
+    }
+
+    const btnCloseStatsX = document.getElementById('btn-close-stats-x');
+    if (btnCloseStatsX) {
+      btnCloseStatsX.addEventListener('click', () => {
+        this.statsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    const btnCloseAchX = document.getElementById('btn-close-achievements-x');
+    if (btnCloseAchX) {
+      btnCloseAchX.addEventListener('click', () => {
+        this.achievementsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    const btnCloseSettingsX = document.getElementById('btn-close-settings-x');
+    if (btnCloseSettingsX) {
+      btnCloseSettingsX.addEventListener('click', () => {
+        this.settingsModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    // Modal background overlay click dismissal
+    [this.statsModal, this.achievementsModal, this.settingsModal, this.tgAuthModal].forEach((modal) => {
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.add('hidden');
+            if (modal === this.tgAuthModal) this.stopTgAuthPolling();
+            this.updateScreenBackButton();
+          }
+        });
+      }
+    });
+
+    // Telegram Bot CTA link handler with deep-link & Capacitor system browser support
+    if (this.btnTgOpenBotLink) {
+      this.btnTgOpenBotLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetUrl = this.btnTgOpenBotLink.getAttribute('data-bot-url') ||
+                          this.btnTgOpenBotLink.href ||
+                          'https://t.me/sudoku_pulse_auth_bot';
+        const cleanUrl = (targetUrl && targetUrl !== '#' && !targetUrl.endsWith('#'))
+          ? targetUrl
+          : 'https://t.me/sudoku_pulse_auth_bot';
+
+        try {
+          if ((window as any).Capacitor) {
+            window.open(cleanUrl, '_system');
+            return;
+          }
+        } catch {}
+
+        const w = window.open(cleanUrl, '_blank');
+        if (!w) {
+          window.location.href = cleanUrl;
+        }
       });
     }
 
@@ -1105,7 +1190,7 @@ export class SudokuUI {
       this.showToast(`✅ Никнейм сохранён: ${name}`);
       try {
         const playerId = SudokuGame.getOrCreatePlayerId();
-        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+        const apiBase = `${getApiBaseUrl()}/leaderboard`;
         await fetch(apiBase, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1339,12 +1424,17 @@ export class SudokuUI {
     this.menuDailyDate.textContent = `Вызов на сегодня: ${today}`;
 
     const stats = SudokuGame.getPlayerStats();
+    evaluateAllAchievements(stats);
+    SudokuGame.savePlayerStats(stats);
     this.menuDailyStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
 
-    // Unlocked achievements counter
-    const unlockedCount = (stats.unlockedAchievements || []).length;
+    // Unlocked achievements counter (robust synchronization)
+    const unlockedIds = new Set(stats.unlockedAchievements || []);
+    ACHIEVEMENTS.forEach(ach => {
+      if (ach.checkUnlocked(stats)) unlockedIds.add(ach.id);
+    });
     if (this.menuAchCounter) {
-      this.menuAchCounter.textContent = `${unlockedCount}/${ACHIEVEMENTS.length}`;
+      this.menuAchCounter.textContent = `${unlockedIds.size}/${ACHIEVEMENTS.length}`;
     }
 
     // Continue game button in Main Menu
@@ -1878,7 +1968,7 @@ export class SudokuUI {
     try {
       const playerId = SudokuGame.getOrCreatePlayerId();
       const playerName = (localStorage.getItem('sudoku_player_name') || this.playerNameInput?.value || 'Игрок').trim() || 'Игрок';
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      const apiBase = `${getApiBaseUrl()}/leaderboard`;
       await fetch(apiBase, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1902,7 +1992,7 @@ export class SudokuUI {
     if (!this.leaderboardList) return;
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
     try {
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      const apiBase = `${getApiBaseUrl()}/leaderboard`;
       const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Network response was not ok');
@@ -1963,14 +2053,24 @@ export class SudokuUI {
 
   private showAchievementsModal() {
     const stats = SudokuGame.getPlayerStats();
+    evaluateAllAchievements(stats);
+    SudokuGame.savePlayerStats(stats);
+
     const unlockedIds = new Set(stats.unlockedAchievements || []);
+    ACHIEVEMENTS.forEach((ach) => {
+      if (ach.checkUnlocked(stats)) unlockedIds.add(ach.id);
+    });
+
     this.achievementsSubtitle.textContent = `Открыто ${unlockedIds.size} из ${ACHIEVEMENTS.length} трофеев`;
+    if (this.menuAchCounter) {
+      this.menuAchCounter.textContent = `${unlockedIds.size}/${ACHIEVEMENTS.length}`;
+    }
     this.achievementsList.innerHTML = '';
 
     ACHIEVEMENTS.forEach((ach) => {
-      const isUnlocked = unlockedIds.has(ach.id);
+      const isUnlocked = unlockedIds.has(ach.id) || ach.checkUnlocked(stats);
       const { current, target } = ach.getProgress(stats);
-      const progress = Math.min(100, Math.round((current / target) * 100));
+      const progress = isUnlocked ? 100 : Math.min(100, Math.round((current / target) * 100));
       const card = document.createElement('div');
       card.className = `ach-card ${isUnlocked ? 'unlocked' : 'locked'}`;
       card.innerHTML = `
@@ -2065,14 +2165,24 @@ export class SudokuUI {
     if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'none';
     if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Ожидание подтверждения в Telegram...';
 
+    const fallbackBotUrl = 'https://t.me/sudoku_pulse_auth_bot';
+    if (this.btnTgOpenBotLink) {
+      this.btnTgOpenBotLink.href = fallbackBotUrl;
+      this.btnTgOpenBotLink.setAttribute('data-bot-url', fallbackBotUrl);
+    }
+
     try {
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/init' : '/api/auth/init';
+      const apiBase = `${getApiBaseUrl()}/auth/init`;
       const res = await fetch(apiBase);
       if (!res.ok) throw new Error('Failed to init auth');
       const data = await res.json();
       if (data.success && data.token) {
-        if (this.btnTgOpenBotLink) this.btnTgOpenBotLink.href = data.botUrl;
-        if (this.tgAuthQrImg) {
+        const botUrl = data.botUrl || fallbackBotUrl;
+        if (this.btnTgOpenBotLink) {
+          this.btnTgOpenBotLink.href = botUrl;
+          this.btnTgOpenBotLink.setAttribute('data-bot-url', botUrl);
+        }
+        if (this.tgAuthQrImg && data.qrUrl) {
           this.tgAuthQrImg.src = data.qrUrl;
           this.tgAuthQrImg.onload = () => {
             if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
@@ -2082,15 +2192,19 @@ export class SudokuUI {
         this.startTgAuthPolling(data.token);
       }
     } catch {
-      if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Офлайн режим (используйте ручной ввод)';
+      if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Офлайн режим (используйте кнопку бота или ручной ввод)';
       if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
+      if (this.btnTgOpenBotLink) {
+        this.btnTgOpenBotLink.href = fallbackBotUrl;
+        this.btnTgOpenBotLink.setAttribute('data-bot-url', fallbackBotUrl);
+      }
     }
   }
 
   private startTgAuthPolling(token: string) {
     this.tgAuthPollTimer = window.setInterval(async () => {
       try {
-        const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/auth/poll' : '/api/auth/poll';
+        const apiBase = `${getApiBaseUrl()}/auth/poll`;
         const res = await fetch(`${apiBase}?token=${encodeURIComponent(token)}`);
         if (!res.ok) return;
         const data = await res.json();
@@ -2122,7 +2236,7 @@ export class SudokuUI {
     // Submit rename to leaderboard so player records reflect new username immediately
     try {
       const playerId = SudokuGame.getOrCreatePlayerId();
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/leaderboard' : '/api/leaderboard';
+      const apiBase = `${getApiBaseUrl()}/leaderboard`;
       fetch(apiBase, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2239,7 +2353,7 @@ export class SudokuUI {
       const theme = localStorage.getItem('sudoku_theme') || 'dark';
       const tgUser = this.getStoredTelegramUser();
 
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
+      const apiBase = `${getApiBaseUrl()}/sync`;
       const res = await fetch(apiBase, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2278,7 +2392,7 @@ export class SudokuUI {
   private async importSyncKey(inputKey: string) {
     try {
       const key = inputKey.trim();
-      const apiBase = window.location.pathname.startsWith('/sudoku') ? '/sudoku/api/sync' : '/api/sync';
+      const apiBase = `${getApiBaseUrl()}/sync`;
       const res = await fetch(`${apiBase}?key=${encodeURIComponent(key)}`);
       if (!res.ok) {
         this.showToast('❌ Профиль с таким Telegram/ключом не найден в облаке');

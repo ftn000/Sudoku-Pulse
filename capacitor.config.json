@@ -2,5 +2,8 @@
   "appId": "com.ftn.sudokupulse",
   "appName": "Sudoku Pulse",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  }
 }

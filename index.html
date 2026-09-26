@@ -397,7 +397,8 @@
   <!-- MODAL: STATS / RECORDS                     -->
   <!-- ========================================== -->
   <div id="stats-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+    <div class="modal-card" style="max-height: 90vh; overflow-y: auto; position: relative;">
+      <button id="btn-close-stats-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">📊 Рекорды и Лидерборд</h2>
 
       <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
@@ -459,7 +460,8 @@
   <!-- MODAL: ACHIEVEMENTS                        -->
   <!-- ========================================== -->
   <div id="achievements-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-height: 90vh; overflow-y: auto;">
+    <div class="modal-card" style="max-height: 90vh; overflow-y: auto; position: relative;">
+      <button id="btn-close-achievements-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">🏅 Достижения</h2>
       <p id="achievements-subtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: -6px;">Открыто 0 из 10 трофеев</p>
 
@@ -475,7 +477,8 @@
   <!-- MODAL: SETTINGS                            -->
   <!-- ========================================== -->
   <div id="settings-modal" class="modal-overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card" style="position: relative;">
+      <button id="btn-close-settings-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <h2 class="modal-title">⚙️ Настройки</h2>
       
       <div class="settings-list">
@@ -550,10 +553,11 @@
     <div class="modal-card tg-auth-modal-card">
       <div class="tg-auth-header">
         <div class="tg-auth-icon">✈️</div>
-        <div>
+        <div style="flex: 1; padding-right: 32px;">
           <h2 class="modal-title" style="margin-bottom: 2px;">Вход через Telegram</h2>
           <p style="color: var(--text-muted); font-size: 0.8rem;">Синхронизация рекордов и прогресса</p>
         </div>
+        <button id="btn-close-tg-auth-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       </div>
 
       <!-- State 1: Active authorized profile view -->
@@ -597,7 +601,7 @@
             </div>
           </div>
 
-          <a id="btn-tg-open-bot-link" href="#" target="_blank" class="btn-primary btn-tg-cta">
+          <a id="btn-tg-open-bot-link" href="https://t.me/sudoku_pulse_auth_bot" target="_blank" data-bot-url="https://t.me/sudoku_pulse_auth_bot" class="btn-primary btn-tg-cta">
             <span>🚀 Открыть @sudoku_pulse_auth_bot</span>
           </a>
 

@@ -84,19 +84,29 @@ export const ACHIEVEMENTS: Achievement[] = [
 ];
 
 /**
- * Evaluates player stats against all achievements and returns newly unlocked achievements.
+ * Evaluates player stats against all achievements, synchronizes unlocked IDs, and returns newly unlocked achievements.
  */
-export function evaluateNewAchievements(stats: PlayerStats): Achievement[] {
+export function evaluateAllAchievements(stats: PlayerStats): { newlyUnlocked: Achievement[]; allUnlockedIds: string[] } {
   if (!stats.unlockedAchievements) {
     stats.unlockedAchievements = [];
   }
 
   const newlyUnlocked: Achievement[] = [];
   for (const ach of ACHIEVEMENTS) {
-    if (!stats.unlockedAchievements.includes(ach.id) && ach.checkUnlocked(stats)) {
+    const isMet = ach.checkUnlocked(stats);
+    const alreadyHas = stats.unlockedAchievements.includes(ach.id);
+    if (isMet && !alreadyHas) {
       stats.unlockedAchievements.push(ach.id);
       newlyUnlocked.push(ach);
     }
   }
-  return newlyUnlocked;
+  return { newlyUnlocked, allUnlockedIds: stats.unlockedAchievements };
 }
+
+/**
+ * Evaluates player stats against all achievements and returns newly unlocked achievements.
+ */
+export function evaluateNewAchievements(stats: PlayerStats): Achievement[] {
+  return evaluateAllAchievements(stats).newlyUnlocked;
+}
+

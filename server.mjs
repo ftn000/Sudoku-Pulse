@@ -119,6 +119,26 @@ function getIsoSeasonId(d = new Date()) {
   return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 }
 
+function evaluateAchievements(stats) {
+  if (!stats) return [];
+  if (!Array.isArray(stats.unlockedAchievements)) {
+    stats.unlockedAchievements = [];
+  }
+  const set = new Set(stats.unlockedAchievements);
+  if ((stats.gamesWon || 0) >= 1) set.add('first_win');
+  if ((stats.maxCombo || 0) >= 8) set.add('combo_8');
+  if ((stats.feverTriggeredCount || 0) >= 5) set.add('fever_master');
+  if ((stats.flawlessWins || 0) >= 1) set.add('flawless');
+  if ((stats.darkSectorWins || 0) >= 1) set.add('dark_navigator');
+  if ((stats.expertDarkSectorWins || 0) >= 1) set.add('blind_flight');
+  if ((stats.bestRunStage || 0) >= 3) set.add('run_stage_3');
+  if ((stats.surgeCaptured || 0) >= 5) set.add('surge_hunter');
+  if ((stats.dailyStreak || 0) >= 3) set.add('streak_3');
+  if ((stats.totalScore || 0) >= 50000) set.add('grandmaster');
+  stats.unlockedAchievements = Array.from(set);
+  return stats.unlockedAchievements;
+}
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
@@ -521,6 +541,7 @@ const server = http.createServer((req, res) => {
               ...(incomingStats.unlockedAchievements || []),
             ])),
           };
+          evaluateAchievements(mergedStats);
 
           const mergedProfile = {
             key,
@@ -863,6 +884,7 @@ async function handleTelegramUpdate(update) {
       return;
     }
 
+    evaluateAchievements(stats);
     const wonRatio = Math.round((stats.gamesWon / Math.max(1, stats.gamesPlayed)) * 100);
     await tgApi('sendMessage', {
       chat_id: chatId,

@@ -1081,13 +1081,16 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  z-index: 100;
+  padding: 16px 12px;
+  z-index: 1000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .modal-overlay.hidden {
@@ -1098,15 +1101,21 @@ body {
   background: var(--modal-bg);
   border: 1px solid var(--surface-border);
   border-radius: 20px;
-  padding: 28px 24px;
+  padding: 22px 18px;
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
+  max-height: calc(100dvh - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   text-align: center;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  margin: auto;
 }
 
 @keyframes popIn {
@@ -1459,7 +1468,12 @@ body {
 
 .tg-auth-modal-card {
   max-width: 420px;
-  width: 92%;
+  width: 100%;
+  max-height: calc(100dvh - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1470,6 +1484,31 @@ body {
   align-items: center;
   gap: 12px;
   text-align: left;
+  position: relative;
+}
+
+.modal-close-icon-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 1.15rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--surface-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  transform: scale(1.05);
 }
 
 .tg-auth-icon {
@@ -2295,5 +2334,28 @@ body {
   border-color: rgba(56, 189, 248, 0.4);
   color: #38bdf8;
 }
+
+@media (max-height: 740px) {
+  .modal-overlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+  .modal-card, .tg-auth-modal-card {
+    padding: 16px 14px;
+    gap: 10px;
+    margin: 8px auto;
+  }
+  .tg-qr-wrapper {
+    width: 140px;
+    height: 140px;
+    padding: 6px;
+    margin: 4px auto;
+  }
+  .tg-qr-image {
+    width: 128px;
+    height: 128px;
+  }
+}
+
 
 

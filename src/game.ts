@@ -11,7 +11,7 @@ import {
   Achievement,
 } from './types';
 import { generatePuzzle, hashDateStringToSeed } from './generator';
-import { evaluateNewAchievements } from './achievements';
+import { evaluateNewAchievements, evaluateAllAchievements } from './achievements';
 
 const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
 const STATS_KEY = 'sudoku_pulse_player_stats_v1';
@@ -1339,6 +1339,16 @@ export class SudokuGame {
           modified = true;
         }
 
+        // Auto-repair & synchronize achievements against player stats
+        if (!parsed.unlockedAchievements) {
+          parsed.unlockedAchievements = [];
+          modified = true;
+        }
+        const { newlyUnlocked } = evaluateAllAchievements(parsed);
+        if (newlyUnlocked.length > 0) {
+          modified = true;
+        }
+
         if (modified) {
           localStorage.setItem(STATS_KEY, JSON.stringify(parsed));
         }
@@ -1403,6 +1413,7 @@ export class SudokuGame {
         ...(incoming.unlockedAchievements || []),
       ])),
     };
+    evaluateAllAchievements(merged);
     SudokuGame.savePlayerStats(merged);
     return merged;
   }
