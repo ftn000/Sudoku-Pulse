@@ -90,6 +90,15 @@ export interface GameStats {
   runStage?: number;
 }
 
+export interface SeasonBadge {
+  id: string;
+  seasonId: string;
+  title: string;
+  icon: string;
+  tier: 'gold' | 'silver' | 'bronze' | 'champion' | 'veteran';
+  dateAwarded: string;
+}
+
 export interface PlayerStats {
   gamesPlayed: number;
   gamesWon: number;
@@ -106,6 +115,7 @@ export interface PlayerStats {
   darkSectorWins?: number;
   expertDarkSectorWins?: number;
   unlockedAchievements?: string[];
+  seasonBadges?: SeasonBadge[];
 }
 
 export interface Achievement {

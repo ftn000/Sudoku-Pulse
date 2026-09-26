@@ -222,7 +222,20 @@
           <div class="ai-duel-vs">VS</div>
           <div class="ai-duel-player">
             <div class="ai-duel-info-row">
-              <span id="ai-bot-name" class="ai-duel-name">🤖 PulseBot</span>
+              <div class="ai-bot-avatar-wrap">
+                <div id="ai-bot-avatar" class="ai-bot-avatar idle" title="Pulse AI">
+                  <svg viewBox="0 0 32 32" class="bot-face-svg">
+                    <rect x="3" y="5" width="26" height="23" rx="5" class="bot-head-base" />
+                    <line x1="16" y1="5" x2="16" y2="1.5" class="bot-antenna" />
+                    <circle cx="16" cy="1.5" r="1.8" class="bot-antenna-light" />
+                    <rect x="6" y="9" width="20" height="11" rx="3.5" class="bot-visor" />
+                    <circle cx="11.5" cy="14.5" r="2.8" class="bot-eye bot-eye-left" />
+                    <circle cx="20.5" cy="14.5" r="2.8" class="bot-eye bot-eye-right" />
+                    <path d="M 11 23 Q 16 23 21 23" class="bot-mouth" />
+                  </svg>
+                </div>
+                <span id="ai-bot-name" class="ai-duel-name">PulseBot</span>
+              </div>
               <span id="ai-bot-count" class="ai-duel-count">0/0</span>
             </div>
             <div class="ai-duel-progress-track">
@@ -391,6 +404,9 @@
         <span style="font-size: 0.85rem; color: var(--text-muted);">Ваш ник:</span>
         <input id="player-name-input" type="text" maxlength="18" placeholder="CyberPlayer" style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; outline: none;">
       </div>
+
+      <!-- Player Profile Badges & Medals -->
+      <div id="player-season-medals" class="player-medals-bar hidden"></div>
       
       <div class="modal-stats">
         <div class="modal-stat-row"><span>Кибер-Лига:</span><span id="stat-league-badge" class="league-badge bronze">🥉 Бронзовая</span></div>

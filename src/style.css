@@ -2113,4 +2113,187 @@ body {
   text-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
 }
 
+/* AI Bot Cyber Avatar & Emotions */
+.ai-bot-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-bot-avatar {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bot-face-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bot-head-base {
+  fill: #1e293b;
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+  transition: stroke 0.3s ease, fill 0.3s ease;
+}
+
+.bot-antenna {
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.bot-antenna-light {
+  fill: #38bdf8;
+  transition: fill 0.3s ease;
+  animation: antennaPulse 2s infinite ease-in-out;
+}
+
+.bot-visor {
+  fill: #090d16;
+  stroke: rgba(56, 189, 248, 0.4);
+  stroke-width: 1;
+}
+
+.bot-eye {
+  fill: #38bdf8;
+  filter: drop-shadow(0 0 2px #38bdf8);
+  transition: all 0.25s ease;
+  animation: botBlink 4.5s infinite;
+}
+
+.bot-mouth {
+  stroke: #38bdf8;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  fill: none;
+  transition: stroke 0.25s ease;
+}
+
+@keyframes antennaPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px #38bdf8); }
+}
+
+@keyframes botBlink {
+  0%, 94%, 98%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+
+.ai-bot-avatar.speaking .bot-head-base {
+  stroke: #38bdf8;
+}
+.ai-bot-avatar.speaking .bot-mouth {
+  animation: botTalking 0.35s infinite alternate ease-in-out;
+}
+@keyframes botTalking {
+  0% { d: path("M 11 23 Q 16 26 21 23"); }
+  100% { d: path("M 11 24 Q 16 21 21 24"); }
+}
+
+.ai-bot-avatar.smug .bot-eye {
+  fill: #10b981;
+  filter: drop-shadow(0 0 3px #10b981);
+  transform: scaleY(0.6) translateY(2px);
+}
+.ai-bot-avatar.smug .bot-head-base {
+  stroke: #10b981;
+}
+.ai-bot-avatar.smug .bot-antenna-light {
+  fill: #10b981;
+}
+
+.ai-bot-avatar.fever {
+  animation: botShake 0.4s infinite alternate ease-in-out;
+}
+.ai-bot-avatar.fever .bot-head-base {
+  stroke: #f97316;
+  fill: #271406;
+}
+.ai-bot-avatar.fever .bot-eye {
+  fill: #ef4444;
+  filter: drop-shadow(0 0 5px #ef4444);
+}
+.ai-bot-avatar.fever .bot-antenna-light {
+  fill: #f97316;
+  animation: antennaFever 0.25s infinite alternate;
+}
+@keyframes antennaFever {
+  from { opacity: 0.4; }
+  to { opacity: 1; filter: drop-shadow(0 0 6px #f97316); }
+}
+
+.ai-bot-avatar.glitch {
+  animation: botGlitch 0.2s 4 ease-in-out;
+}
+.ai-bot-avatar.glitch .bot-eye {
+  fill: #eab308;
+  filter: drop-shadow(0 0 4px #eab308);
+}
+.ai-bot-avatar.glitch .bot-head-base {
+  stroke: #eab308;
+}
+@keyframes botGlitch {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(2px, -1px); }
+  75% { transform: translate(-1px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Player Profile Season Medals Bar */
+.player-medals-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+}
+
+.player-medal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.player-medal-chip.gold {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+.player-medal-chip.silver {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #cbd5e1;
+}
+.player-medal-chip.bronze {
+  background: rgba(180, 83, 9, 0.15);
+  border-color: rgba(180, 83, 9, 0.4);
+  color: #d97706;
+}
+.player-medal-chip.champion {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.45);
+  color: #c084fc;
+}
+.player-medal-chip.veteran {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
 

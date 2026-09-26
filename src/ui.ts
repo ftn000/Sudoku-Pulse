@@ -1,5 +1,5 @@
 import { SudokuGame } from './game';
-import { Difficulty, GameMode, GameStats, AppScreen } from './types';
+import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS } from './achievements';
@@ -216,9 +216,12 @@ export class SudokuUI {
   private aiBotName!: HTMLElement;
   private aiBotCount!: HTMLElement;
   private aiBotFill!: HTMLElement;
+  private aiBotAvatar!: HTMLElement;
+  private aiBotEmotionTimeout?: number;
   private aiBotTaunt!: HTMLElement;
   private aiBotTauntText!: HTMLElement;
   private aiBotTauntTimeout?: number;
+  private playerSeasonMedals!: HTMLElement;
   private aiBotInterval?: number;
   private aiBotProgress = {
     name: 'PulseBot',
@@ -348,6 +351,7 @@ export class SudokuUI {
           soundManager.playError();
           haptics.error();
           if (this.game.mode === 'ai_duel') {
+            this.setAiBotEmotion('smug', 2800);
             const mistakeTaunts = [
               'Ошибочка! Мой алгоритм таких промахов не делает.',
               'Минус попытка! Твоя концентрация падает.',
@@ -364,10 +368,14 @@ export class SudokuUI {
           soundManager.playFeverStart();
           haptics.fever();
           if (this.game.mode === 'ai_duel') {
+            this.setAiBotEmotion('fever');
             this.showAiBotTaunt('🔥 Режим FEVER?! Форсирую ядра процессора!', 3000);
           }
         } else if (sound === 'fever_end') {
           soundManager.stopFeverTrack();
+          if (this.game.mode === 'ai_duel') {
+            this.setAiBotEmotion('idle');
+          }
         } else if (sound === 'shield') {
           soundManager.playShieldDeflect();
           haptics.light();
@@ -425,8 +433,10 @@ export class SudokuUI {
     this.aiBotName = document.getElementById('ai-bot-name')!;
     this.aiBotCount = document.getElementById('ai-bot-count')!;
     this.aiBotFill = document.getElementById('ai-bot-fill')!;
+    this.aiBotAvatar = document.getElementById('ai-bot-avatar')!;
     this.aiBotTaunt = document.getElementById('ai-bot-taunt')!;
     this.aiBotTauntText = document.getElementById('ai-bot-taunt-text')!;
+    this.playerSeasonMedals = document.getElementById('player-season-medals')!;
     this.timerElement = document.getElementById('timer')!;
     this.mistakesElement = document.getElementById('mistakes')!;
     this.pauseOverlay = document.getElementById('pause-overlay')!;
@@ -2413,6 +2423,7 @@ export class SudokuUI {
     const bestRunScore = stats.bestRunScore || 0;
     this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
     this.updateLeagueViews();
+    this.renderPlayerSeasonMedals();
     this.renderSeasonArchive();
     this.renderDuelHistory();
     this.statsModal.classList.remove('hidden');
@@ -2566,6 +2577,23 @@ export class SudokuUI {
         dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
       };
       this.addSeasonTrophy(trophy);
+
+      const badgeTier: 'gold' | 'silver' | 'bronze' | 'champion' | 'veteran' =
+        finalLeague.id === 'grandmaster' ? 'champion' :
+        finalLeague.id === 'platinum' ? 'gold' :
+        finalLeague.id === 'gold' ? 'silver' :
+        finalLeague.id === 'silver' ? 'bronze' : 'veteran';
+      
+      const badge: SeasonBadge = {
+        id: 'badge_' + lastSeason,
+        seasonId: lastSeason,
+        title: `${finalLeague.icon} ${finalLeague.name} • ${lastSeason}`,
+        icon: finalLeague.icon,
+        tier: badgeTier,
+        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      };
+      this.addSeasonBadge(badge);
+
       localStorage.setItem('sudoku_last_season_id', currentSeason);
 
       setTimeout(() => {
@@ -2573,6 +2601,76 @@ export class SudokuUI {
         soundManager.playVictory();
         haptics.victory();
       }, 1200);
+    }
+  }
+
+  private getSeasonBadges(): SeasonBadge[] {
+    try {
+      const raw = localStorage.getItem('sudoku_season_badges');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    const stats = SudokuGame.getPlayerStats();
+    if (stats.gamesWon > 0) {
+      const starter: SeasonBadge = {
+        id: 'badge_starter',
+        seasonId: getCurrentSeasonId(),
+        title: '⚡ Ветеран Pulse',
+        icon: '⚡',
+        tier: 'veteran',
+        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      };
+      return [starter];
+    }
+    return [];
+  }
+
+  private addSeasonBadge(badge: SeasonBadge) {
+    try {
+      const list = this.getSeasonBadges();
+      if (!list.some((b) => b.id === badge.id)) {
+        list.unshift(badge);
+        localStorage.setItem('sudoku_season_badges', JSON.stringify(list));
+        const stats = SudokuGame.getPlayerStats();
+        stats.seasonBadges = list;
+        SudokuGame.savePlayerStats(stats);
+      }
+    } catch {}
+  }
+
+  private renderPlayerSeasonMedals() {
+    if (!this.playerSeasonMedals) return;
+    const badges = this.getSeasonBadges();
+    if (badges.length === 0) {
+      this.playerSeasonMedals.classList.add('hidden');
+      return;
+    }
+    this.playerSeasonMedals.classList.remove('hidden');
+    this.playerSeasonMedals.innerHTML = badges.map((b) => `
+      <span class="player-medal-chip ${b.tier}" title="Награда за ${b.title}">
+        <span>${b.icon}</span>
+        <span>${b.title}</span>
+      </span>
+    `).join('');
+  }
+
+  private setAiBotEmotion(emotion: 'idle' | 'speaking' | 'smug' | 'fever' | 'glitch', durationMs?: number) {
+    if (!this.aiBotAvatar) return;
+    if (this.aiBotEmotionTimeout) {
+      window.clearTimeout(this.aiBotEmotionTimeout);
+      this.aiBotEmotionTimeout = undefined;
+    }
+
+    this.aiBotAvatar.classList.remove('idle', 'speaking', 'smug', 'fever', 'glitch');
+    this.aiBotAvatar.classList.add(emotion);
+
+    if (durationMs && emotion !== 'idle') {
+      this.aiBotEmotionTimeout = window.setTimeout(() => {
+        if (this.aiBotAvatar) {
+          this.aiBotAvatar.classList.remove('idle', 'speaking', 'smug', 'fever', 'glitch');
+          this.aiBotAvatar.classList.add('idle');
+        }
+        this.aiBotEmotionTimeout = undefined;
+      }, durationMs);
     }
   }
 
@@ -2635,6 +2733,7 @@ export class SudokuUI {
 
     this.aiBotTauntText.textContent = text;
     this.aiBotTaunt.classList.remove('hidden');
+    this.setAiBotEmotion('speaking', durationMs);
     soundManager.playBotBeep();
 
     this.aiBotTauntTimeout = window.setTimeout(() => {
@@ -2647,6 +2746,7 @@ export class SudokuUI {
 
   private startAiBotDuel() {
     this.stopAiBotDuel();
+    this.setAiBotEmotion('idle');
     const counts = this.game.getProgressCounts();
     const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number; startTaunt: string }> = {
       easy: { name: 'PulseBot v1', stepMs: 8000, errorChance: 0.15, startTaunt: 'Привет, человек! Покажи, как ты решаешь сетку.' },
@@ -2665,7 +2765,7 @@ export class SudokuUI {
       reachedEighty: false,
     };
 
-    if (this.aiBotName) this.aiBotName.textContent = `🤖 ${profile.name}`;
+    if (this.aiBotName) this.aiBotName.textContent = profile.name;
     this.updateAiDuelHud();
 
     // Opening greeting taunt
@@ -2679,6 +2779,7 @@ export class SudokuUI {
       if (this.currentScreen !== 'game' || this.game.status !== 'playing') return;
 
       if (Math.random() < profile.errorChance) {
+        this.setAiBotEmotion('glitch', 2400);
         const errorTaunts = [
           'Сбой в вычислениях... Перезагрузка логики!',
           'Похоже, мой датчик ошибся... Твой шанс!',
@@ -2697,9 +2798,11 @@ export class SudokuUI {
       const eightyCount = Math.floor(this.aiBotProgress.total * 0.8);
       if (!this.aiBotProgress.reachedHalf && this.aiBotProgress.filled >= halfCount) {
         this.aiBotProgress.reachedHalf = true;
+        this.setAiBotEmotion('smug', 3000);
         this.showAiBotTaunt('Половина сетки за мной! Догоняй!', 2800);
       } else if (!this.aiBotProgress.reachedEighty && this.aiBotProgress.filled >= eightyCount) {
         this.aiBotProgress.reachedEighty = true;
+        this.setAiBotEmotion('smug', 3000);
         this.showAiBotTaunt('Финишная прямая! Победа уже близко!', 2800);
       }
 
@@ -2722,6 +2825,7 @@ export class SudokuUI {
     if (this.aiBotTaunt) {
       this.aiBotTaunt.classList.add('hidden');
     }
+    this.setAiBotEmotion('idle');
   }
 
   private updateAiDuelHud() {
