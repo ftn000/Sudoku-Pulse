@@ -1321,6 +1321,21 @@ export class SudokuGame {
     this.notify();
   }
 
+  public pauseTimer() {
+    if (this.status === 'playing') {
+      this.status = 'paused';
+      this.notify();
+    }
+  }
+
+  public resumeTimer() {
+    if (this.status === 'paused') {
+      this.status = 'playing';
+      this.notify();
+    }
+  }
+
+
   // --- DEVICE IDENTITY & STATS SYSTEM ---
   public static getOrCreatePlayerId(): string {
     const KEY = 'sudoku_player_id';

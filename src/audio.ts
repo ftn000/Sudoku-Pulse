@@ -66,17 +66,45 @@ export class SoundManager {
   }
 
   private wasMutedByAd: boolean = false;
+  private wasMutedByFocus: boolean = false;
 
   public muteForAd() {
     this.wasMutedByAd = this.enabled;
     this.enabled = false;
     this.stopFeverTrack();
+    if (this.ctx && this.ctx.state === 'running') {
+      try { this.ctx.suspend(); } catch {}
+    }
   }
 
   public unmuteAfterAd() {
     if (this.wasMutedByAd) {
       this.enabled = true;
       this.wasMutedByAd = false;
+      if (this.ctx && this.ctx.state === 'suspended') {
+        try { this.ctx.resume(); } catch {}
+      }
+    }
+  }
+
+  public pauseAll() {
+    if (this.enabled) {
+      this.wasMutedByFocus = true;
+      this.enabled = false;
+    }
+    this.stopFeverTrack();
+    if (this.ctx && this.ctx.state === 'running') {
+      try { this.ctx.suspend(); } catch {}
+    }
+  }
+
+  public resumeAll() {
+    if (this.wasMutedByFocus) {
+      this.enabled = true;
+      this.wasMutedByFocus = false;
+    }
+    if (this.enabled && this.ctx && this.ctx.state === 'suspended') {
+      try { this.ctx.resume(); } catch {}
     }
   }
 
@@ -447,3 +475,24 @@ export class SoundManager {
 }
 
 export const soundManager = new SoundManager();
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      soundManager.pauseAll();
+    } else {
+      soundManager.resumeAll();
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('blur', () => {
+    soundManager.pauseAll();
+  });
+  window.addEventListener('focus', () => {
+    if (document.visibilityState === 'visible') {
+      soundManager.resumeAll();
+    }
+  });
+}

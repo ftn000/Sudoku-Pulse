@@ -295,11 +295,6 @@ export class SudokuUI {
     challenger: string;
   };
 
-  private adModal!: HTMLElement;
-  private adRewardTitle!: HTMLElement;
-  private adProgressFill!: HTMLElement;
-  private adTimerText!: HTMLElement;
-
   // Tutorial Modal Elements
   private tutorialModal!: HTMLElement;
   private btnCloseTutorialX!: HTMLButtonElement;
@@ -592,11 +587,6 @@ export class SudokuUI {
     this.btnTgManualLogin = document.getElementById('btn-tg-manual-login') as HTMLButtonElement;
     this.btnCloseTgAuth = document.getElementById('btn-close-tg-auth') as HTMLButtonElement;
 
-    this.adModal = document.getElementById('ad-modal')!;
-    this.adRewardTitle = document.getElementById('ad-reward-title')!;
-    this.adProgressFill = document.getElementById('ad-progress-fill')!;
-    this.adTimerText = document.getElementById('ad-timer-text')!;
-
     // Tutorial Modal
     this.btnMenuTutorial = document.getElementById('btn-menu-tutorial') as HTMLButtonElement;
     this.tutorialModal = document.getElementById('tutorial-modal')!;
@@ -864,6 +854,30 @@ export class SudokuUI {
       });
     }
 
+    // Prevent browser context menu and text selection callouts on board and UI (Yandex req 1.6.1.8 & 1.6.2.7)
+    document.addEventListener('contextmenu', (e) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    });
+
+    // Wire up Yandex Game pause / resume API callbacks (Yandex req 1.19.4)
+    yandexBridge.setPauseResumeCallbacks(
+      () => {
+        if (this.currentScreen === 'game' && this.game.status === 'playing') {
+          this.game.pauseTimer();
+          this.pauseOverlay.classList.remove('hidden');
+        }
+      },
+      () => {
+        if (this.currentScreen === 'game' && this.game.status === 'playing') {
+          this.pauseOverlay.classList.add('hidden');
+          this.game.resumeTimer();
+        }
+      }
+    );
+
     // Leaderboard Filter Tabs
     this.leaderboardFilterTabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -969,8 +983,7 @@ export class SudokuUI {
       this.achievementsModal,
       this.settingsModal,
       this.tgAuthModal,
-      this.challengeModal,
-      this.adModal
+      this.challengeModal
     ].forEach((modal) => {
       if (modal) {
         modal.addEventListener('click', (e) => {
@@ -2100,6 +2113,14 @@ export class SudokuUI {
     this.submitScoreToLeaderboard(stats);
     // Background cloud sync on win
     this.syncWithCloud(false).catch(() => {});
+
+    // Yandex Games: Submit to portal leaderboard & offer review (Points 1 & 4.5.1)
+    if (yandexBridge.isYandex()) {
+      yandexBridge.submitLeaderboardScore(stats.score);
+      setTimeout(() => {
+        yandexBridge.promptReviewIfEligible();
+      }, 1500);
+    }
   }
 
   private checkUrlChallenge(): boolean {
@@ -2225,6 +2246,29 @@ export class SudokuUI {
   private async fetchAndRenderLeaderboard() {
     if (!this.leaderboardList) return;
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
+
+    if (yandexBridge.isYandex()) {
+      try {
+        const yEntries = await yandexBridge.getLeaderboardEntries('records', 15);
+        if (yEntries && yEntries.length > 0) {
+          const myPlayerId = SudokuGame.getOrCreatePlayerId();
+          this.cachedLeaderboardEntries = yEntries.map((e) => ({
+            id: 'y_' + e.rank,
+            name: e.name,
+            score: e.score,
+            date: new Date().toLocaleDateString('ru-RU'),
+            mode: 'classic' as GameMode,
+            playerId: e.isUser ? myPlayerId : undefined,
+          }));
+          this.currentSeasonId = '';
+          this.renderLeaderboardList();
+          return;
+        }
+      } catch (err) {
+        console.warn('[Yandex Leaderboard] Fallback to server/local API:', err);
+      }
+    }
+
     try {
       const apiBase = `${getApiBaseUrl()}/leaderboard`;
       const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}`;
@@ -2755,13 +2799,30 @@ export class SudokuUI {
     }
   }
 
-  private triggerInterstitialAd() {
+  private triggerInterstitialAd(onDone?: () => void) {
     if (yandexBridge.isYandex()) {
       soundManager.muteForAd();
+      const wasPlaying = this.currentScreen === 'game' && this.game.status === 'playing';
+      if (wasPlaying) this.game.pauseTimer();
+
       yandexBridge.showFullscreenAdv({
-        onClose: () => soundManager.unmuteAfterAd(),
-        onError: () => soundManager.unmuteAfterAd(),
+        onOpen: () => {
+          soundManager.muteForAd();
+          if (wasPlaying) this.game.pauseTimer();
+        },
+        onClose: () => {
+          soundManager.unmuteAfterAd();
+          if (wasPlaying) this.game.resumeTimer();
+          onDone?.();
+        },
+        onError: () => {
+          soundManager.unmuteAfterAd();
+          if (wasPlaying) this.game.resumeTimer();
+          onDone?.();
+        },
       });
+    } else {
+      onDone?.();
     }
   }
 
@@ -3414,8 +3475,14 @@ export class SudokuUI {
   private showMockAd(rewardTitle: string, onReward: () => void) {
     if (yandexBridge.isYandex()) {
       soundManager.muteForAd();
+      const wasPlaying = this.currentScreen === 'game' && this.game.status === 'playing';
+      if (wasPlaying) this.game.pauseTimer();
+
       yandexBridge.showRewardedVideo({
-        onOpen: () => soundManager.muteForAd(),
+        onOpen: () => {
+          soundManager.muteForAd();
+          if (wasPlaying) this.game.pauseTimer();
+        },
         onRewarded: () => {
           soundManager.unmuteAfterAd();
           soundManager.playCorrect();
@@ -3423,42 +3490,22 @@ export class SudokuUI {
         },
         onClose: () => {
           soundManager.unmuteAfterAd();
+          if (wasPlaying) this.game.resumeTimer();
         },
         onError: (err) => {
           console.warn('[Yandex Ad] Rewarded video error:', err);
           soundManager.unmuteAfterAd();
+          if (wasPlaying) this.game.resumeTimer();
           this.showToast('⚠️ Реклама временно недоступна');
         },
       });
       return;
     }
 
-    this.adRewardTitle.textContent = rewardTitle;
-    this.adProgressFill.style.width = '0%';
-    this.adTimerText.textContent = 'Осталось 3 сек...';
-    this.adModal.classList.remove('hidden');
-
-    const durationMs = 3000;
-    const intervalMs = 100;
-    let elapsed = 0;
-
-    const timer = window.setInterval(() => {
-      elapsed += intervalMs;
-      const progress = Math.min(100, (elapsed / durationMs) * 100);
-      this.adProgressFill.style.width = `${progress}%`;
-
-      const secondsLeft = Math.max(1, Math.ceil((durationMs - elapsed) / 1000));
-      this.adTimerText.textContent = `Осталось ${secondsLeft} сек...`;
-
-      if (elapsed >= durationMs) {
-        clearInterval(timer);
-        setTimeout(() => {
-          this.adModal.classList.add('hidden');
-          soundManager.playCorrect();
-          onReward();
-        }, 200);
-      }
-    }, intervalMs);
+    // In standalone/dev mode: grant reward directly without simulating fake ad dialog (Yandex req 1.16)
+    soundManager.playCorrect();
+    onReward();
+    this.showToast(`🎁 ${rewardTitle}`);
   }
 
   private showToast(message: string) {
@@ -3689,20 +3736,79 @@ export class SudokuUI {
       case 1: {
         this.tutorialTitle.textContent = isEn ? '⚡ Pulse & Fever Multipliers' : '⚡ Механика Пульса и Fever';
         this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
-            <div style="display:flex;align-items:center;justify-content:space-between;width:85%;font-size:13px;font-weight:800;color:#ff0055;">
-              <span>🔥 FEVER MODE ACTIVE</span>
-              <span>x4.0 – x20.0</span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:88%;font-size:12px;font-weight:800;">
+              <span id="tut-fever-label" style="color:var(--text-muted);">${isEn ? '⚡ PULSE ACCELERATION:' : '⚡ РАЗГОН ПУЛЬСА:'}</span>
+              <span id="tut-fever-mult" style="color:var(--pulse-cyan);font-weight:900;">x1.0</span>
             </div>
-            <div style="width:85%;height:14px;background:rgba(255,255,255,0.1);border-radius:7px;overflow:hidden;border:1px solid #ff0055;box-shadow:0 0 10px rgba(255,0,85,0.5);">
-              <div style="width:100%;height:100%;background:linear-gradient(90deg, #ff0055, #ffe600);"></div>
+            <div style="width:88%;height:14px;background:rgba(255,255,255,0.1);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.2);">
+              <div id="tut-pulse-fill" style="width:15%;height:100%;background:var(--pulse-cyan);transition:all 0.25s ease;"></div>
             </div>
-            <span style="font-size:12px;color:rgba(255,255,255,0.85);">${isEn ? 'Maintain tempo to chain combos and maximize score!' : 'Держите темп без ошибок, чтобы копить бешеное комбо!'}</span>
+            <div style="display:flex;gap:12px;margin:4px 0;">
+              <button id="tut-btn-1" class="btn-primary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;">1</button>
+              <button id="tut-btn-2" class="btn-secondary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;opacity:0.4;" disabled>5</button>
+              <button id="tut-btn-3" class="btn-secondary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;opacity:0.4;" disabled>9</button>
+            </div>
+            <span id="tut-feedback" style="font-size:11px;color:rgba(255,255,255,0.75);">${isEn ? 'Tap [ 1 ] ➔ [ 5 ] ➔ [ 9 ] to ignite Fever!' : 'Нажмите [ 1 ] ➔ [ 5 ] ➔ [ 9 ], чтобы разжечь Fever!'}</span>
           </div>
         `;
         this.tutorialDescription.textContent = isEn
           ? 'Every correct entry charges your Pulse meter. Consecutive swift moves trigger FEVER Mode, boosting score gains up to x20! Beware: mistakes reset your combo chain and drain your pulse.'
           : 'Каждый правильный ход заряжает шкалу Пульса. Серия быстрых ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо и расходуют драгоценный пульс.';
+
+        const tutBtn1 = document.getElementById('tut-btn-1') as HTMLButtonElement;
+        const tutBtn2 = document.getElementById('tut-btn-2') as HTMLButtonElement;
+        const tutBtn3 = document.getElementById('tut-btn-3') as HTMLButtonElement;
+        const tutFill = document.getElementById('tut-pulse-fill');
+        const tutMult = document.getElementById('tut-fever-mult');
+        const tutFeedback = document.getElementById('tut-feedback');
+
+        if (tutBtn1 && tutBtn2 && tutBtn3 && tutFill && tutMult && tutFeedback) {
+          tutBtn1.onclick = () => {
+            soundManager.playCorrect(1);
+            haptics.selection();
+            tutBtn1.disabled = true;
+            tutBtn1.className = 'btn-secondary';
+            tutBtn1.textContent = '✓';
+            tutBtn1.style.opacity = '0.7';
+            tutFill.style.width = '50%';
+            tutMult.textContent = 'x2.0';
+            tutBtn2.disabled = false;
+            tutBtn2.className = 'btn-primary';
+            tutBtn2.style.opacity = '1';
+            tutFeedback.textContent = isEn ? '⚡ Good! Next tap [ 5 ]!' : '⚡ Отлично! Теперь жмите [ 5 ]!';
+          };
+
+          tutBtn2.onclick = () => {
+            soundManager.playCorrect(2);
+            haptics.selection();
+            tutBtn2.disabled = true;
+            tutBtn2.className = 'btn-secondary';
+            tutBtn2.textContent = '✓';
+            tutBtn2.style.opacity = '0.7';
+            tutFill.style.width = '85%';
+            tutMult.textContent = 'x3.0';
+            tutBtn3.disabled = false;
+            tutBtn3.className = 'btn-primary';
+            tutBtn3.style.opacity = '1';
+            tutFeedback.textContent = isEn ? '🔥 Tempo rising! Final tap [ 9 ]!' : '🔥 Темп нарастает! Финальный [ 9 ]!';
+          };
+
+          tutBtn3.onclick = () => {
+            soundManager.playFeverStart();
+            haptics.fever();
+            tutBtn3.disabled = true;
+            tutBtn3.textContent = '🔥';
+            tutFill.style.width = '100%';
+            tutFill.style.background = 'linear-gradient(90deg, #ff0055, #ffe600)';
+            tutFill.style.boxShadow = '0 0 12px #ff0055';
+            tutMult.textContent = isEn ? '🔥 FEVER x4.0!' : '🔥 FEVER x4.0!';
+            tutMult.style.color = '#ff0055';
+            tutFeedback.textContent = isEn
+              ? '🚀 FEVER ACTIVATED! Multipliers up to x20!'
+              : '🚀 FEVER АКТИВИРОВАН! Множитель комбо взлетел до x20!';
+          };
+        }
         break;
       }
       case 2: {
@@ -3731,26 +3837,96 @@ export class SudokuUI {
       case 3: {
         this.tutorialTitle.textContent = isEn ? '🤖 AI Duel & Roguelite Perks' : '🤖 Дуэль с ИИ и Перки';
         this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
-            <div style="display:flex;gap:12px;justify-content:center;align-items:center;">
-              <div style="background:rgba(0,243,255,0.12);border:1px solid #00f3ff;padding:8px 12px;border-radius:8px;text-align:center;">
-                <div style="font-size:11px;color:#00f3ff;font-weight:700;">YOU</div>
-                <div style="font-size:16px;font-weight:900;color:#fff;">⚡ 32/45</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+            <div style="display:flex;gap:10px;justify-content:center;align-items:center;width:90%;">
+              <div style="background:rgba(0,243,255,0.12);border:1px solid #00f3ff;padding:5px 8px;border-radius:8px;text-align:center;flex:1;">
+                <div style="font-size:10px;color:#00f3ff;font-weight:700;">YOU</div>
+                <div id="tut-duel-player" style="font-size:14px;font-weight:900;color:#fff;">⚡ 0/2</div>
               </div>
-              <div style="font-size:18px;font-weight:900;color:#ffaa00;">VS</div>
-              <div style="background:rgba(255,0,85,0.12);border:1px solid #ff0055;padding:8px 12px;border-radius:8px;text-align:center;">
-                <div style="font-size:11px;color:#ff0055;font-weight:700;">CYBER BOT</div>
-                <div style="font-size:16px;font-weight:900;color:#fff;">🤖 28/45</div>
+              <div style="font-size:14px;font-weight:900;color:#ffaa00;">VS</div>
+              <div style="background:rgba(255,0,85,0.12);border:1px solid #ff0055;padding:5px 8px;border-radius:8px;text-align:center;flex:1;">
+                <div style="font-size:10px;color:#ff0055;font-weight:700;">CYBER BOT</div>
+                <div id="tut-duel-bot" style="font-size:14px;font-weight:900;color:#fff;">🤖 0/2</div>
               </div>
             </div>
-            <div style="display:flex;gap:8px;justify-content:center;font-size:12px;color:rgba(255,255,255,0.8);">
-              <span>🛡️ ${isEn ? 'Shield' : 'Щит'}</span> • <span>💥 EMP</span> • <span>⏱️ ${isEn ? 'Chrono' : 'Хроно'}</span>
+            <div id="tut-duel-action-box" style="margin:2px 0;">
+              <button id="tut-btn-duel-start" class="btn-primary" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '⚔️ Start Mini-Duel' : '⚔️ Проверить реакцию'}</button>
             </div>
+            <span id="tut-duel-status" style="font-size:11px;color:rgba(255,255,255,0.7);">${isEn ? 'Test your solving speed against PulseBot!' : 'Проверьте скорость против PulseBot!'}</span>
           </div>
         `;
         this.tutorialDescription.textContent = isEn
           ? 'Compete speed-for-speed against PulseBot in real-time Duels! In Pulse Run, conquer consecutive stages and pick game-changing perks: Aegis Shields, Overcharge, EMP Pulses, and Freeze.'
           : 'Соревнуйтесь на скорость против PulseBot в реальном времени! В режиме забега Pulse Run проходите этапы и выбирайте кибер-перки: силовые щиты, EMP-импульсы, Хроно-буст и Overcharge.';
+
+        const btnDuelStart = document.getElementById('tut-btn-duel-start') as HTMLButtonElement;
+        const duelActionBox = document.getElementById('tut-duel-action-box');
+        const duelPlayer = document.getElementById('tut-duel-player');
+        const duelBot = document.getElementById('tut-duel-bot');
+        const duelStatus = document.getElementById('tut-duel-status');
+
+        if (btnDuelStart && duelActionBox && duelPlayer && duelBot && duelStatus) {
+          btnDuelStart.onclick = () => {
+            soundManager.playSelect();
+            let battleOver = false;
+
+            duelStatus.textContent = isEn ? '⚡ Quickly tap [ 4 ] then [ 8 ]!' : '⚡ Быстрее нажимайте [ 4 ] затем [ 8 ]!';
+            duelActionBox.innerHTML = `
+              <div style="display:flex;gap:12px;">
+                <button id="tut-duel-4" class="btn-primary" style="width:40px;height:40px;font-size:1.1rem;font-weight:900;border-radius:8px;padding:0;">4</button>
+                <button id="tut-duel-8" class="btn-secondary" style="width:40px;height:40px;font-size:1.1rem;font-weight:900;border-radius:8px;padding:0;opacity:0.4;" disabled>8</button>
+              </div>
+            `;
+
+            const btn4 = document.getElementById('tut-duel-4') as HTMLButtonElement;
+            const btn8 = document.getElementById('tut-duel-8') as HTMLButtonElement;
+
+            const botTimer = setTimeout(() => {
+              if (battleOver) return;
+              if (duelBot) duelBot.textContent = '🤖 1/2';
+              soundManager.playBotBeep();
+
+              setTimeout(() => {
+                if (battleOver) return;
+                battleOver = true;
+                if (duelBot) duelBot.textContent = '🤖 2/2';
+                soundManager.playError();
+                haptics.error();
+                duelStatus.textContent = isEn ? '🤖 PulseBot finished first! Speed up!' : '🤖 Бот опередил! Тренируйте скорость!';
+              }, 2000);
+            }, 1800);
+
+            if (btn4 && btn8) {
+              btn4.onclick = () => {
+                if (battleOver) return;
+                duelPlayer.textContent = '⚡ 1/2';
+                soundManager.playCorrect(1);
+                haptics.selection();
+                btn4.disabled = true;
+                btn4.className = 'btn-secondary';
+                btn4.textContent = '✓';
+                btn4.style.opacity = '0.7';
+                btn8.disabled = false;
+                btn8.className = 'btn-primary';
+                btn8.style.opacity = '1';
+              };
+
+              btn8.onclick = () => {
+                if (battleOver) return;
+                battleOver = true;
+                clearTimeout(botTimer);
+                duelPlayer.textContent = '⚡ 2/2';
+                soundManager.playVictory();
+                haptics.victory();
+                btn8.disabled = true;
+                btn8.textContent = '🏆';
+                duelStatus.textContent = isEn
+                  ? '🤖 PulseBot: "Whoa, human! Impressive speed. Challenge accepted!"'
+                  : '🤖 PulseBot: "Ого, человек! Впечатляющая скорость. Принимаю вызов!"';
+              };
+            }
+          };
+        }
         break;
       }
       case 4: {

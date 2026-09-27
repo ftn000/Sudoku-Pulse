@@ -42,8 +42,14 @@ export interface YandexSDK {
   auth: {
     openAuthDialog: () => Promise<void>;
   };
+  feedback?: {
+    canReview: () => Promise<{ value: boolean; reason?: string }>;
+    requestReview: () => Promise<{ value: boolean; reason?: string }>;
+  };
   getPlayer: (options?: { scopes?: boolean }) => Promise<YandexPlayer>;
   getLeaderboards: () => Promise<any>;
+  on?: (event: string, callback: () => void) => void;
+  off?: (event: string, callback: () => void) => void;
   environment: {
     app: { id: string };
     browser: { lang: string };
@@ -58,6 +64,13 @@ export class YandexGamesBridge {
   private lastInterstitialTime: number = 0;
   private interstitialCooldownMs: number = 90 * 1000; // 90 sec cooldown between fullscreens
   private isGameplayActive: boolean = false;
+  private onPauseCallback?: () => void;
+  private onResumeCallback?: () => void;
+
+  public setPauseResumeCallbacks(onPause?: () => void, onResume?: () => void) {
+    this.onPauseCallback = onPause;
+    this.onResumeCallback = onResume;
+  }
 
   public async init(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
@@ -71,6 +84,20 @@ export class YandexGamesBridge {
         // Signal to Yandex that loading is complete and game is ready for interaction
         this.ysdk?.features.LoadingAPI?.ready();
         console.log('[YandexGames] SDK v2 initialized successfully');
+
+        // Listen to game_api_pause / game_api_resume according to Yandex Requirements 1.19.4
+        if (typeof this.ysdk?.on === 'function') {
+          this.ysdk.on('game_api_pause', () => {
+            console.log('[YandexGames] game_api_pause event received');
+            soundManager.pauseAll();
+            this.onPauseCallback?.();
+          });
+          this.ysdk.on('game_api_resume', () => {
+            console.log('[YandexGames] game_api_resume event received');
+            soundManager.resumeAll();
+            this.onResumeCallback?.();
+          });
+        }
 
         // Pre-initialize player
         await this.initPlayer();
@@ -178,6 +205,74 @@ export class YandexGamesBridge {
     } catch (e) {
       console.warn('[YandexGames] submitLeaderboardScore failed:', e);
     }
+  }
+
+  public async getLeaderboardEntries(name: string = 'records', count: number = 10): Promise<Array<{
+    rank: number;
+    name: string;
+    score: number;
+    avatarUrl?: string;
+    isUser?: boolean;
+  }>> {
+    if (!this.ysdk) return [];
+    try {
+      const lb = await this.ysdk.getLeaderboards();
+      if (!lb || !lb.getLeaderboardEntries) return [];
+      const res = await lb.getLeaderboardEntries(name, {
+        quantityTop: count,
+        includeUser: true,
+        quantityAround: 1,
+      });
+
+      if (!res?.entries) return [];
+      return res.entries.map((entry: any) => ({
+        rank: entry.rank,
+        score: entry.score,
+        name: entry.player?.publicName || 'Cyber Player',
+        avatarUrl: entry.player?.getAvatarSrc?.('small'),
+        isUser: entry.player?.uniqueID === this.player?.getUniqueID(),
+      }));
+    } catch (e) {
+      console.warn('[YandexGames] getLeaderboardEntries failed:', e);
+      return [];
+    }
+  }
+
+  public async canReview(): Promise<boolean> {
+    if (!this.ysdk?.feedback) return false;
+    try {
+      const res = await this.ysdk.feedback.canReview();
+      return !!res.value;
+    } catch {
+      return false;
+    }
+  }
+
+  public async requestReview(): Promise<boolean> {
+    if (!this.ysdk?.feedback) return false;
+    try {
+      const res = await this.ysdk.feedback.requestReview();
+      console.log('[YandexGames] requestReview response:', res);
+      return !!res.value;
+    } catch (e) {
+      console.warn('[YandexGames] requestReview failed:', e);
+      return false;
+    }
+  }
+
+  public async promptReviewIfEligible(): Promise<boolean> {
+    const hasReviewed = localStorage.getItem('sudoku_pulse_yandex_reviewed');
+    if (hasReviewed) return false;
+
+    const eligible = await this.canReview();
+    if (eligible) {
+      const success = await this.requestReview();
+      if (success) {
+        localStorage.setItem('sudoku_pulse_yandex_reviewed', 'true');
+      }
+      return success;
+    }
+    return false;
   }
 
   public gameplayStart(): void {

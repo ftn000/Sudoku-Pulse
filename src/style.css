@@ -154,6 +154,12 @@
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 body {
@@ -166,7 +172,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 14px;
-  overflow-x: hidden;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
