@@ -13,6 +13,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
+COPY public/SudokuPulse.apk ./dist/SudokuPulse.apk
 COPY server.mjs ./server.mjs
 
 VOLUME ["/app/data"]
