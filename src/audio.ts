@@ -607,6 +607,24 @@ export class SoundManager {
       });
     });
   }
+
+  public playTauntReaction() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(640, now + 0.16);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.19);
+  }
 }
 
 export const soundManager = new SoundManager();

@@ -64,6 +64,14 @@ const RU: TranslationDict = {
   live_quick_found: 'Соперник найден! Запуск дуэли...',
   live_duel_victory: '🏆 ПОБЕДА В ЖИВОЙ ДУЭЛИ 1v1!',
   live_duel_victory_desc: 'Вы решили судоку быстрее соперника! Чистая победа на скорости.',
+  live_btn_rematch: '🔄 Реванш (Новый раунд)',
+  live_rematch_waiting: '⏳ Ожидаем согласия соперника...',
+  live_rematch_offered: '⚡ Соперник предлагает реванш!',
+  live_reaction_taunt: 'Эмодзи:',
+  stats_tab_lb: '🌐 Лидерборд',
+  stats_tab_profile: '👤 Профиль',
+  stats_tab_seasons: '🏆 Сезоны',
+  stats_tab_duels: '⚔️ Дуэли',
 
   // Challenge modal
   challenge_enter_title: 'Код вызова друга',
@@ -133,7 +141,7 @@ const RU: TranslationDict = {
   yandex_sync_desc: 'Синхронизация рекордов и трофеев с вашим аккаунтом Яндекс Игр',
 
   // Stats
-  stats_title: '📊 Статистика игрока',
+  stats_title: '📊 Рекорды и Зал Славы',
   stats_games_played: 'Всего игр',
   stats_games_won: 'Побед',
   stats_win_rate: 'Процент побед',
@@ -208,6 +216,14 @@ const EN: TranslationDict = {
   live_quick_found: 'Opponent found! Starting duel...',
   live_duel_victory: '🏆 VICTORY IN 1v1 DUEL!',
   live_duel_victory_desc: 'You solved the puzzle faster than your opponent! Pure speed victory.',
+  live_btn_rematch: '🔄 Rematch (New Round)',
+  live_rematch_waiting: '⏳ Waiting for opponent confirmation...',
+  live_rematch_offered: '⚡ Opponent offered a rematch!',
+  live_reaction_taunt: 'Emotes:',
+  stats_tab_lb: '🌐 Leaderboard',
+  stats_tab_profile: '👤 Profile',
+  stats_tab_seasons: '🏆 Seasons',
+  stats_tab_duels: '⚔️ Duels',
 
   // Challenge modal
   challenge_enter_title: 'Friend Challenge Code',
@@ -277,7 +293,7 @@ const EN: TranslationDict = {
   yandex_sync_desc: 'Synchronize high scores and achievements with your Yandex Games account',
 
   // Stats
-  stats_title: '📊 Player Statistics',
+  stats_title: '📊 Leaderboards & Hall of Fame',
   stats_games_played: 'Total Games',
   stats_games_won: 'Victories',
   stats_win_rate: 'Win Rate',

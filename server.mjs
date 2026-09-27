@@ -580,13 +580,16 @@ const server = http.createServer((req, res) => {
         guest: lobby.guest,
         winner: lobby.winner,
         abandonedBy: lobby.abandonedBy || null,
+        rematchRequestedBy: lobby.rematchRequestedBy || null,
+        rematchState: lobby.rematchState || null,
+        lastReaction: lobby.lastReaction || null,
         isHost,
         isGuest,
       }));
       return;
     }
 
-    // 4. Lobby Action / Progress update
+    // 4. Lobby Action / Progress update / Reactions / Rematch
     if (pathname.endsWith('/api/lobby/action') && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
@@ -610,6 +613,64 @@ const server = http.createServer((req, res) => {
           }
 
           playerObj.lastPing = Date.now();
+
+          if (payload.action === 'reaction') {
+            const emoji = String(payload.emoji || '⚡').slice(0, 4);
+            lobby.lastReaction = {
+              from: payload.playerId,
+              emoji,
+              timestamp: Date.now(),
+            };
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, reaction: lobby.lastReaction }));
+            return;
+          }
+
+          if (payload.action === 'rematch_request') {
+            if (!lobby.rematchState) lobby.rematchState = { hostReady: false, guestReady: false };
+            if (isHost) lobby.rematchState.hostReady = true;
+            else lobby.rematchState.guestReady = true;
+            lobby.rematchRequestedBy = payload.playerId;
+
+            if (lobby.rematchState.hostReady && lobby.rematchState.guestReady) {
+              lobby.seed = Math.floor(100000 + Math.random() * 900000);
+              lobby.status = 'countdown';
+              lobby.countdownStartedAt = Date.now();
+              lobby.startedAt = null;
+              lobby.finishedAt = null;
+              lobby.winner = null;
+              lobby.abandonedBy = null;
+              lobby.rematchRequestedBy = null;
+              lobby.rematchState = { hostReady: false, guestReady: false };
+              lobby.lastReaction = null;
+              lobby.host.filled = 0;
+              lobby.host.mistakes = 0;
+              lobby.host.combo = 1;
+              lobby.host.score = 0;
+              lobby.host.finished = false;
+              lobby.host.finishTime = 0;
+              lobby.host.lastPing = Date.now();
+              if (lobby.guest) {
+                lobby.guest.filled = 0;
+                lobby.guest.mistakes = 0;
+                lobby.guest.combo = 1;
+                lobby.guest.score = 0;
+                lobby.guest.finished = false;
+                lobby.guest.finishTime = 0;
+                lobby.guest.lastPing = Date.now();
+              }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              success: true,
+              rematchState: lobby.rematchState,
+              rematchRequestedBy: lobby.rematchRequestedBy,
+              status: lobby.status,
+              seed: lobby.seed,
+            }));
+            return;
+          }
 
           if (payload.action === 'progress') {
             if (typeof payload.filled === 'number') playerObj.filled = payload.filled;

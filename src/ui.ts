@@ -366,6 +366,8 @@ export class SudokuUI {
   private liveQuickDiffLabel?: HTMLElement;
   private liveWaitingStatusLabel?: HTMLElement;
   private isQuickMatchWaiting: boolean = false;
+  private lastReceivedReactionTime: number = 0;
+  private reactionBubbleTimeout?: number;
 
   // Tutorial Modal Elements
   private tutorialModal!: HTMLElement;
@@ -1094,6 +1096,46 @@ export class SudokuUI {
       });
     }
 
+    // Stats Modal Navigation Tabs
+    const statsNavTabs = document.querySelectorAll<HTMLButtonElement>('.stats-nav-tab');
+    statsNavTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.getAttribute('data-stats-tab');
+        if (target) {
+          soundManager.playSelect();
+          this.switchStatsTab(target);
+        }
+      });
+    });
+
+    // 1v1 Live Duel Rematch Buttons (Win & Defeat Modals)
+    const btnRematchWin = document.getElementById('btn-duel-rematch');
+    if (btnRematchWin) {
+      btnRematchWin.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        this.requestDuelRematch();
+      });
+    }
+
+    const btnRematchLoss = document.getElementById('btn-duel-loss-rematch');
+    if (btnRematchLoss) {
+      btnRematchLoss.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        this.requestDuelRematch();
+      });
+    }
+
+    // 1v1 Live Quick Reactions (Emoji bar)
+    const liveReactionBtns = document.querySelectorAll<HTMLButtonElement>('.live-reaction-btn');
+    liveReactionBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const emoji = btn.getAttribute('data-reaction') || '⚡';
+        this.sendLiveReaction(emoji);
+      });
+    });
+
     const btnCloseAchX = document.getElementById('btn-close-achievements-x');
     if (btnCloseAchX) {
       btnCloseAchX.addEventListener('click', () => {
@@ -1244,6 +1286,9 @@ export class SudokuUI {
     // Game Screen Home Button
     this.btnGameHome.addEventListener('click', () => {
       soundManager.playSelect();
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
       if (this.game.status === 'completed' || this.game.status === 'gameover' || this.game.checkWin()) {
         try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
       }
@@ -1382,6 +1427,9 @@ export class SudokuUI {
     // Win Modal buttons
     this.playAgainBtn.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
       this.stopConfetti();
       this.triggerInterstitialAd();
       this.game.startNewGame({
@@ -1396,6 +1444,9 @@ export class SudokuUI {
 
     this.btnWinMenu.addEventListener('click', () => {
       this.winModal.classList.add('hidden');
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
       this.stopConfetti();
       this.stopAiBotDuel();
       this.triggerInterstitialAd();
@@ -1684,6 +1735,9 @@ export class SudokuUI {
 
     this.restartGameOverBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
       this.triggerInterstitialAd();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
@@ -1697,6 +1751,9 @@ export class SudokuUI {
 
     this.btnGameOverMenu.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
       this.stopAiBotDuel();
       this.triggerInterstitialAd();
       try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
@@ -2289,6 +2346,9 @@ export class SudokuUI {
     this.stopAiBotDuel();
     const isEn = i18n.getLanguage() === 'en';
 
+    const rematchContainer = document.getElementById('duel-rematch-container');
+    if (rematchContainer) rematchContainer.classList.add('hidden');
+
     // 1v1 Live Multiplayer Duel Victory Comparison
     if (this.isLiveDuelActive && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
@@ -2303,8 +2363,15 @@ export class SudokuUI {
           : `Вы решили судоку быстрее, чем ${this.liveOpponentName}! Чистая победа на скорости.`;
       }
       soundManager.playDuelWin();
-      this.stopLiveLobbyPolling();
+
+      if (rematchContainer) rematchContainer.classList.remove('hidden');
+      const statusEl = document.getElementById('duel-rematch-status');
+      if (statusEl) statusEl.classList.add('hidden');
+      const btnRematch = document.getElementById('btn-duel-rematch') as HTMLButtonElement | null;
+      if (btnRematch) { btnRematch.disabled = false; btnRematch.style.opacity = '1'; }
+
       this.isLiveDuelActive = false;
+      // Note: Live polling remains active to listen for opponent rematch request!
     } else if (stats.mode === 'ai_duel' && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       const botName = `🤖 ${this.aiBotProgress.name}`;
@@ -3361,6 +3428,14 @@ export class SudokuUI {
         ? `You made ${this.game.maxMistakes} mistakes.`
         : `Вы совершили ${this.game.maxMistakes} ошибок.`;
     }
+    const rematchLossContainer = document.getElementById('duel-loss-rematch-container');
+    if (rematchLossContainer) {
+      if (this.currentLiveLobbyId) {
+        rematchLossContainer.classList.remove('hidden');
+      } else {
+        rematchLossContainer.classList.add('hidden');
+      }
+    }
     this.gameOverModal.classList.remove('hidden');
   }
 
@@ -3378,6 +3453,7 @@ export class SudokuUI {
     this.renderPlayerSeasonMedals();
     this.renderSeasonArchive();
     this.renderDuelHistory();
+    this.switchStatsTab('lb');
     this.statsModal.classList.remove('hidden');
     this.fetchAndRenderLeaderboard();
   }
@@ -4152,6 +4228,11 @@ export class SudokuUI {
     if (this.aiBotName) this.aiBotName.textContent = this.liveOpponentName;
     if (this.aiBotAvatar) this.aiBotAvatar.className = 'ai-bot-avatar smug';
 
+    const reactionBar = document.getElementById('live-duel-reaction-bar');
+    if (reactionBar) reactionBar.classList.remove('hidden');
+    const reactionBubble = document.getElementById('live-opponent-reaction-bubble');
+    if (reactionBubble) reactionBubble.classList.add('hidden');
+
     this.startLiveLobbyPolling();
   }
 
@@ -4180,6 +4261,36 @@ export class SudokuUI {
           return;
         }
 
+        // Opponent live reaction emotes
+        if (lobby.lastReaction && lobby.lastReaction.from !== myId) {
+          if (lobby.lastReaction.timestamp > this.lastReceivedReactionTime) {
+            this.lastReceivedReactionTime = lobby.lastReaction.timestamp;
+            this.showOpponentReactionBubble(lobby.lastReaction.emoji);
+            soundManager.playTauntReaction();
+          }
+        }
+
+        // Rematch offer notification
+        if (lobby.rematchRequestedBy && lobby.rematchRequestedBy !== myId) {
+          const isEn = i18n.getLanguage() === 'en';
+          const statusWin = document.getElementById('duel-rematch-status');
+          const statusLoss = document.getElementById('duel-loss-rematch-status');
+          if (statusWin) {
+            statusWin.textContent = isEn ? '⚡ Opponent offered a rematch!' : '⚡ Соперник предлагает реванш!';
+            statusWin.classList.remove('hidden');
+          }
+          if (statusLoss) {
+            statusLoss.textContent = isEn ? '⚡ Opponent offered a rematch!' : '⚡ Соперник предлагает реванш!';
+            statusLoss.classList.remove('hidden');
+          }
+        }
+
+        // Rematch accepted: both players launch next round
+        if (lobby.status === 'countdown' && (!this.winModal.classList.contains('hidden') || !this.gameOverModal.classList.contains('hidden'))) {
+          this.handleRematchCountdown(lobby.seed, lobby.difficulty);
+          return;
+        }
+
         // In-game live progress update
         if (this.isLiveDuelActive) {
           const opponent = this.isLiveHost ? lobby.guest : lobby.host;
@@ -4194,7 +4305,6 @@ export class SudokuUI {
 
           // Check winner / game finish
           if (lobby.status === 'finished') {
-            this.stopLiveLobbyPolling();
             const won = (this.isLiveHost && lobby.winner === 'host') || (!this.isLiveHost && lobby.winner === 'guest');
             if (!won) {
               this.handleLiveDuelLoss();
@@ -4249,8 +4359,144 @@ export class SudokuUI {
       this.duelResultBanner.classList.remove('hidden');
     }
 
+    const rematchContainer = document.getElementById('duel-loss-rematch-container');
+    if (rematchContainer) rematchContainer.classList.remove('hidden');
+    const statusEl = document.getElementById('duel-loss-rematch-status');
+    if (statusEl) statusEl.classList.add('hidden');
+    const btnLossRematch = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
+    if (btnLossRematch) { btnLossRematch.disabled = false; btnLossRematch.style.opacity = '1'; }
+
     this.showGameOverModal();
     this.isLiveDuelActive = false;
+  }
+
+  private sendLiveReaction(emoji: string) {
+    if (!this.currentLiveLobbyId) return;
+    const myId = SudokuGame.getOrCreatePlayerId();
+    soundManager.playTauntReaction();
+    haptics.light();
+    this.showOpponentReactionBubble(emoji);
+
+    fetch(`${getApiBaseUrl()}/lobby/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lobbyId: this.currentLiveLobbyId,
+        playerId: myId,
+        action: 'reaction',
+        emoji,
+      }),
+    }).catch(() => {});
+  }
+
+  private showOpponentReactionBubble(emoji: string) {
+    const bubble = document.getElementById('live-opponent-reaction-bubble');
+    if (!bubble) return;
+    bubble.textContent = emoji;
+    bubble.classList.remove('hidden');
+    bubble.style.animation = 'none';
+    void bubble.offsetWidth;
+    bubble.style.animation = '';
+
+    if (this.reactionBubbleTimeout) clearTimeout(this.reactionBubbleTimeout);
+    this.reactionBubbleTimeout = window.setTimeout(() => {
+      bubble.classList.add('hidden');
+    }, 2200);
+  }
+
+  private async requestDuelRematch() {
+    if (!this.currentLiveLobbyId) return;
+    const myId = SudokuGame.getOrCreatePlayerId();
+    const btnWin = document.getElementById('btn-duel-rematch') as HTMLButtonElement | null;
+    const btnLoss = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
+    const statusWin = document.getElementById('duel-rematch-status');
+    const statusLoss = document.getElementById('duel-loss-rematch-status');
+
+    if (btnWin) { btnWin.disabled = true; btnWin.style.opacity = '0.65'; }
+    if (btnLoss) { btnLoss.disabled = true; btnLoss.style.opacity = '0.65'; }
+    if (statusWin) {
+      statusWin.textContent = i18n.getLanguage() === 'en' ? '⏳ Waiting for opponent confirmation...' : '⏳ Ожидаем согласия соперника...';
+      statusWin.classList.remove('hidden');
+    }
+    if (statusLoss) {
+      statusLoss.textContent = i18n.getLanguage() === 'en' ? '⏳ Waiting for opponent confirmation...' : '⏳ Ожидаем согласия соперника...';
+      statusLoss.classList.remove('hidden');
+    }
+
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/lobby/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lobbyId: this.currentLiveLobbyId,
+          playerId: myId,
+          action: 'rematch_request',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'countdown') {
+          this.handleRematchCountdown(data.seed, data.difficulty);
+        }
+      }
+    } catch {}
+  }
+
+  private handleRematchCountdown(seed?: number, difficulty?: string) {
+    this.stopLiveLobbyPolling();
+    this.winModal.classList.add('hidden');
+    this.gameOverModal.classList.add('hidden');
+    this.stopConfetti();
+
+    const rematchWin = document.getElementById('duel-rematch-container');
+    const rematchLoss = document.getElementById('duel-loss-rematch-container');
+    if (rematchWin) rematchWin.classList.add('hidden');
+    if (rematchLoss) rematchLoss.classList.add('hidden');
+
+    const btnWin = document.getElementById('btn-duel-rematch') as HTMLButtonElement | null;
+    const btnLoss = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
+    if (btnWin) { btnWin.disabled = false; btnWin.style.opacity = '1'; }
+    if (btnLoss) { btnLoss.disabled = false; btnLoss.style.opacity = '1'; }
+
+    const myName = localStorage.getItem('sudoku_player_name') || (i18n.getLanguage() === 'en' ? 'Player' : 'Игрок');
+    const hostName = this.isLiveHost ? myName : (this.liveOpponentName || 'Игрок 1');
+    const guestName = this.isLiveHost ? (this.liveOpponentName || 'Игрок 2') : myName;
+
+    const chosenSeed = seed || Math.floor(100000 + Math.random() * 900000);
+    this.startLiveCountdown(hostName, guestName, chosenSeed, (difficulty as Difficulty) || 'medium');
+  }
+
+  private switchStatsTab(tabName: string) {
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.stats-nav-tab');
+    tabs.forEach((t) => {
+      if (t.getAttribute('data-stats-tab') === tabName) {
+        t.classList.add('active');
+      } else {
+        t.classList.remove('active');
+      }
+    });
+
+    const panes = ['lb', 'profile', 'seasons', 'duels'];
+    panes.forEach((p) => {
+      const paneEl = document.getElementById(`stats-pane-${p}`);
+      if (paneEl) {
+        if (p === tabName) {
+          paneEl.classList.remove('hidden');
+          paneEl.classList.add('active');
+        } else {
+          paneEl.classList.add('hidden');
+          paneEl.classList.remove('active');
+        }
+      }
+    });
+
+    if (tabName === 'lb') {
+      this.fetchAndRenderLeaderboard();
+    } else if (tabName === 'seasons') {
+      this.renderSeasonArchive();
+    } else if (tabName === 'duels') {
+      this.renderDuelHistory();
+    }
   }
 
   private getBoardSkin(): string {

@@ -262,6 +262,19 @@
           <span class="taunt-icon">💬</span>
           <span id="ai-bot-taunt-text" class="taunt-text">Посмотрим, на что ты способен!</span>
         </div>
+
+        <!-- Floating Opponent Reaction Emote -->
+        <div id="live-opponent-reaction-bubble" class="live-reaction-bubble hidden"></div>
+
+        <!-- 1v1 Live Quick Reactions (Human Duel) -->
+        <div id="live-duel-reaction-bar" class="live-duel-reactions hidden">
+          <span class="live-reactions-label" data-i18n="live_reaction_taunt">Эмодзи:</span>
+          <button class="live-reaction-btn" data-reaction="⚡" title="Импульс">⚡</button>
+          <button class="live-reaction-btn" data-reaction="🔥" title="Огонь">🔥</button>
+          <button class="live-reaction-btn" data-reaction="😎" title="Круто">😎</button>
+          <button class="live-reaction-btn" data-reaction="😱" title="Шок">😱</button>
+          <button class="live-reaction-btn" data-reaction="🤖" title="Бот">🤖</button>
+        </div>
       </div>
 
       <!-- Floating Multi-Clear Popups (Safe Zone: Above Board) -->
@@ -360,6 +373,14 @@
       <div id="duel-result-banner" class="hidden" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 0.88rem; text-align: center; color: var(--text-main);">
         <div id="duel-result-title" style="font-weight: 700; color: #38bdf8; margin-bottom: 2px;">⚔️ Результат дуэли</div>
         <div id="duel-result-text">Вы побили рекорд соперника!</div>
+        <div id="duel-rematch-container" class="duel-rematch-container hidden" style="margin-top: 8px;">
+          <button id="btn-duel-rematch" class="btn-primary btn-block" style="padding: 10px; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #10b981); box-shadow: 0 0 12px rgba(0,243,255,0.35); font-size: 0.9rem;" data-i18n="live_btn_rematch">
+            🔄 Реванш (Новый раунд)
+          </button>
+          <div id="duel-rematch-status" style="font-size: 0.78rem; color: var(--pulse-cyan); margin-top: 4px; font-weight: 600;" class="hidden" data-i18n="live_rematch_waiting">
+            ⏳ Ожидаем согласия соперника...
+          </div>
+        </div>
       </div>
 
       <!-- Pulse Run Stage Upgrade Section -->
@@ -396,6 +417,14 @@
       <p id="gameover-subtitle" style="color: var(--text-muted); font-size: 0.95rem;">Вы совершили максимум ошибок.</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div id="duel-loss-rematch-container" class="duel-rematch-container hidden">
+          <button id="btn-duel-loss-rematch" class="btn-primary btn-block" style="padding: 10px; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #10b981); box-shadow: 0 0 12px rgba(0,243,255,0.35); font-size: 0.9rem;" data-i18n="live_btn_rematch">
+            🔄 Реванш (Новый раунд)
+          </button>
+          <div id="duel-loss-rematch-status" style="font-size: 0.78rem; color: var(--pulse-cyan); margin-top: 4px; font-weight: 600;" class="hidden" data-i18n="live_rematch_waiting">
+            ⏳ Ожидаем согласия соперника...
+          </div>
+        </div>
         <button id="btn-second-chance" class="btn-primary">🎬 Второй шанс: +1 жизнь (Реклама)</button>
         <button id="btn-restart-gameover" class="btn-secondary">Попробовать снова</button>
         <button id="btn-gameover-menu" class="btn-secondary">В главное меню</button>
@@ -407,62 +436,88 @@
   <!-- MODAL: STATS / RECORDS                     -->
   <!-- ========================================== -->
   <div id="stats-modal" class="modal-overlay hidden">
-    <div class="modal-card">
+    <div class="modal-card stats-modal-card">
       <button id="btn-close-stats-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
-      <h2 class="modal-title">📊 Рекорды и Лидерборд</h2>
+      <h2 class="modal-title" data-i18n="stats_title" style="margin-bottom: 2px;">📊 Рекорды и Зал Славы</h2>
 
-      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
-        <span style="font-size: 0.85rem; color: var(--text-muted);">Ваш ник:</span>
-        <input id="player-name-input" type="text" maxlength="18" placeholder="CyberPlayer" style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; outline: none;">
+      <!-- Navigation Tabs (Touch-friendly horizontal bar) -->
+      <div class="stats-nav-tabs" id="stats-nav-tabs">
+        <button id="tab-stats-btn-lb" class="stats-nav-tab active" data-stats-tab="lb" data-i18n="stats_tab_lb">🌐 Лидерборд</button>
+        <button id="tab-stats-btn-profile" class="stats-nav-tab" data-stats-tab="profile" data-i18n="stats_tab_profile">👤 Профиль</button>
+        <button id="tab-stats-btn-seasons" class="stats-nav-tab" data-stats-tab="seasons" data-i18n="stats_tab_seasons">🏆 Сезоны</button>
+        <button id="tab-stats-btn-duels" class="stats-nav-tab" data-stats-tab="duels" data-i18n="stats_tab_duels">⚔️ Дуэли</button>
       </div>
 
-      <!-- Player Profile Badges & Medals -->
-      <div id="player-season-medals" class="player-medals-bar hidden"></div>
-      
-      <div class="modal-stats">
-        <div class="modal-stat-row"><span>Кибер-Лига:</span><span id="stat-league-badge" class="league-badge bronze">🥉 Бронзовая</span></div>
-        <div class="modal-stat-row"><span>Партий сыграно / Побед:</span><span><span id="stat-played">0</span> / <span id="stat-won">0</span></span></div>
-        <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
-        <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
-        <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
-        <div class="modal-stat-row"><span>Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
-      </div>
+      <!-- PANE 1: Лидерборд (Default) -->
+      <div id="stats-pane-lb" class="stats-pane active">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Период:</span>
+          <div class="lb-timeframe-bar" style="display: flex; gap: 4px;">
+            <button id="lb-timeframe-all" class="diff-pill lb-tf-btn active" style="font-size: 0.76rem; padding: 4px 10px;">All-Time</button>
+            <button id="lb-timeframe-season" class="diff-pill lb-tf-btn" style="font-size: 0.76rem; padding: 4px 10px;">⏳ Сезон</button>
+          </div>
+        </div>
 
-      <div class="season-countdown-box">
-        <span style="display: flex; align-items: center; gap: 4px;">⏳ <strong>Сезон Лиги:</strong></span>
-        <span id="stat-season-timer" style="color: var(--pulse-cyan); font-weight: 700;">3 дн. 12 ч.</span>
-      </div>
+        <!-- Mode Chips: Smooth horizontal scrollable track on mobile -->
+        <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
+          <button class="lb-tab active" data-lb-mode="all">Все</button>
+          <button class="lb-tab" data-lb-mode="run">🚀 Забег</button>
+          <button class="lb-tab" data-lb-mode="daily">📅 Daily</button>
+          <button class="lb-tab" data-lb-mode="fog">🌌 Сектор</button>
+          <button class="lb-tab" data-lb-mode="ai_duel">🤖 Дуэли</button>
+          <button class="lb-tab" data-lb-mode="classic">⚡ Классика</button>
+        </div>
 
-      <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">🏆 Награды и архив сезонов</div>
-      <div id="season-archive-list" class="season-archive-container" style="max-height: 100px; overflow-y: auto; margin-bottom: 6px;">
-        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Трофей сезона будет зафиксирован при завершении недели.</div>
-      </div>
-
-      <div class="section-title" style="margin-top: 6px; margin-bottom: 4px;">⚔️ История дуэлей (<span id="duel-history-summary">0 дуэлей</span>)</div>
-      <div id="duel-history-list" style="max-height: 110px; overflow-y: auto; margin-bottom: 6px;">
-        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 6px;">Дуэлей пока нет. Бросьте вызов другу после победы!</div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 4px;">
-        <div class="section-title" style="margin: 0;">🌐 Лидерборд</div>
-        <div class="lb-timeframe-bar" style="display: flex; gap: 4px;">
-          <button id="lb-timeframe-all" class="diff-pill lb-tf-btn active" style="font-size: 0.72rem; padding: 2px 8px;">All-Time</button>
-          <button id="lb-timeframe-season" class="diff-pill lb-tf-btn" style="font-size: 0.72rem; padding: 2px 8px;">⏳ Сезон</button>
+        <div id="leaderboard-list" class="modal-stats" style="max-height: min(290px, 48vh); overflow-y: auto; font-size: 0.85rem; padding: 10px;">
+          <div style="text-align: center; color: var(--text-muted); padding: 12px 0;">Загрузка рекордов сервера...</div>
         </div>
       </div>
-      <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
-        <button class="lb-tab active" data-lb-mode="all">Все</button>
-        <button class="lb-tab" data-lb-mode="run">🚀 Забег</button>
-        <button class="lb-tab" data-lb-mode="daily">📅 Daily</button>
-        <button class="lb-tab" data-lb-mode="fog">🌌 Сектор</button>
-        <button class="lb-tab" data-lb-mode="ai_duel">🤖 Дуэли</button>
-        <button class="lb-tab" data-lb-mode="classic">⚡ Классика</button>
-      </div>
-      <div id="leaderboard-list" class="modal-stats" style="max-height: 170px; overflow-y: auto; font-size: 0.85rem;">
-        <div style="text-align: center; color: var(--text-muted);">Загрузка рекордов сервера...</div>
+
+      <!-- PANE 2: Мой профиль -->
+      <div id="stats-pane-profile" class="stats-pane hidden">
+        <div style="display: flex; gap: 8px; align-items: center; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 12px; padding: 8px 12px;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Никнейм:</span>
+          <input id="player-name-input" type="text" maxlength="18" placeholder="CyberPlayer" style="flex: 1; background: transparent; border: none; color: var(--text-main); font-weight: 700; font-size: 0.95rem; outline: none;">
+          <span style="font-size: 0.9rem; opacity: 0.6;">✏️</span>
+        </div>
+
+        <div class="modal-stats">
+          <div class="modal-stat-row"><span>Кибер-Лига:</span><span id="stat-league-badge" class="league-badge bronze">🥉 Бронзовая</span></div>
+          <div class="modal-stat-row"><span>Партий сыграно / Побед:</span><span><span id="stat-played">0</span> / <span id="stat-won">0</span></span></div>
+          <div class="modal-stat-row"><span>Максимальное комбо:</span><span id="stat-combo" style="color:#38bdf8;">0x</span></div>
+          <div class="modal-stat-row"><span>Всего Pulse очков:</span><span id="stat-score" style="color:#fbbf24;">0</span></div>
+          <div class="modal-stat-row"><span>Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
+          <div class="modal-stat-row"><span>Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
+        </div>
       </div>
 
-      <button id="btn-close-stats" class="btn-primary">Закрыть</button>
+      <!-- PANE 3: Награды сезонов -->
+      <div id="stats-pane-seasons" class="stats-pane hidden">
+        <div class="season-countdown-box">
+          <span style="display: flex; align-items: center; gap: 4px;">⏳ <strong>Сезон Лиги:</strong></span>
+          <span id="stat-season-timer" style="color: var(--pulse-cyan); font-weight: 700;">3 дн. 12 ч.</span>
+        </div>
+
+        <div id="player-season-medals" class="player-medals-bar hidden"></div>
+
+        <div class="section-title" style="margin-top: 4px; margin-bottom: 2px;">🏆 Архив трофеев и сезонов</div>
+        <div id="season-archive-list" class="season-archive-container" style="max-height: min(240px, 42vh); overflow-y: auto;">
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 12px;">Трофей сезона будет зафиксирован при завершении недели.</div>
+        </div>
+      </div>
+
+      <!-- PANE 4: Дуэли -->
+      <div id="stats-pane-duels" class="stats-pane hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px;">
+          <span class="section-title" style="margin: 0;">⚔️ Сыгранные матчи</span>
+          <span id="duel-history-summary" style="font-size: 0.8rem; color: var(--pulse-cyan); font-weight: 700;">0 дуэлей</span>
+        </div>
+        <div id="duel-history-list" style="max-height: min(260px, 44vh); overflow-y: auto;">
+          <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 14px;">Дуэлей пока нет. Сыграйте 1v1 с другом или PulseBot!</div>
+        </div>
+      </div>
+
+      <button id="btn-close-stats" class="btn-primary" style="margin-top: 4px;">Закрыть</button>
     </div>
   </div>
 
