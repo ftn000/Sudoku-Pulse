@@ -190,6 +190,10 @@ body {
   animation: fadeIn 0.25s ease-out;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .screen.hidden {
   display: none !important;
 }

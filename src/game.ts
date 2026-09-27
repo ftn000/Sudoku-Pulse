@@ -1441,8 +1441,16 @@ export class SudokuGame {
       surgeCaptured: Math.max(current.surgeCaptured || 0, incoming.surgeCaptured || 0),
       feverTriggeredCount: Math.max(current.feverTriggeredCount || 0, incoming.feverTriggeredCount || 0),
       flawlessWins: Math.max(current.flawlessWins || 0, incoming.flawlessWins || 0),
+      flawlessHardWins: Math.max(current.flawlessHardWins || 0, incoming.flawlessHardWins || 0),
+      noHintsWins: Math.max(current.noHintsWins || 0, incoming.noHintsWins || 0),
       darkSectorWins: Math.max(current.darkSectorWins || 0, incoming.darkSectorWins || 0),
       expertDarkSectorWins: Math.max(current.expertDarkSectorWins || 0, incoming.expertDarkSectorWins || 0),
+      highScore: Math.max(current.highScore || 0, incoming.highScore || 0),
+      fastestWinSeconds: (current.fastestWinSeconds && incoming.fastestWinSeconds)
+        ? Math.min(current.fastestWinSeconds, incoming.fastestWinSeconds)
+        : (current.fastestWinSeconds ?? incoming.fastestWinSeconds ?? null),
+      aiDuelWins: Math.max(current.aiDuelWins || 0, incoming.aiDuelWins || 0),
+      classicWins: Math.max(current.classicWins || 0, incoming.classicWins || 0),
       bestTimeSeconds: {
         easy: (current.bestTimeSeconds?.easy !== null && incoming.bestTimeSeconds?.easy !== null)
           ? Math.min(current.bestTimeSeconds.easy, incoming.bestTimeSeconds.easy)
@@ -1499,8 +1507,26 @@ export class SudokuGame {
       stats.totalScore = (stats.totalScore || 0) + this.score;
       stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
 
+      stats.highScore = Math.max(stats.highScore || 0, this.score);
+      stats.fastestWinSeconds = stats.fastestWinSeconds
+        ? Math.min(stats.fastestWinSeconds, this.timerSeconds)
+        : this.timerSeconds;
+
       if (this.mistakesCount === 0) {
         stats.flawlessWins = (stats.flawlessWins || 0) + 1;
+        if (this.difficulty === 'hard' || this.difficulty === 'expert') {
+          stats.flawlessHardWins = (stats.flawlessHardWins || 0) + 1;
+        }
+      }
+
+      if (this.hintsUsed === 0) {
+        stats.noHintsWins = (stats.noHintsWins || 0) + 1;
+      }
+
+      if (this.mode === 'ai_duel') {
+        stats.aiDuelWins = (stats.aiDuelWins || 0) + 1;
+      } else if (this.mode === 'classic') {
+        stats.classicWins = (stats.classicWins || 0) + 1;
       }
 
       if (this.mode === 'fog') {

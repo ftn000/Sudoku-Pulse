@@ -5,6 +5,30 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Auto-load local .env file if present
+function loadEnv() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      for (const rawLine of content.split('\n')) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const eqIdx = line.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = line.slice(0, eqIdx).trim();
+          const val = line.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+          if (!process.env[key]) {
+            process.env[key] = val;
+          }
+        }
+      }
+    }
+  } catch {}
+}
+loadEnv();
+
 const PORT = process.env.PORT || 80;
 const DIST_DIR = path.join(__dirname, 'dist');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -614,7 +638,7 @@ server.listen(PORT, '0.0.0.0', () => {
 // ==========================================
 // DEDICATED TELEGRAM BOT ENGINE (@sudoku_pulse_auth_bot)
 // ==========================================
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8957810180:AAE5BIVA8BfM9tFIF7n-YO3vp_1QT3yxaf4';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || 'sudoku_pulse_auth_bot';
 const GAME_URL = process.env.GAME_URL || 'https://109.69.17.170.sslip.io/sudoku/';
 
@@ -642,7 +666,10 @@ const MAIN_KEYBOARD = {
 };
 
 async function startTelegramBot() {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) {
+    console.warn('TELEGRAM_BOT_TOKEN is not set. Telegram bot polling disabled.');
+    return;
+  }
   console.log(`Starting Telegram Bot (@${BOT_USERNAME})...`);
 
   // 1. Set chat menu button to WebApp (bottom-left button in Telegram chat input)
@@ -955,6 +982,7 @@ async function handleTelegramUpdate(update) {
 // DAILY PULSE NOTIFICATION SCHEDULER
 // ==========================================
 function startDailyNotificationScheduler() {
+  if (!BOT_TOKEN) return;
   async function checkAndSendDailyReminders() {
     try {
       const now = new Date();

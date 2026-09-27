@@ -112,8 +112,14 @@ export interface PlayerStats {
   surgeCaptured?: number;
   feverTriggeredCount?: number;
   flawlessWins?: number;
+  flawlessHardWins?: number;
+  noHintsWins?: number;
   darkSectorWins?: number;
   expertDarkSectorWins?: number;
+  highScore?: number;
+  fastestWinSeconds?: number | null;
+  aiDuelWins?: number;
+  classicWins?: number;
   unlockedAchievements?: string[];
   seasonBadges?: SeasonBadge[];
 }

@@ -6,11 +6,17 @@ export interface TranslationDict {
 
 const RU: TranslationDict = {
   // Menu
-  menu_daily: 'Ежедневный вызов',
-  menu_daily_desc: 'Новая головоломка каждый день',
-  menu_play: 'Играть',
+  menu_daily: 'Daily Pulse',
+  menu_daily_desc: 'Выбор режима и сложности',
+  menu_play: 'Новая игра',
+  menu_continue: 'Продолжить партию',
+  menu_continue_meta: 'Сохранённая игра ждёт вас',
+  menu_hero_subtitle: 'Классика в неоновом ритме с комбо и способностями',
+  menu_daily_tag: 'Ежедневный вызов мира',
   menu_achievements: 'Достижения',
-  menu_stats: 'Статистика',
+  menu_ach_tag: 'Испытания и трофеи сектора',
+  menu_stats: 'Рекорды',
+  menu_tutorial: 'Обучение',
   menu_settings: 'Настройки',
   menu_rules: 'Правила игры',
   menu_leaderboard: 'Зал Славы',
@@ -19,10 +25,10 @@ const RU: TranslationDict = {
 
   // Mode Selection
   mode_select_title: 'Выберите режим',
-  mode_classic_title: 'Классика',
-  mode_classic_desc: 'Стандартное судоку без давления времени. Расслабьтесь и тренируйте мозг',
-  mode_fog_title: 'Тёмный сектор (Fog of War)',
-  mode_fog_desc: 'Сетка скрыта туманом! Освещайте соседние клетки правильными ходами',
+  mode_classic_title: 'Классический',
+  mode_classic_desc: 'Чистое судоку с комбо-множителем очков и режимом Fever',
+  mode_fog_title: 'Тёмный сектор',
+  mode_fog_desc: 'Матрица во тьме! Луч сканера (эхо 3 сек) и маяки-созвездия освещают сектор',
   mode_run_title: 'Pulse Run (Забег)',
   mode_run_desc: 'Серия из уровней с выбором усиливающих перков перед стартом',
   mode_duel_title: 'Pulse AI Дуэль',
@@ -34,6 +40,17 @@ const RU: TranslationDict = {
   diff_expert: 'Эксперт',
   btn_choose_perk: 'Выбрать перк →',
   btn_start_game: 'Начать игру →',
+  mode_enter_challenge_btn: 'Ввести код вызова друга',
+
+  // Challenge modal
+  challenge_enter_title: 'Код вызова друга',
+  challenge_enter_desc: 'Вставьте код дуэли или ссылку, полученную от друга:',
+  challenge_enter_btn: '🔍 Начать дуэль',
+  challenge_challenger: 'Соперник:',
+  challenge_target_score: 'Рекорд соперника:',
+  challenge_target_time: 'Время соперника:',
+  challenge_accept: '⚔️ Принять вызов!',
+  challenge_decline: 'Позже',
 
   // Perks
   perks_title: 'Выберите перк',
@@ -47,10 +64,11 @@ const RU: TranslationDict = {
   hud_time: 'Время',
   hud_lives: 'Жизни',
   hud_combo: 'Комбо',
+  ctrl_undo: 'Отмена',
   ctrl_erase: 'Стереть',
   ctrl_notes: 'Заметки',
   ctrl_hint: 'Подсказка',
-  ctrl_autonotes: 'Авто',
+  ctrl_restart: 'Заново',
   ctrl_pause: 'Пауза',
 
   // Modals
@@ -67,6 +85,8 @@ const RU: TranslationDict = {
   win_next_stage: 'Следующий этап →',
   win_menu: 'В меню',
   win_share: 'Поделиться результатом',
+  win_share_btn: '📋 Скопировать результат',
+  win_challenge_btn: '⚔️ Бросить вызов другу (Код дуэли)',
 
   gameover_title: '💀 Игра окончена',
   gameover_subtitle: 'Вы совершили 3 ошибки. Попробуйте еще раз!',
@@ -80,8 +100,6 @@ const RU: TranslationDict = {
   setting_theme: 'Тема оформления',
   setting_grid_skin: '🎨 Скин ячеек сетки (Лиги)',
   setting_lang: '🌐 Язык интерфейса',
-  setting_daily_notify: '🔔 Напоминания Daily Pulse',
-  setting_daily_notify_sub: 'Утреннее сообщение от Telegram-бота',
   setting_btn_on: 'Вкл',
   setting_btn_off: 'Выкл',
   setting_done: 'Готово',
@@ -109,11 +127,17 @@ const RU: TranslationDict = {
 
 const EN: TranslationDict = {
   // Menu
-  menu_daily: 'Daily Challenge',
-  menu_daily_desc: 'Unique puzzle generated every day',
-  menu_play: 'Play',
+  menu_daily: 'Daily Pulse',
+  menu_daily_desc: 'Choose mode and difficulty',
+  menu_play: 'New Game',
+  menu_continue: 'Continue Game',
+  menu_continue_meta: 'Saved puzzle is waiting for you',
+  menu_hero_subtitle: 'Neon-cyber rhythm Sudoku with combos and perks',
+  menu_daily_tag: 'Daily World Challenge',
   menu_achievements: 'Achievements',
-  menu_stats: 'Statistics',
+  menu_ach_tag: 'Sector Trials & Trophies',
+  menu_stats: 'Records',
+  menu_tutorial: 'Tutorial',
   menu_settings: 'Settings',
   menu_rules: 'How to Play',
   menu_leaderboard: 'Hall of Fame',
@@ -123,9 +147,9 @@ const EN: TranslationDict = {
   // Mode Selection
   mode_select_title: 'Select Game Mode',
   mode_classic_title: 'Classic',
-  mode_classic_desc: 'Standard sudoku with no time pressure. Relax and train your brain',
-  mode_fog_title: 'Dark Sector (Fog of War)',
-  mode_fog_desc: 'The grid is enveloped in cyber fog! Light up cells with correct answers',
+  mode_classic_desc: 'Pure sudoku with dynamic combo scoring and Fever mode',
+  mode_fog_title: 'Dark Sector',
+  mode_fog_desc: 'Grid veiled in darkness! Scanner echo beam (3s) and constellation beacons illuminate cells',
   mode_run_title: 'Pulse Run',
   mode_run_desc: 'Progressive stage gauntlet with powerful cyber perk upgrades',
   mode_duel_title: 'Pulse AI Duel',
@@ -137,6 +161,17 @@ const EN: TranslationDict = {
   diff_expert: 'Expert',
   btn_choose_perk: 'Select Perk →',
   btn_start_game: 'Start Game →',
+  mode_enter_challenge_btn: 'Enter Friend Duel Code',
+
+  // Challenge modal
+  challenge_enter_title: 'Friend Challenge Code',
+  challenge_enter_desc: 'Paste the duel code or invite link from your friend:',
+  challenge_enter_btn: '🔍 Start Duel',
+  challenge_challenger: 'Challenger:',
+  challenge_target_score: 'Target Score:',
+  challenge_target_time: 'Target Time:',
+  challenge_accept: '⚔️ Accept Challenge!',
+  challenge_decline: 'Later',
 
   // Perks
   perks_title: 'Select Cyber Perk',
@@ -150,10 +185,11 @@ const EN: TranslationDict = {
   hud_time: 'Time',
   hud_lives: 'Lives',
   hud_combo: 'Combo',
+  ctrl_undo: 'Undo',
   ctrl_erase: 'Erase',
   ctrl_notes: 'Notes',
   ctrl_hint: 'Hint',
-  ctrl_autonotes: 'Auto',
+  ctrl_restart: 'Restart',
   ctrl_pause: 'Pause',
 
   // Modals
@@ -170,6 +206,8 @@ const EN: TranslationDict = {
   win_next_stage: 'Next Stage →',
   win_menu: 'To Menu',
   win_share: 'Share Result',
+  win_share_btn: '📋 Copy Score Card',
+  win_challenge_btn: '⚔️ Challenge a Friend (Duel Code)',
 
   gameover_title: '💀 Game Over',
   gameover_subtitle: '3 errors made. Try again!',
@@ -183,8 +221,6 @@ const EN: TranslationDict = {
   setting_theme: 'Color Theme',
   setting_grid_skin: '🎨 Grid Cell Skin (Leagues)',
   setting_lang: '🌐 Interface Language',
-  setting_daily_notify: '🔔 Daily Pulse Reminder',
-  setting_daily_notify_sub: 'Morning notification from Telegram bot',
   setting_btn_on: 'On',
   setting_btn_off: 'Off',
   setting_done: 'Done',
@@ -263,20 +299,40 @@ export const ACHIEVEMENT_TRANSLATIONS: Record<string, { ru: { title: string; des
     en: { title: 'First Spark', desc: 'Win your first game in any mode' },
   },
   combo_8: {
-    ru: { title: 'На гребне волны', desc: 'Достичь комбо-серии из 8 верных ходов подряд' },
-    en: { title: 'Riding the Wave', desc: 'Achieve a combo streak of 8 correct moves' },
+    ru: { title: 'В ритме пульса', desc: 'Достичь комбо-серии из 8 верных ходов подряд' },
+    en: { title: 'Rhythm of the Pulse', desc: 'Achieve a combo streak of 8 correct moves' },
+  },
+  combo_15: {
+    ru: { title: 'Квантовый резонанс', desc: 'Достичь серии комбо из 15 верных ходов подряд' },
+    en: { title: 'Quantum Resonance', desc: 'Achieve an unbroken combo streak of 15 correct moves' },
   },
   fever_master: {
-    ru: { title: 'Перегрузка', desc: 'Активировать режим Fever Overdrive 5 раз' },
-    en: { title: 'Overdrive', desc: 'Trigger Fever Overdrive 5 times' },
+    ru: { title: 'Перегрузка', desc: 'Активировать режим Fever Overdrive 10 раз' },
+    en: { title: 'Overdrive', desc: 'Trigger Fever Overdrive mode 10 times' },
+  },
+  fever_hyper: {
+    ru: { title: 'Гипердрайв', desc: 'Активировать режим Fever Overdrive 30 раз' },
+    en: { title: 'Hyperdrive', desc: 'Trigger Fever Overdrive mode 30 times' },
   },
   flawless: {
     ru: { title: 'Чистый разум', desc: 'Решить головоломку без единой ошибки' },
     en: { title: 'Pure Mind', desc: 'Solve a puzzle without making a single mistake' },
   },
+  flawless_hard: {
+    ru: { title: 'Холодный расчёт', desc: 'Победить без единой ошибки на сложности Сложный или Эксперт' },
+    en: { title: 'Cold Calculation', desc: 'Win without any mistakes on Hard or Expert difficulty' },
+  },
+  no_hints: {
+    ru: { title: 'Абсолютная интуиция', desc: 'Пройти партию без использования подсказок' },
+    en: { title: 'Pure Intuition', desc: 'Win a game without using any hints' },
+  },
+  speed_demon: {
+    ru: { title: 'Сверхзвуковой', desc: 'Решить классическое судоку быстрее 3 минут' },
+    en: { title: 'Supersonic', desc: 'Solve classic Sudoku in under 3 minutes' },
+  },
   dark_navigator: {
-    ru: { title: 'Навигатор бездны', desc: 'Одержать победу в режиме «Тёмный сектор»' },
-    en: { title: 'Abyss Navigator', desc: 'Win a game in Dark Sector mode' },
+    ru: { title: 'Навигатор бездны', desc: 'Одержать 3 победы в режиме «Тёмный сектор»' },
+    en: { title: 'Abyss Navigator', desc: 'Win 3 games in Dark Sector mode' },
   },
   blind_flight: {
     ru: { title: 'Слепой полёт', desc: 'Пройти «Тёмный сектор» на сложности Эксперт (0 маяков)' },
@@ -286,13 +342,53 @@ export const ACHIEVEMENT_TRANSLATIONS: Record<string, { ru: { title: string; des
     ru: { title: 'Покоритель секторов', desc: 'Пройти минимум 3 этапа за один забег Pulse Run' },
     en: { title: 'Sector Conqueror', desc: 'Clear at least 3 stages in a single Pulse Run' },
   },
-  speed_demon: {
-    ru: { title: 'Демон скорости', desc: 'Решить судоку быстрее чем за 3 минуты' },
-    en: { title: 'Speed Demon', desc: 'Solve any Sudoku in under 3 minutes' },
+  run_stage_5: {
+    ru: { title: 'Сверхновая', desc: 'Достичь 5-го этапа в Pulse Run (Экстремальный сектор)' },
+    en: { title: 'Supernova', desc: 'Reach Sector 5 in Pulse Run (Extreme modifier)' },
+  },
+  surge_hunter: {
+    ru: { title: 'Ловец молний', desc: 'Захватить 15 энергетических клеток «⚡ Вспышка»' },
+    en: { title: 'Lightning Catcher', desc: 'Capture 15 lightning surge cells' },
+  },
+  surge_storm: {
+    ru: { title: 'Повелитель бури', desc: 'Захватить 40 энергетических клеток «⚡ Вспышка»' },
+    en: { title: 'Storm Master', desc: 'Capture 40 lightning surge cells' },
+  },
+  streak_3: {
+    ru: { title: 'Ритм дисциплины', desc: 'Поддерживать серию побед 3 дня подряд в Daily Pulse' },
+    en: { title: 'Discipline Rhythm', desc: 'Maintain a 3-day winning streak in Daily Pulse' },
+  },
+  streak_7: {
+    ru: { title: 'Недельный импульс', desc: 'Поддерживать серию побед 7 дней подряд в Daily Pulse' },
+    en: { title: 'Weekly Pulse', desc: 'Maintain a 7-day winning streak in Daily Pulse' },
+  },
+  duel_master: {
+    ru: { title: 'Дуэлянт киберсети', desc: 'Одержать 3 победы в дуэлях против виртуального AI' },
+    en: { title: 'Cyber Duelist', desc: 'Win 3 duels against virtual AI bots' },
+  },
+  score_25k: {
+    ru: { title: 'Энергетический пик', desc: 'Набрать более 25 000 очков за одну партию' },
+    en: { title: 'Energy Peak', desc: 'Score over 25,000 points in a single match' },
+  },
+  score_50k: {
+    ru: { title: 'Легенда неонового поля', desc: 'Набрать более 50 000 очков за одну партию' },
+    en: { title: 'Neon Legend', desc: 'Score over 50,000 points in a single match' },
+  },
+  total_score_50k: {
+    ru: { title: 'Мастер ранга', desc: 'Набрать суммарно 50 000 очков во всех партиях' },
+    en: { title: 'Rank Master', desc: 'Accumulate 50,000 total career points across all games' },
   },
   grandmaster: {
-    ru: { title: 'Кибер-Гроссмейстер', desc: 'Выиграть 25 игр и набрать 100 000+ очков' },
-    en: { title: 'Cyber Grandmaster', desc: 'Win 25 games and reach 100,000+ score' },
+    ru: { title: 'Грандмастер Пульса', desc: 'Набрать суммарно 150 000 очков во всех партиях' },
+    en: { title: 'Pulse Grandmaster', desc: 'Accumulate 150,000 total career points across all games' },
+  },
+  veteran_10: {
+    ru: { title: 'Опытный оператор', desc: 'Одержать 10 побед в любых режимах' },
+    en: { title: 'Seasoned Operator', desc: 'Achieve 10 total victories in any game modes' },
+  },
+  veteran_25: {
+    ru: { title: 'Ветеран матрицы', desc: 'Одержать 25 побед во всех режимах' },
+    en: { title: 'Matrix Veteran', desc: 'Achieve 25 total victories across all game modes' },
   },
 };
 

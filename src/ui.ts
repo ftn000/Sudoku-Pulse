@@ -53,6 +53,17 @@ export function getLeagueForScore(totalScore: number): LeagueInfo {
   return { id: 'bronze', name: 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
+export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; name: string; icon: string }> = {
+  neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', name: 'Cyber', icon: '⚡' },
+  synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', name: 'Synth', icon: '🌆' },
+  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', name: 'Aqua', icon: '🌊' },
+  matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', name: 'Matrix', icon: '🟢' },
+  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', name: 'Crimson', icon: '🩸' },
+  hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', name: 'Hologram', icon: '💎' },
+  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', name: 'Retro', icon: '👾' },
+  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', name: 'Obsidian', icon: '👑' },
+};
+
 export function getSeasonRemainingText(): string {
   const now = new Date();
   const currentDay = now.getUTCDay();
@@ -142,7 +153,6 @@ export class SudokuUI {
   private pauseBtn!: HTMLButtonElement;
   private resumeBtn!: HTMLButtonElement;
   private notesBtn!: HTMLButtonElement;
-  private btnAutoNotes!: HTMLButtonElement;
   private undoBtn!: HTMLButtonElement;
   private eraseBtn!: HTMLButtonElement;
   private hintBtn!: HTMLButtonElement;
@@ -216,7 +226,7 @@ export class SudokuUI {
   private btnCloseSettings!: HTMLButtonElement;
   private settingSoundBtn!: HTMLButtonElement;
   private settingThemeBtn!: HTMLButtonElement;
-  private settingNotifyBtn!: HTMLButtonElement;
+  private settingNotifyBtn?: HTMLButtonElement | null;
   private themeSkinPills: HTMLButtonElement[] = [];
   private boardSkinPills: HTMLButtonElement[] = [];
   private syncAccountBadge!: HTMLElement;
@@ -281,6 +291,14 @@ export class SudokuUI {
   private challengeTargetTime!: HTMLElement;
   private btnChallengeAccept!: HTMLButtonElement;
   private btnChallengeDecline!: HTMLButtonElement;
+
+  // Enter Friend Challenge Modal
+  private btnOpenEnterChallenge?: HTMLButtonElement;
+  private enterChallengeModal?: HTMLElement;
+  private btnCloseEnterChallengeX?: HTMLButtonElement;
+  private inputChallengeCode?: HTMLInputElement;
+  private btnPasteChallengeCode?: HTMLButtonElement;
+  private btnSubmitChallengeCode?: HTMLButtonElement;
 
   private duelResultBanner!: HTMLElement;
   private duelResultTitle!: HTMLElement;
@@ -482,7 +500,6 @@ export class SudokuUI {
     this.pauseBtn = document.getElementById('btn-pause') as HTMLButtonElement;
     this.resumeBtn = document.getElementById('btn-resume') as HTMLButtonElement;
     this.notesBtn = document.getElementById('btn-notes') as HTMLButtonElement;
-    this.btnAutoNotes = document.getElementById('btn-auto-notes') as HTMLButtonElement;
     this.undoBtn = document.getElementById('btn-undo') as HTMLButtonElement;
     this.eraseBtn = document.getElementById('btn-erase') as HTMLButtonElement;
     this.hintBtn = document.getElementById('btn-hint') as HTMLButtonElement;
@@ -544,7 +561,7 @@ export class SudokuUI {
     this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
     this.settingSoundBtn = document.getElementById('setting-sound-btn') as HTMLButtonElement;
     this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
-    this.settingNotifyBtn = document.getElementById('setting-notify-btn') as HTMLButtonElement;
+    this.settingNotifyBtn = document.getElementById('setting-notify-btn') as HTMLButtonElement | null;
     this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
     this.boardSkinPills = Array.from(document.querySelectorAll('.board-skin-pill'));
     this.syncAccountBadge = document.getElementById('sync-account-badge')!;
@@ -563,6 +580,15 @@ export class SudokuUI {
     this.challengeTargetTime = document.getElementById('challenge-target-time')!;
     this.btnChallengeAccept = document.getElementById('btn-challenge-accept') as HTMLButtonElement;
     this.btnChallengeDecline = document.getElementById('btn-challenge-decline') as HTMLButtonElement;
+
+    // Enter Friend Challenge Modal
+    this.btnOpenEnterChallenge = document.getElementById('btn-open-enter-challenge') as HTMLButtonElement;
+    this.enterChallengeModal = document.getElementById('enter-challenge-modal')!;
+    this.btnCloseEnterChallengeX = document.getElementById('btn-close-enter-challenge-x') as HTMLButtonElement;
+    this.inputChallengeCode = document.getElementById('input-challenge-code') as HTMLInputElement;
+    this.btnPasteChallengeCode = document.getElementById('btn-paste-challenge-code') as HTMLButtonElement;
+    this.btnSubmitChallengeCode = document.getElementById('btn-submit-challenge-code') as HTMLButtonElement;
+
     this.duelResultBanner = document.getElementById('duel-result-banner')!;
     this.duelResultTitle = document.getElementById('duel-result-title')!;
     this.duelResultText = document.getElementById('duel-result-text')!;
@@ -983,7 +1009,8 @@ export class SudokuUI {
       this.achievementsModal,
       this.settingsModal,
       this.tgAuthModal,
-      this.challengeModal
+      this.challengeModal,
+      this.enterChallengeModal
     ].forEach((modal) => {
       if (modal) {
         modal.addEventListener('click', (e) => {
@@ -1147,25 +1174,24 @@ export class SudokuUI {
       pill.addEventListener('click', () => {
         soundManager.playSelect();
         const skinKey = pill.getAttribute('data-board-skin') || 'neon';
-        const skinsReq: Record<string, { minScore: number; leagueName: string }> = {
-          neon: { minScore: 0, leagueName: 'Бронзовая лига' },
-          synthwave: { minScore: 10000, leagueName: 'Серебряная лига' },
-          matrix: { minScore: 30000, leagueName: 'Золотая лига' },
-          hologram: { minScore: 75000, leagueName: 'Платиновая лига' },
-          obsidian: { minScore: 150000, leagueName: 'Лига Кибер-Мастер' },
-        };
-        const req = skinsReq[skinKey];
+        const req = BOARD_SKINS_CONFIG[skinKey];
         const stats = SudokuGame.getPlayerStats();
+        const lang = i18n.getLanguage();
         if (req && stats.totalScore < req.minScore) {
-          const needed = (req.minScore - stats.totalScore).toLocaleString('ru-RU');
-          this.showToast(`🔒 Стиль откроется в ${req.leagueName}! Нужно ещё ${needed} очков.`);
+          const needed = (req.minScore - stats.totalScore).toLocaleString(lang === 'en' ? 'en-US' : 'ru-RU');
+          const leagueName = lang === 'en' ? req.leagueEn : req.leagueRu;
+          const msg = lang === 'en'
+            ? `🔒 Unlocks in ${leagueName} League! Need ${needed} more points.`
+            : `🔒 Стиль откроется в лиге: ${leagueName}! Нужно ещё ${needed} очков.`;
+          this.showToast(msg);
           haptics.error();
           return;
         }
 
         this.setBoardSkin(skinKey);
         haptics.selection();
-        this.showToast(`🎨 Применён скин сетки!`);
+        const appliedMsg = lang === 'en' ? '🎨 Grid skin applied!' : '🎨 Применён скин сетки!';
+        this.showToast(appliedMsg);
       });
     });
 
@@ -1175,16 +1201,6 @@ export class SudokuUI {
 
     // Toolbar
     this.notesBtn.addEventListener('click', () => this.game.toggleNotesMode());
-    this.btnAutoNotes.addEventListener('click', () => {
-      const isNowActive = this.game.toggleAutoCandidates();
-      soundManager.playSelect();
-      haptics.light();
-      if (isNowActive) {
-        this.showToast('✨ Авто-заметки: кандидаты показаны');
-      } else {
-        this.showToast('🧹 Авто-заметки: кандидаты скрыты');
-      }
-    });
     this.undoBtn.addEventListener('click', () => this.game.undo());
     this.eraseBtn.addEventListener('click', () => this.game.eraseCell());
 
@@ -1278,7 +1294,7 @@ export class SudokuUI {
       this.updateDailyInfoOnMenu();
     });
 
-    // Share result & Challenge friend buttons
+    // Share score card & Challenge friend buttons
     this.btnDailyShare.addEventListener('click', () => {
       this.shareResultToTelegram();
     });
@@ -1286,6 +1302,58 @@ export class SudokuUI {
     this.btnChallengeShare.addEventListener('click', () => {
       this.shareChallengeToTelegram();
     });
+
+    if (this.btnOpenEnterChallenge) {
+      this.btnOpenEnterChallenge.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        this.enterChallengeModal?.classList.remove('hidden');
+        if (this.inputChallengeCode) this.inputChallengeCode.value = '';
+      });
+    }
+
+    if (this.btnCloseEnterChallengeX) {
+      this.btnCloseEnterChallengeX.addEventListener('click', () => {
+        this.enterChallengeModal?.classList.add('hidden');
+      });
+    }
+
+    if (this.btnPasteChallengeCode) {
+      this.btnPasteChallengeCode.addEventListener('click', async () => {
+        soundManager.playSelect();
+        const isEn = i18n.getLanguage() === 'en';
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text && this.inputChallengeCode) {
+              this.inputChallengeCode.value = text.trim();
+              this.showToast(isEn ? '📋 Pasted from clipboard' : '📋 Вставлено из буфера');
+              return;
+            }
+          }
+        } catch {}
+        this.showToast(isEn ? 'Paste your challenge code into the field' : 'Вставьте код вызова в поле ввода');
+      });
+    }
+
+    if (this.btnSubmitChallengeCode) {
+      this.btnSubmitChallengeCode.addEventListener('click', () => {
+        soundManager.playSelect();
+        const isEn = i18n.getLanguage() === 'en';
+        const code = (this.inputChallengeCode?.value || '').trim();
+        if (!code) {
+          this.showToast(isEn ? '⚠️ Please enter a challenge code' : '⚠️ Введите или вставьте код вызова');
+          return;
+        }
+        const success = this.handleIncomingChallenge(code);
+        if (success) {
+          this.enterChallengeModal?.classList.add('hidden');
+        } else {
+          this.showToast(isEn ? '❌ Invalid challenge code format.' : '❌ Не удалось распознать код вызова.');
+          haptics.error();
+        }
+      });
+    }
 
     // Cloud Sync & Device Linking
     if (this.btnSyncTgAuth) {
@@ -1463,12 +1531,6 @@ export class SudokuUI {
       // Notes mode toggle ('n' / 'т')
       if (key === 'n' || key === 'т') {
         this.game.toggleNotesMode();
-        return;
-      }
-
-      // Auto-notes ('u' / 'г' or 'm')
-      if (key === 'u' || key === 'г' || key === 'm' || key === 'ь') {
-        this.btnAutoNotes.click();
         return;
       }
 
@@ -1683,28 +1745,30 @@ export class SudokuUI {
     if (this.btnMenuContinue) {
       const hasSave = SudokuGame.hasSavedGame();
       this.btnMenuContinue.classList.toggle('hidden', !hasSave);
+      this.btnMenuContinue.style.display = hasSave ? 'flex' : 'none';
       if (hasSave && this.menuContinueMeta) {
         try {
           const raw = localStorage.getItem('sudoku_pulse_saved_game_v3');
           if (raw) {
             const data = JSON.parse(raw);
+            const isEn = lang === 'en';
             const mLabels: Record<string, string> = {
-              classic: 'Классика',
-              fog: 'Тёмный сектор',
+              classic: isEn ? 'Classic' : 'Классика',
+              fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
               daily: 'Daily Pulse',
-              run: `Забег (Этап ${data.runStage || 1})`,
-              ai_duel: 'Pulse AI Дуэль',
+              run: isEn ? `Pulse Run (Stage ${data.runStage || 1})` : `Забег (Этап ${data.runStage || 1})`,
+              ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
             };
             const dLabels: Record<string, string> = {
-              easy: 'Легкий',
-              medium: 'Средний',
-              hard: 'Сложный',
-              expert: 'Эксперт',
+              easy: isEn ? 'Easy' : 'Легкий',
+              medium: isEn ? 'Medium' : 'Средний',
+              hard: isEn ? 'Hard' : 'Сложный',
+              expert: isEn ? 'Expert' : 'Эксперт',
             };
             const mins = Math.floor((data.timerSeconds || 0) / 60);
             const secs = (data.timerSeconds || 0) % 60;
             const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            this.menuContinueMeta.textContent = `${mLabels[data.mode] || 'Игра'} • ${dLabels[data.difficulty] || ''} • ${timeStr}`;
+            this.menuContinueMeta.textContent = `${mLabels[data.mode] || (isEn ? 'Game' : 'Игра')} • ${dLabels[data.difficulty] || ''} • ${timeStr}`;
           }
         } catch {}
       }
@@ -1906,14 +1970,13 @@ export class SudokuUI {
 
   private renderToolbar() {
     this.notesBtn.classList.toggle('active', this.game.isNotesMode);
-    this.btnAutoNotes.classList.toggle('active', this.game.isAutoNotesActive);
 
     if (this.game.hintsRemaining > 0) {
-      this.hintBtnLabel.textContent = 'Подсказка';
+      this.hintBtnLabel.textContent = t('hint', 'Подсказка');
       this.hintCounterBadge.textContent = this.game.hintsRemaining.toString();
       this.hintCounterBadge.className = 'badge-counter';
     } else {
-      this.hintBtnLabel.textContent = '+1 Подсказка';
+      this.hintBtnLabel.textContent = t('watch_ad_hint', '+1 Подсказка');
       this.hintCounterBadge.textContent = '🎬';
       this.hintCounterBadge.className = 'badge-counter ad-badge';
     }
@@ -2124,16 +2187,57 @@ export class SudokuUI {
   }
 
   private checkUrlChallenge(): boolean {
-    const params = new URLSearchParams(window.location.search);
-    const tgApp = (window as any).Telegram?.WebApp;
-    const tgStartParam = tgApp?.initDataUnsafe?.start_param;
-    const rawParam = tgStartParam || params.get('start_param') || params.get('startapp') || params.get('tgWebAppStartParam') || params.get('challenge');
+    return this.handleIncomingChallenge();
+  }
 
-    if (rawParam === 'daily' || params.get('mode') === 'daily') {
+  private handleIncomingChallenge(manualInput?: string): boolean {
+    const isEn = i18n.getLanguage() === 'en';
+    let rawParam: string | null = null;
+    let seedParam: string | null = null;
+    let diffParam: string | null = null;
+    let modeParam: string | null = null;
+    let scoreParam: string | null = null;
+    let timeParam: string | null = null;
+    let challengerParam: string | null = null;
+
+    if (manualInput) {
+      const trimmed = manualInput.trim();
+      const codeMatch = trimmed.match(/(c_[0-9]+_[a-zA-Z0-9_]+)/);
+      if (codeMatch) {
+        rawParam = codeMatch[1];
+      } else {
+        try {
+          const url = new URL(trimmed.startsWith('http') ? trimmed : `http://dummy.com/${trimmed.startsWith('?') ? '' : '?'}${trimmed}`);
+          rawParam = url.searchParams.get('start_param') || url.searchParams.get('startapp') || url.searchParams.get('c') || url.searchParams.get('challenge');
+          seedParam = url.searchParams.get('seed');
+          diffParam = url.searchParams.get('diff');
+          modeParam = url.searchParams.get('mode');
+          scoreParam = url.searchParams.get('score');
+          timeParam = url.searchParams.get('time');
+          challengerParam = url.searchParams.get('challenger');
+        } catch {}
+      }
+      if (!rawParam && !seedParam) {
+        rawParam = trimmed;
+      }
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      const tgApp = (window as any).Telegram?.WebApp;
+      const tgStartParam = tgApp?.initDataUnsafe?.start_param;
+      rawParam = tgStartParam || params.get('start_param') || params.get('startapp') || params.get('tgWebAppStartParam') || params.get('challenge') || params.get('c');
+      seedParam = params.get('seed');
+      diffParam = params.get('diff');
+      modeParam = params.get('mode');
+      scoreParam = params.get('score');
+      timeParam = params.get('time');
+      challengerParam = params.get('challenger');
+    }
+
+    if (!manualInput && (rawParam === 'daily' || modeParam === 'daily')) {
       setTimeout(() => {
         this.game.startNewGame({ difficulty: 'medium', mode: 'daily', perks: [] });
         this.showScreen('game');
-        this.showToast('📅 Daily Pulse дня запущен!');
+        this.showToast(isEn ? '📅 Daily Pulse launched!' : '📅 Daily Pulse дня запущен!');
       }, 100);
       return true;
     }
@@ -2143,7 +2247,7 @@ export class SudokuUI {
     let mode: GameMode = 'classic';
     let targetScore = 0;
     let targetTime = 0;
-    let challenger = 'Друг';
+    let challenger = isEn ? 'Friend' : 'Друг';
 
     if (rawParam && (rawParam.startsWith('c_') || rawParam.startsWith('challenge_'))) {
       const parts = rawParam.replace(/^(c_|challenge_)/, '').split('_');
@@ -2160,16 +2264,14 @@ export class SudokuUI {
       if (parts[5]) {
         try { challenger = decodeURIComponent(parts[5]); } catch {}
       }
-    } else if (params.get('seed')) {
-      seed = parseInt(params.get('seed')!, 10);
-      const diffParam = (params.get('diff') as Difficulty) || 'medium';
-      const modeParam = (params.get('mode') as GameMode) || 'classic';
+    } else if (seedParam) {
+      seed = parseInt(seedParam, 10);
       const validDiffs: Difficulty[] = ['easy', 'medium', 'hard', 'expert'];
-      diff = validDiffs.includes(diffParam) ? diffParam : 'medium';
-      mode = ['classic', 'fog', 'daily', 'run'].includes(modeParam) ? modeParam : 'classic';
-      targetScore = parseInt(params.get('score') || '0', 10) || 0;
-      targetTime = parseInt(params.get('time') || '0', 10) || 0;
-      challenger = params.get('challenger') || 'Друг';
+      diff = validDiffs.includes(diffParam as Difficulty) ? (diffParam as Difficulty) : 'medium';
+      mode = ['classic', 'fog', 'daily', 'run'].includes(modeParam as GameMode) ? (modeParam as GameMode) : 'classic';
+      targetScore = parseInt(scoreParam || '0', 10) || 0;
+      targetTime = parseInt(timeParam || '0', 10) || 0;
+      if (challengerParam) challenger = challengerParam;
     }
 
     if (!seed || isNaN(seed)) return false;
@@ -2182,28 +2284,32 @@ export class SudokuUI {
     const timeStr = targetTime > 0 ? `${tMins.toString().padStart(2, '0')}:${tSecs.toString().padStart(2, '0')}` : '—';
 
     const diffLabels: Record<Difficulty, string> = {
-      easy: 'Легкий',
-      medium: 'Средний',
-      hard: 'Сложный',
-      expert: 'Эксперт',
+      easy: isEn ? 'Easy' : 'Легкий',
+      medium: isEn ? 'Medium' : 'Средний',
+      hard: isEn ? 'Hard' : 'Сложный',
+      expert: isEn ? 'Expert' : 'Эксперт',
     };
     const modeLabels: Record<GameMode, string> = {
-      classic: 'Классический',
-      fog: 'Тёмный сектор',
+      classic: isEn ? 'Classic' : 'Классический',
+      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
       daily: 'Daily Pulse',
       run: 'Pulse Run',
-      ai_duel: 'Pulse AI Дуэль',
+      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
     };
 
     if (this.challengeChallengerName) this.challengeChallengerName.textContent = challenger;
-    if (this.challengeDiff) this.challengeDiff.textContent = diffLabels[diff] || 'Средний';
-    if (this.challengeMode) this.challengeMode.textContent = modeLabels[mode] || 'Классика';
-    if (this.challengeTargetScore) this.challengeTargetScore.textContent = targetScore > 0 ? targetScore.toLocaleString('ru-RU') : '—';
+    if (this.challengeDiff) this.challengeDiff.textContent = diffLabels[diff] || (isEn ? 'Medium' : 'Средний');
+    if (this.challengeMode) this.challengeMode.textContent = modeLabels[mode] || (isEn ? 'Classic' : 'Классика');
+    if (this.challengeTargetScore) this.challengeTargetScore.textContent = targetScore > 0 ? targetScore.toLocaleString(isEn ? 'en-US' : 'ru-RU') : '—';
     if (this.challengeTargetTime) this.challengeTargetTime.textContent = timeStr;
 
-    // Clean URL params quietly
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
+    // Clean URL params quietly if loaded from page URL
+    if (!manualInput) {
+      try {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch {}
+    }
 
     // Show challenge invitation modal
     this.showScreen('menu');
@@ -2339,13 +2445,16 @@ export class SudokuUI {
       if (ach.checkUnlocked(stats)) unlockedIds.add(ach.id);
     });
 
-    this.achievementsSubtitle.textContent = `Открыто ${unlockedIds.size} из ${ACHIEVEMENTS.length} трофеев`;
+    const lang = i18n.getLanguage();
+    const isEn = lang === 'en';
+    this.achievementsSubtitle.textContent = isEn
+      ? `Unlocked ${unlockedIds.size} of ${ACHIEVEMENTS.length} trophies`
+      : `Открыто ${unlockedIds.size} из ${ACHIEVEMENTS.length} трофеев`;
     if (this.menuAchCounter) {
       this.menuAchCounter.textContent = `${unlockedIds.size}/${ACHIEVEMENTS.length}`;
     }
     this.achievementsList.innerHTML = '';
 
-    const lang = i18n.getLanguage();
     const unlockedLabel = t('ach_unlocked', '✅ Получено');
 
     ACHIEVEMENTS.forEach((ach) => {
@@ -2826,87 +2935,148 @@ export class SudokuUI {
     }
   }
 
-  private shareChallengeToTelegram() {
+  private async copyTextToClipboard(text: string): Promise<boolean> {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      textarea.setAttribute('readonly', '');
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return success;
+    } catch {
+      return false;
+    }
+  }
+
+  private async tryNativeShare(data: { title: string; text: string; url?: string }): Promise<boolean> {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(data);
+        return true;
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return true;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  private async shareScoreCard() {
+    const isEn = i18n.getLanguage() === 'en';
+    const mins = Math.floor(this.game.timerSeconds / 60);
+    const secs = this.game.timerSeconds % 60;
+    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    const modeLabels: Record<GameMode, string> = {
+      classic: isEn ? 'Classic' : 'Классика',
+      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
+      daily: 'Daily Pulse',
+      run: isEn ? `Pulse Run (Stage ${this.game.runStage})` : `Pulse Run (Этап ${this.game.runStage})`,
+      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
+    };
+    const diffLabels: Record<Difficulty, string> = {
+      easy: isEn ? 'Easy' : 'Легкий',
+      medium: isEn ? 'Medium' : 'Средний',
+      hard: isEn ? 'Hard' : 'Сложный',
+      expert: isEn ? 'Expert' : 'Эксперт',
+    };
+
+    const modeName = modeLabels[this.game.mode] || (isEn ? 'Classic' : 'Классика');
+    const diffName = diffLabels[this.game.difficulty] || (isEn ? 'Medium' : 'Средний');
+
+    const title = isEn ? 'Sudoku Pulse — Victory!' : '⚡ Sudoku Pulse — Победа!';
+    const text = isEn
+      ? `⚡ Sudoku Pulse — Victory!\n🎮 Mode: ${modeName} (${diffName})\n⏱️ Time: ${timeStr} | 💎 Score: ${this.game.score.toLocaleString('en-US')}\n🔥 Max Combo: x${this.game.maxComboAchieved} | ❤️ Mistakes: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩\nPlay Sudoku Pulse now!`
+      : `⚡ Sudoku Pulse — Победа!\n🎮 Режим: ${modeName} (${diffName})\n⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}\n🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩\nСыграй в ритме Sudoku Pulse:`;
+
+    const shareUrl = window.location.origin + window.location.pathname;
+
+    const tgApp = (window as any).Telegram?.WebApp;
+    if (tgApp?.openTelegramLink) {
+      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
+      tgApp.openTelegramLink(tgShareUrl);
+      this.showToast(isEn ? '📋 Result copied! Opening Telegram...' : '📋 Результат скопирован! Открываем Telegram...');
+      await this.copyTextToClipboard(`${text}\n${shareUrl}`);
+      return;
+    }
+
+    const shared = await this.tryNativeShare({ title, text, url: shareUrl });
+    if (!shared) {
+      await this.copyTextToClipboard(`${text}\n${shareUrl}`);
+      this.showToast(isEn ? '📋 Result card copied to clipboard!' : '📋 Карточка счёта скопирована в буфер!');
+    }
+  }
+
+  private async shareChallenge() {
+    const isEn = i18n.getLanguage() === 'en';
     const seed = this.game.currentSeed;
     const diff = this.game.difficulty;
     const mode = this.game.mode;
     const score = this.game.score;
     const time = this.game.timerSeconds;
     const tgUser = this.getStoredTelegramUser();
-    const myName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || 'Игрок').replace(/[@_\s]/g, '');
+    const myName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '');
 
     const mins = Math.floor(time / 60);
     const secs = time % 60;
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     const diffLabels: Record<Difficulty, string> = {
-      easy: 'Легкий',
-      medium: 'Средний',
-      hard: 'Сложный',
-      expert: 'Эксперт',
+      easy: isEn ? 'Easy' : 'Легкий',
+      medium: isEn ? 'Medium' : 'Средний',
+      hard: isEn ? 'Hard' : 'Сложный',
+      expert: isEn ? 'Expert' : 'Эксперт',
     };
-    const diffName = diffLabels[diff] || 'Средний';
+    const diffName = diffLabels[diff] || (isEn ? 'Medium' : 'Средний');
 
-    const challengeParam = `c_${seed}_${diff}_${mode}_${score}_${time}_${encodeURIComponent(myName)}`;
-    const miniAppUrl = `https://t.me/sudoku_pulse_auth_bot/app?startapp=${challengeParam}`;
-
-    const text = `⚔️ Бросаю вызов в Sudoku Pulse!
-🎯 Мой рекорд: ${score.toLocaleString('ru-RU')} очков за ${timeStr} на сложности "${diffName}".
-Сможешь побить мой рекорд на той же сетке? 🚀`;
-
-    navigator.clipboard.writeText(`${text}\n${miniAppUrl}`).then(() => {
-      this.showToast('🔗 Ссылка на вызов скопирована! Открываем Telegram...');
-    }).catch(() => {});
-
-    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl)}&text=${encodeURIComponent(text)}`;
+    const challengeCode = `c_${seed}_${diff}_${mode}_${score}_${time}_${encodeURIComponent(myName)}`;
     const tgApp = (window as any).Telegram?.WebApp;
-    if (tgApp?.openTelegramLink) {
-      tgApp.openTelegramLink(tgShareUrl);
+
+    let challengeLink = '';
+    if (tgApp) {
+      challengeLink = `https://t.me/sudoku_pulse_auth_bot/app?startapp=${challengeCode}`;
     } else {
-      window.open(tgShareUrl, '_blank');
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      challengeLink = `${origin}${pathname}?c=${challengeCode}`;
+    }
+
+    const title = isEn ? 'Sudoku Pulse — Friend Challenge!' : '⚔️ Sudoku Pulse — Вызов другу!';
+    const text = isEn
+      ? `⚔️ Challenging you in Sudoku Pulse!\n🎯 My score: ${score.toLocaleString('en-US')} pts in ${timeStr} on "${diffName}".\nCan you beat my record on the exact same grid?\n🔑 Challenge Code: ${challengeCode}`
+      : `⚔️ Бросаю вызов в Sudoku Pulse!\n🎯 Мой рекорд: ${score.toLocaleString('ru-RU')} очков за ${timeStr} на сложности "${diffName}".\nСможешь побить мой рекорд на той же сетке? 🚀\n🔑 Код дуэли: ${challengeCode}`;
+
+    if (tgApp?.openTelegramLink) {
+      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(challengeLink)}&text=${encodeURIComponent(text)}`;
+      tgApp.openTelegramLink(tgShareUrl);
+      this.showToast(isEn ? '🔗 Challenge link copied! Opening Telegram...' : '🔗 Ссылка на вызов скопирована! Открываем Telegram...');
+      await this.copyTextToClipboard(`${text}\n${challengeLink}`);
+      return;
+    }
+
+    const shared = await this.tryNativeShare({ title, text, url: challengeLink });
+    if (!shared) {
+      await this.copyTextToClipboard(`${text}\n${challengeLink}`);
+      this.showToast(isEn ? '⚔️ Challenge code and link copied!' : '⚔️ Код дуэли и ссылка скопированы в буфер!');
     }
   }
 
+  private shareChallengeToTelegram() {
+    this.shareChallenge();
+  }
+
   private shareResultToTelegram() {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const mins = Math.floor(this.game.timerSeconds / 60);
-    const secs = this.game.timerSeconds % 60;
-    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-    const modeLabels: Record<GameMode, string> = {
-      classic: 'Классика',
-      fog: 'Тёмный сектор',
-      daily: 'Daily Pulse',
-      run: `Pulse Run (Этап ${this.game.runStage})`,
-      ai_duel: 'Pulse AI Дуэль',
-    };
-    const diffLabels: Record<Difficulty, string> = {
-      easy: 'Легкий',
-      medium: 'Средний',
-      hard: 'Сложный',
-      expert: 'Эксперт',
-    };
-
-    const modeName = modeLabels[this.game.mode] || 'Классика';
-    const diffName = diffLabels[this.game.difficulty] || 'Средний';
-
-    const text = `⚡ Sudoku Pulse — Победа!
-🎮 Режим: ${modeName} (${diffName})
-⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}
-🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}
-🟩🟩🟩🟨🟩
-Сыграй в ритме Sudoku Pulse:`;
-
-    navigator.clipboard.writeText(`${text}\n${baseUrl}`).then(() => {
-      this.showToast('📋 Результат скопирован! Открываем Telegram...');
-    }).catch(() => {});
-
-    const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(baseUrl)}&text=${encodeURIComponent(text)}`;
-    const tgApp = (window as any).Telegram?.WebApp;
-    if (tgApp?.openTelegramLink) {
-      tgApp.openTelegramLink(tgShareUrl);
-    } else {
-      window.open(tgShareUrl, '_blank');
-    }
+    this.shareScoreCard();
   }
 
   private showGameOverModal() {
@@ -3444,30 +3614,20 @@ export class SudokuUI {
     const lang = i18n.getLanguage();
     const isEn = lang === 'en';
 
-    const skinsReq: Record<string, { minScore: number; leagueName: string; name: string; icon: string }> = {
-      neon: { minScore: 0, leagueName: isEn ? 'Bronze' : 'Бронза', name: 'Cyber', icon: '⚡' },
-      synthwave: { minScore: 5000, leagueName: isEn ? 'Silver' : 'Серебро', name: 'Synth', icon: '🌆' },
-      aqua: { minScore: 15000, leagueName: isEn ? 'Aqua' : 'Аква', name: 'Aqua', icon: '🌊' },
-      matrix: { minScore: 30000, leagueName: isEn ? 'Gold' : 'Золото', name: 'Matrix', icon: '🟢' },
-      crimson: { minScore: 50000, leagueName: isEn ? 'Ruby' : 'Рубин', name: 'Crimson', icon: '🩸' },
-      hologram: { minScore: 75000, leagueName: isEn ? 'Platinum' : 'Платина', name: 'Hologram', icon: '💎' },
-      retro: { minScore: 100000, leagueName: isEn ? 'Diamond' : 'Алмаз', name: 'Retro', icon: '👾' },
-      obsidian: { minScore: 150000, leagueName: isEn ? 'Master' : 'Мастер', name: 'Obsidian', icon: '👑' },
-    };
-
     this.boardSkinPills.forEach((pill) => {
       const skinKey = pill.getAttribute('data-board-skin') || 'neon';
-      const req = skinsReq[skinKey];
+      const req = BOARD_SKINS_CONFIG[skinKey];
       if (!req) return;
 
       const isUnlocked = totalScore >= req.minScore;
       pill.classList.toggle('active', currentSkin === skinKey);
       pill.classList.toggle('locked', !isUnlocked);
 
+      const leagueName = isEn ? req.leagueEn : req.leagueRu;
       if (isUnlocked) {
         pill.textContent = `${req.icon} ${req.name}`;
       } else {
-        pill.textContent = `🔒 ${req.name} (${req.leagueName})`;
+        pill.textContent = `🔒 ${req.name} (${leagueName})`;
       }
     });
   }
