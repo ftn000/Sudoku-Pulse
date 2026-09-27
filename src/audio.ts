@@ -472,6 +472,141 @@ export class SoundManager {
       osc.stop(now + 0.25 + 0.52);
     });
   }
+
+  public playCountdownTick(step: number = 3) {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const freq = step === 1 ? 783.99 : (step === 2 ? 659.25 : 523.25);
+
+    // Pulse Beep
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.05, now + 0.08);
+
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.095);
+
+    // Click transient
+    const click = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    click.type = 'square';
+    click.frequency.setValueAtTime(1400, now);
+    clickGain.gain.setValueAtTime(0.04, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+    click.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    click.start(now);
+    click.stop(now + 0.025);
+  }
+
+  public playCountdownGo() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Sub bass punch
+    const bass = ctx.createOscillator();
+    const bassGain = ctx.createGain();
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(130.81, now); // C3
+    bass.frequency.exponentialRampToValueAtTime(98.0, now + 0.3);
+    bassGain.gain.setValueAtTime(0.14, now);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    bass.connect(bassGain);
+    bassGain.connect(ctx.destination);
+    bass.start(now);
+    bass.stop(now + 0.36);
+
+    // Neon fanfare power triad (C5, G5, C6)
+    [523.25, 783.99, 1046.5].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq * 0.95, now);
+      osc.frequency.exponentialRampToValueAtTime(freq, now + 0.04);
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    });
+  }
+
+  public playDuelWin() {
+    this.stopFeverTrack();
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Fast 6-step ascending triumphant arpeggio
+    const arpeggio = [523.25, 659.25, 783.99, 987.77, 1046.5, 1318.51];
+    arpeggio.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      gain.gain.setValueAtTime(0.07, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.23);
+    });
+
+    // Sustained triumphant cyber chord at the end
+    const chordTime = now + 0.24;
+    [523.25, 659.25, 783.99, 1046.5, 1567.98].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, chordTime);
+      gain.gain.setValueAtTime(0.08, chordTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, chordTime + 0.65);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(chordTime);
+      osc.stop(chordTime + 0.68);
+    });
+  }
+
+  public playDuelLoss() {
+    this.stopFeverTrack();
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Descending dark cyberpunk chords
+    const steps = [
+      { notes: [440.0, 523.25, 659.25], time: 0 },       // Am
+      { notes: [392.0, 466.16, 587.33], time: 0.16 },    // Gm
+      { notes: [293.66, 349.23, 440.0], time: 0.34 },    // Dm (deep fall)
+    ];
+
+    steps.forEach((step) => {
+      step.notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + step.time);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + step.time + 0.28);
+        gain.gain.setValueAtTime(0.06, now + step.time);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + step.time + 0.32);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + step.time);
+        osc.stop(now + step.time + 0.34);
+      });
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

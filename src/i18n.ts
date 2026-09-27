@@ -57,6 +57,13 @@ const RU: TranslationDict = {
   live_cancel_btn: 'Отмена',
   live_starting: 'Приготовьтесь к старту!',
   live_duel_hud_opponent: 'Соперник',
+  live_btn_quick_match: '⚡ Быстрый поиск (Случайный соперник)',
+  live_or_friend: 'или дуэль с другом по коду',
+  live_quick_searching: 'Ищем соперника в сети...',
+  live_quick_searching_desc: 'Автоматическое подключение к первому свободному игроку',
+  live_quick_found: 'Соперник найден! Запуск дуэли...',
+  live_duel_victory: '🏆 ПОБЕДА В ЖИВОЙ ДУЭЛИ 1v1!',
+  live_duel_victory_desc: 'Вы решили судоку быстрее соперника! Чистая победа на скорости.',
 
   // Challenge modal
   challenge_enter_title: 'Код вызова друга',
@@ -194,6 +201,13 @@ const EN: TranslationDict = {
   live_cancel_btn: 'Cancel',
   live_starting: 'Get ready for battle!',
   live_duel_hud_opponent: 'Opponent',
+  live_btn_quick_match: '⚡ Quick Match (Random Duel)',
+  live_or_friend: 'or duel a friend by code',
+  live_quick_searching: 'Searching for online opponent...',
+  live_quick_searching_desc: 'Connecting automatically to the first available player',
+  live_quick_found: 'Opponent found! Starting duel...',
+  live_duel_victory: '🏆 VICTORY IN 1v1 DUEL!',
+  live_duel_victory_desc: 'You solved the puzzle faster than your opponent! Pure speed victory.',
 
   // Challenge modal
   challenge_enter_title: 'Friend Challenge Code',

@@ -725,8 +725,21 @@
         Сразитесь с другом в реальном времени на одинаковой сетке!
       </p>
 
-      <!-- View 1: Main actions (Create / Join tabs) -->
+      <!-- View 1: Main actions (Quick Match / Create / Join tabs) -->
       <div id="live-lobby-view-main">
+        <div style="margin-bottom: 12px;">
+          <button id="btn-live-quick-match" class="btn-primary btn-block" style="padding: 13px; font-size: 0.95rem; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #ff0055); box-shadow: 0 0 16px rgba(0,243,255,0.35); border: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>⚡</span>
+            <span data-i18n="live_btn_quick_match">⚡ Быстрый поиск (Случайный соперник)</span>
+          </button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="flex: 1; height: 1px; background: var(--surface-border);"></div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="live_or_friend">или дуэль с другом по коду</span>
+          <div style="flex: 1; height: 1px; background: var(--surface-border);"></div>
+        </div>
+
         <div style="display: flex; gap: 8px; margin-bottom: 14px;">
           <button id="tab-live-create" class="diff-pill active" style="flex:1; padding:8px 6px; font-size:0.85rem;" data-i18n="live_tab_create">⚡ Создать лобби</button>
           <button id="tab-live-join" class="diff-pill" style="flex:1; padding:8px 6px; font-size:0.85rem;" data-i18n="live_tab_join">🔑 Войти по коду</button>
@@ -763,24 +776,35 @@
 
       <!-- View 2: Room Waiting Screen (Host waiting for guest) -->
       <div id="live-lobby-view-waiting" class="hidden">
-        <div style="background:var(--surface-bg); border:1px solid var(--pulse-cyan); border-radius:12px; padding:14px; text-align:center; margin-bottom:14px;">
-          <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;" data-i18n="live_room_code_label">Код вашей комнаты:</div>
-          <div id="live-waiting-code" style="font-size:2.2rem; font-weight:900; color:var(--pulse-cyan); letter-spacing:6px;">4821</div>
-          <div id="live-waiting-diff" style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;">Сложность: Средний</div>
+        <!-- Box for room code share -->
+        <div id="live-waiting-room-box">
+          <div style="background:var(--surface-bg); border:1px solid var(--pulse-cyan); border-radius:12px; padding:14px; text-align:center; margin-bottom:14px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;" data-i18n="live_room_code_label">Код вашей комнаты:</div>
+            <div id="live-waiting-code" style="font-size:2.2rem; font-weight:900; color:var(--pulse-cyan); letter-spacing:6px;">4821</div>
+            <div id="live-waiting-diff" style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;">Сложность: Средний</div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <button id="btn-copy-live-link" class="btn-secondary" style="flex:1; padding:9px; font-size:0.82rem;" data-i18n="live_copy_link">
+              📋 Скопировать ссылку
+            </button>
+            <button id="btn-share-live-link" class="btn-primary" style="flex:1; padding:9px; font-size:0.82rem;" data-i18n="live_share_link">
+              📤 Поделиться
+            </button>
+          </div>
         </div>
 
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-          <button id="btn-copy-live-link" class="btn-secondary" style="flex:1; padding:9px; font-size:0.82rem;" data-i18n="live_copy_link">
-            📋 Скопировать ссылку
-          </button>
-          <button id="btn-share-live-link" class="btn-primary" style="flex:1; padding:9px; font-size:0.82rem;" data-i18n="live_share_link">
-            📤 Поделиться
-          </button>
+        <!-- Box for quick match searching -->
+        <div id="live-waiting-quick-box" class="hidden" style="background:var(--surface-bg); border:1px solid var(--surface-border); border-radius:12px; padding:18px 14px; text-align:center; margin-bottom:14px;">
+          <div style="font-size:2rem; margin-bottom:8px; animation: pulse 1.5s infinite ease-in-out;">🌐⚡</div>
+          <div style="font-size:1.05rem; font-weight:800; color:var(--pulse-cyan); margin-bottom:4px;" data-i18n="live_quick_searching">Ищем соперника в сети...</div>
+          <div style="font-size:0.8rem; color:var(--text-muted);" data-i18n="live_quick_searching_desc">Автоматическое подключение к первому свободному игроку</div>
+          <div id="live-quick-diff-label" style="font-size:0.82rem; color:var(--accent); font-weight:600; margin-top:8px;">Сложность: Средний</div>
         </div>
 
         <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; color:var(--text-muted); font-size:0.82rem;">
           <div class="tg-spinner" style="width:16px; height:16px; border-width:2px;"></div>
-          <span data-i18n="live_waiting_opponent">Ожидание подключения соперника...</span>
+          <span id="live-waiting-status-label" data-i18n="live_waiting_opponent">Ожидание подключения соперника...</span>
         </div>
 
         <button id="btn-cancel-live-room" class="btn-secondary btn-block" style="margin-top:10px;" data-i18n="live_cancel_btn">

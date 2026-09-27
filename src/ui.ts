@@ -360,6 +360,12 @@ export class SudokuUI {
   private livePollInterval?: any = null;
   private liveOpponentName: string = 'Соперник';
   private isLiveDuelActive: boolean = false;
+  private btnLiveQuickMatch?: HTMLButtonElement;
+  private liveWaitingRoomBox?: HTMLElement;
+  private liveWaitingQuickBox?: HTMLElement;
+  private liveQuickDiffLabel?: HTMLElement;
+  private liveWaitingStatusLabel?: HTMLElement;
+  private isQuickMatchWaiting: boolean = false;
 
   // Tutorial Modal Elements
   private tutorialModal!: HTMLElement;
@@ -679,6 +685,11 @@ export class SudokuUI {
     this.btnCopyLiveLink = (document.getElementById('btn-copy-live-link') as HTMLButtonElement) || undefined;
     this.btnShareLiveLink = (document.getElementById('btn-share-live-link') as HTMLButtonElement) || undefined;
     this.btnCancelLiveRoom = (document.getElementById('btn-cancel-live-room') as HTMLButtonElement) || undefined;
+    this.btnLiveQuickMatch = (document.getElementById('btn-live-quick-match') as HTMLButtonElement) || undefined;
+    this.liveWaitingRoomBox = document.getElementById('live-waiting-room-box') || undefined;
+    this.liveWaitingQuickBox = document.getElementById('live-waiting-quick-box') || undefined;
+    this.liveQuickDiffLabel = document.getElementById('live-quick-diff-label') || undefined;
+    this.liveWaitingStatusLabel = document.getElementById('live-waiting-status-label') || undefined;
     this.liveCountdownNumber = document.getElementById('live-countdown-number') || undefined;
     this.liveCdHostName = document.getElementById('live-cd-host-name') || undefined;
     this.liveCdGuestName = document.getElementById('live-cd-guest-name') || undefined;
@@ -1539,10 +1550,17 @@ export class SudokuUI {
       });
     }
 
+    if (this.btnLiveQuickMatch) {
+      this.btnLiveQuickMatch.addEventListener('click', () => {
+        this.startQuickMatch();
+      });
+    }
+
     if (this.btnCancelLiveRoom) {
       this.btnCancelLiveRoom.addEventListener('click', () => {
         soundManager.playSelect();
         this.stopLiveLobbyPolling();
+        this.isQuickMatchWaiting = false;
         if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.remove('hidden');
         if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
       });
@@ -2269,9 +2287,25 @@ export class SudokuUI {
     }
 
     this.stopAiBotDuel();
+    const isEn = i18n.getLanguage() === 'en';
 
-    // AI Duel Victory Comparison
-    if (stats.mode === 'ai_duel' && this.duelResultBanner) {
+    // 1v1 Live Multiplayer Duel Victory Comparison
+    if (this.isLiveDuelActive && this.duelResultBanner) {
+      this.duelResultBanner.classList.remove('hidden');
+      this.duelResultBanner.className = 'duel-result-banner victory';
+      if (this.duelResultTitle) {
+        this.duelResultTitle.textContent = isEn ? '🏆 VICTORY IN 1v1 DUEL!' : '🏆 ПОБЕДА В ЖИВОЙ ДУЭЛИ 1v1!';
+        this.duelResultTitle.style.color = '#34d399';
+      }
+      if (this.duelResultText) {
+        this.duelResultText.textContent = isEn
+          ? `You solved the puzzle faster than ${this.liveOpponentName}! Pure speed victory.`
+          : `Вы решили судоку быстрее, чем ${this.liveOpponentName}! Чистая победа на скорости.`;
+      }
+      soundManager.playDuelWin();
+      this.stopLiveLobbyPolling();
+      this.isLiveDuelActive = false;
+    } else if (stats.mode === 'ai_duel' && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       const botName = `🤖 ${this.aiBotProgress.name}`;
       const botScore = this.aiBotProgress.score || Math.floor(stats.score * 0.8);
@@ -3840,10 +3874,13 @@ export class SudokuUI {
     this.currentLiveLobbyId = null;
     this.currentLiveLobbyCode = null;
     this.isLiveDuelActive = false;
+    this.isQuickMatchWaiting = false;
 
     if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.remove('hidden');
     if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
     if (this.liveLobbyViewCountdown) this.liveLobbyViewCountdown.classList.add('hidden');
+    if (this.liveWaitingRoomBox) this.liveWaitingRoomBox.classList.remove('hidden');
+    if (this.liveWaitingQuickBox) this.liveWaitingQuickBox.classList.add('hidden');
     if (this.inputLiveCode) this.inputLiveCode.value = '';
 
     this.switchLiveTab('create');
@@ -3861,6 +3898,73 @@ export class SudokuUI {
       this.tabLiveJoin?.classList.add('active');
       this.livePanelCreate?.classList.add('hidden');
       this.livePanelJoin?.classList.remove('hidden');
+    }
+  }
+
+  private async startQuickMatch() {
+    soundManager.playSelect();
+    haptics.light();
+    const isEn = i18n.getLanguage() === 'en';
+    const playerId = SudokuGame.getOrCreatePlayerId();
+    const tgUser = this.getStoredTelegramUser();
+    const playerName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+
+    try {
+      if (this.btnLiveQuickMatch) this.btnLiveQuickMatch.disabled = true;
+
+      const res = await fetch(`${getApiBaseUrl()}/lobby/quick-match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId,
+          playerName,
+          difficulty: this.selectedLiveDiff,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Quick match failed');
+      const data = await res.json();
+
+      this.currentLiveLobbyId = data.lobbyId;
+      this.currentLiveLobbyCode = data.code;
+
+      if (data.matched) {
+        // Instant match found as guest!
+        this.isLiveHost = false;
+        this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
+        this.isQuickMatchWaiting = false;
+        this.showToast(isEn ? `⚡ Opponent found: ${data.hostName}!` : `⚡ Соперник найден: ${data.hostName}!`);
+        this.startLiveCountdown(data.hostName, playerName, data.seed, data.difficulty);
+      } else {
+        // Waiting in queue as host
+        this.isLiveHost = true;
+        this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
+        this.isQuickMatchWaiting = true;
+
+        if (this.liveWaitingRoomBox) this.liveWaitingRoomBox.classList.add('hidden');
+        if (this.liveWaitingQuickBox) this.liveWaitingQuickBox.classList.remove('hidden');
+        if (this.liveWaitingStatusLabel) {
+          this.liveWaitingStatusLabel.textContent = isEn ? 'Searching for random opponent...' : 'Поиск случайного соперника...';
+        }
+        if (this.liveQuickDiffLabel) {
+          const diffLabels: Record<Difficulty, string> = {
+            easy: isEn ? 'Easy' : 'Легкий',
+            medium: isEn ? 'Medium' : 'Средний',
+            hard: isEn ? 'Hard' : 'Сложный',
+            expert: isEn ? 'Expert' : 'Эксперт',
+          };
+          this.liveQuickDiffLabel.textContent = `${isEn ? 'Difficulty' : 'Сложность'}: ${diffLabels[data.difficulty as Difficulty] || data.difficulty}`;
+        }
+
+        if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.add('hidden');
+        if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.remove('hidden');
+
+        this.startLiveLobbyPolling();
+      }
+    } catch {
+      this.showToast(isEn ? '❌ Could not find match. Check connection.' : '❌ Ошибка быстрого поиска. Проверьте соединение.');
+    } finally {
+      if (this.btnLiveQuickMatch) this.btnLiveQuickMatch.disabled = false;
     }
   }
 
@@ -3889,6 +3993,13 @@ export class SudokuUI {
       this.currentLiveLobbyCode = data.code;
       this.isLiveHost = true;
       this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
+      this.isQuickMatchWaiting = false;
+
+      if (this.liveWaitingRoomBox) this.liveWaitingRoomBox.classList.remove('hidden');
+      if (this.liveWaitingQuickBox) this.liveWaitingQuickBox.classList.add('hidden');
+      if (this.liveWaitingStatusLabel) {
+        this.liveWaitingStatusLabel.textContent = isEn ? 'Waiting for opponent to join...' : 'Ожидание подключения соперника...';
+      }
 
       if (this.liveWaitingCode) this.liveWaitingCode.textContent = data.code;
       const diffLabels: Record<Difficulty, string> = {
@@ -4005,18 +4116,19 @@ export class SudokuUI {
 
     let count = 3;
     if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = count.toString();
-    soundManager.playSelect();
+    soundManager.playCountdownTick(3);
     haptics.light();
 
     const cdInterval = setInterval(() => {
       count--;
       if (count > 0) {
         if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = count.toString();
-        soundManager.playSelect();
+        soundManager.playCountdownTick(count);
         haptics.light();
       } else {
         clearInterval(cdInterval);
         if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = 'GO!';
+        soundManager.playCountdownGo();
         haptics.fever();
 
         setTimeout(() => {
@@ -4058,6 +4170,11 @@ export class SudokuUI {
 
         // Host waiting: guest joined -> trigger countdown
         if (this.isLiveHost && lobby.status === 'countdown' && this.liveLobbyViewWaiting && !this.liveLobbyViewWaiting.classList.contains('hidden')) {
+          if (this.isQuickMatchWaiting) {
+            const isEn = i18n.getLanguage() === 'en';
+            this.showToast(isEn ? `⚡ Opponent found: ${lobby.guest?.name || 'Player'}!` : `⚡ Соперник найден: ${lobby.guest?.name || 'Игрок'}!`);
+          }
+          this.isQuickMatchWaiting = false;
           this.liveOpponentName = lobby.guest?.name || 'Соперник';
           this.startLiveCountdown(lobby.host?.name || 'Игрок 1', lobby.guest?.name || 'Игрок 2', lobby.seed, lobby.difficulty);
           return;
@@ -4118,7 +4235,7 @@ export class SudokuUI {
 
   private handleLiveDuelLoss() {
     const isEn = i18n.getLanguage() === 'en';
-    soundManager.playError();
+    soundManager.playDuelLoss();
     haptics.error();
 
     if (this.duelResultTitle) this.duelResultTitle.textContent = isEn ? 'DEFEAT' : 'ПОРАЖЕНИЕ В ДУЭЛИ';

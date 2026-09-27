@@ -358,6 +358,115 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // 1b. Quick Matchmaking (Find open waiting room or create new one)
+    if (pathname.endsWith('/api/lobby/quick-match') && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const playerId = String(payload.playerId || 'p_' + crypto.randomBytes(4).toString('hex'));
+          const playerName = String(payload.playerName || 'Игрок').slice(0, 18);
+          const difficulty = ['easy', 'medium', 'hard', 'expert'].includes(payload.difficulty) ? payload.difficulty : 'medium';
+          const now = Date.now();
+
+          // Search for existing waiting room with alive host (not same player)
+          let targetLobby = null;
+          for (const l of liveLobbies.values()) {
+            if (l.status === 'waiting' && l.host && l.host.id !== playerId && (now - l.host.lastPing < 12000)) {
+              if (!targetLobby || l.difficulty === difficulty) {
+                targetLobby = l;
+                if (l.difficulty === difficulty) break;
+              }
+            }
+          }
+
+          if (targetLobby) {
+            // Join as guest immediately
+            targetLobby.guest = {
+              id: playerId,
+              name: playerName,
+              filled: 0,
+              total: targetLobby.host.total || 45,
+              mistakes: 0,
+              combo: 1,
+              score: 0,
+              finished: false,
+              finishTime: 0,
+              lastPing: now,
+            };
+            targetLobby.status = 'countdown';
+            targetLobby.countdownStartedAt = now;
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              success: true,
+              matched: true,
+              role: 'guest',
+              lobbyId: targetLobby.id,
+              code: targetLobby.code,
+              seed: targetLobby.seed,
+              difficulty: targetLobby.difficulty,
+              hostName: targetLobby.host.name,
+              guestName: playerName,
+            }));
+            return;
+          }
+
+          // No open waiting room: create a new waiting room
+          const seed = Math.floor(100000 + Math.random() * 900000);
+          const code = generateLobbyCode();
+          const lobbyId = 'lob_' + crypto.randomBytes(6).toString('hex');
+
+          const lobby = {
+            id: lobbyId,
+            code,
+            seed,
+            difficulty,
+            createdAt: now,
+            status: 'waiting',
+            isQuickMatch: true,
+            countdownStartedAt: null,
+            startedAt: null,
+            finishedAt: null,
+            winner: null,
+            abandonedBy: null,
+            host: {
+              id: playerId,
+              name: playerName,
+              filled: 0,
+              total: 45,
+              mistakes: 0,
+              combo: 1,
+              score: 0,
+              finished: false,
+              finishTime: 0,
+              lastPing: now,
+            },
+            guest: null,
+          };
+
+          liveLobbies.set(lobbyId, lobby);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            success: true,
+            matched: false,
+            role: 'host',
+            lobbyId,
+            code,
+            seed,
+            difficulty,
+            hostName: playerName,
+          }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
+      });
+      return;
+    }
+
     // 2. Join Lobby by Code or ID
     if (pathname.endsWith('/api/lobby/join') && req.method === 'POST') {
       let body = '';
