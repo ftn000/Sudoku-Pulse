@@ -1059,7 +1059,7 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     const content = fs.readFileSync(filePath);
-    const isNoCache = ext === '.html' || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json');
+    const isNoCache = ext === '.html' || ext === '.apk' || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json');
     const headers = {
       'Content-Type': contentType,
       'Cache-Control': isNoCache ? 'no-store, no-cache, must-revalidate, max-age=0' : 'public, max-age=604800',
@@ -1136,7 +1136,7 @@ async function startTelegramBot() {
     await tgApi('setMyCommands', {
       commands: [
         { command: 'play', description: '⚡ Запустить игру в Telegram Mini App' },
-        { command: 'apk', description: '📱 Скачать оффлайн Android APK (4.6 MB)' },
+        { command: 'apk', description: '📱 Скачать оффлайн Android APK' },
         { command: 'stats', description: '📊 Рекорды и статистика профиля' },
         { command: 'notify', description: '🔔 Вкл/выкл утренние напоминания Daily Pulse' },
         { command: 'help', description: 'ℹ️ Правила и команды игры' },
@@ -1301,10 +1301,11 @@ async function handleTelegramUpdate(update) {
     return;
   }
 
-  if (text === '/apk' || text === 'скачать' || text === 'apk' || text === 'апк' || text === '📱 Скачать APK') {
+  const isApkRequest = /apk|апк|билд|билда|скачать|установить|build|android|приложение/i.test(text);
+  if (text === '/apk' || isApkRequest) {
     await tgApi('sendMessage', {
       chat_id: chatId,
-      text: `📱 <b>Android APK (Офлайн-приложение)</b>\n\nВы можете скачать и установить игру прямо на свой Android-смартфон!\n\n✨ <b>Преимущества APK:</b>\n• Работает на 100% без интернета в любой точке мира\n• Полноэкранный режим без элементов браузера\n• Сохранение всего прогресса, уровней и рекордов на устройстве\n• Размер: ~13 МБ\n\nНажмите кнопку ниже для загрузки установочного файла:`,
+      text: `📱 <b>Установка Sudoku Pulse на Android (APK)</b>\n\nСвежая версия игры готова к загрузке!\n\n✨ <b>Преимущества приложения:</b>\n• Работает на 100% без интернета в любой точке мира\n• Мгновенный запуск и сверхплавный игровой процесс\n• Полноэкранный режим без элементов браузера\n• Сохранение всех рекордов, трофеев и скинов оффлайн\n\n📋 <b>Инструкция по установке:</b>\n1️⃣ Нажмите кнопку <b>«📥 Скачать SudokuPulse.apk»</b> ниже.\n2️⃣ Если браузер или Telegram покажет предупреждение <i>«Файл может быть опасным»</i>, нажмите <b>«Всё равно скачать»</b> (стандартное уведомление системы для APK вне Google Play).\n3️⃣ Откройте загруженный файл в панели уведомлений или папке «Загрузки».\n4️⃣ Нажмите <b>«Установить»</b> (при необходимости разрешите установку приложений из этого источника в настройках Android).\n5️⃣ Запустите игру и наслаждайтесь!\n\n<i>Прямая ссылка на актуальный файл:</i>`,
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [

@@ -61,11 +61,12 @@ export interface LeagueInfo {
 }
 
 export function getLeagueForScore(totalScore: number): LeagueInfo {
-  if (totalScore >= 150000) return { id: 'grandmaster', name: 'Кибер-Мастер', icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
-  if (totalScore >= 75000) return { id: 'platinum', name: 'Платиновая', icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
-  if (totalScore >= 30000) return { id: 'gold', name: 'Золотая', icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
-  if (totalScore >= 10000) return { id: 'silver', name: 'Серебряная', icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
-  return { id: 'bronze', name: 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
+  const isEn = i18n.getLanguage() === 'en';
+  if (totalScore >= 150000) return { id: 'grandmaster', name: isEn ? 'Cyber Master' : 'Кибер-Мастер', icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
+  if (totalScore >= 75000) return { id: 'platinum', name: isEn ? 'Platinum' : 'Платиновая', icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
+  if (totalScore >= 30000) return { id: 'gold', name: isEn ? 'Gold' : 'Золотая', icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
+  if (totalScore >= 10000) return { id: 'silver', name: isEn ? 'Silver' : 'Серебряная', icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
+  return { id: 'bronze', name: isEn ? 'Bronze' : 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
 export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; nameRu: string; nameEn: string; icon: string }> = {
@@ -88,7 +89,8 @@ export function getSeasonRemainingText(): string {
   const diffHoursTotal = Math.floor(diffMs / (1000 * 3600));
   const days = Math.floor(diffHoursTotal / 24);
   const hours = diffHoursTotal % 24;
-  return `${days} дн. ${hours} ч.`;
+  const isEn = i18n.getLanguage() === 'en';
+  return isEn ? `${days}d ${hours}h` : `${days} дн. ${hours} ч.`;
 }
 
 export interface SeasonTrophy {
@@ -443,14 +445,18 @@ export class SudokuUI {
         soundManager.playAchievement();
         haptics.achievement();
         this.updateDailyInfoOnMenu();
+        const isEn = i18n.getLanguage() === 'en';
+        const achTr = ACHIEVEMENT_TRANSLATIONS[ach.id]?.[i18n.getLanguage()];
+        const title = achTr?.title || ach.title;
         setTimeout(() => {
-          this.showToast(`🏅 Открыто достижение: ${ach.icon} ${ach.title}!`);
+          this.showToast(isEn ? `🏅 Achievement unlocked: ${ach.icon} ${title}!` : `🏅 Открыто достижение: ${ach.icon} ${title}!`);
         }, 450);
       },
       onSurgeCaptured: (bonusScore: number) => {
         soundManager.playLineChord(2, ['row', 'col']);
         haptics.fever();
-        this.showToast(`⚡ Вспышка перехвачена! +${bonusScore} очков и +45% пульса`);
+        const isEn = i18n.getLanguage() === 'en';
+        this.showToast(isEn ? `⚡ Surge intercepted! +${bonusScore} pts & +45% pulse` : `⚡ Вспышка перехвачена! +${bonusScore} очков и +45% пульса`);
       },
       onSoundTrigger: (sound) => {
         if (sound === 'select') {
@@ -804,9 +810,14 @@ export class SudokuUI {
       this.updateBoardSkinButtons();
       this.updateDailyInfoOnMenu();
       this.updateTgMenuPill();
+      this.updateLeagueViews();
       this.updateYandexSettingsBox();
       this.updateSoundButtons(soundManager.isSoundEnabled());
       this.updateThemeButtons(document.documentElement.getAttribute('data-theme') || 'dark');
+      this.renderTutorialStep();
+      this.renderDuelHistory();
+      this.renderSeasonArchive();
+      this.renderPlayerSeasonMedals();
     });
 
     // Background cloud sync on start
@@ -858,7 +869,8 @@ export class SudokuUI {
         haptics.light();
         if (this.game.loadFromStorage()) {
           this.showScreen('game');
-          this.showToast('▶️ Игра успешно восстановлена!');
+          const isEn = i18n.getLanguage() === 'en';
+          this.showToast(isEn ? '▶️ Game restored successfully!' : '▶️ Игра успешно восстановлена!');
         }
       });
     }
@@ -1245,7 +1257,7 @@ export class SudokuUI {
         haptics.light();
         const val = (this.tgManualInput?.value || '').trim();
         if (!val) {
-          this.showToast('⚠️ Введите @username, Telegram ID или ключ');
+          this.showToast(i18n.getLanguage() === 'en' ? '⚠️ Enter @username, Telegram ID or sync key' : '⚠️ Введите @username, Telegram ID или ключ');
           return;
         }
         await this.importSyncKey(val);
@@ -1375,9 +1387,10 @@ export class SudokuUI {
           this.showToast(explanation);
         }
       } else {
-        this.showMockAd('🎁 Награда: +1 Подсказка', () => {
+        const isEn = i18n.getLanguage() === 'en';
+        this.showMockAd(isEn ? '🎁 Reward: +1 Hint' : '🎁 Награда: +1 Подсказка', () => {
           this.game.addBonusHint();
-          this.showToast('🎉 Получена дополнительная подсказка!');
+          this.showToast(isEn ? '🎉 Extra hint granted!' : '🎉 Получена дополнительная подсказка!');
         });
       }
     });
@@ -1403,10 +1416,11 @@ export class SudokuUI {
           this.game.togglePinNumber(num);
           soundManager.playSelect();
           haptics.fever();
+          const isEn = i18n.getLanguage() === 'en';
           if (this.game.pinnedNumber === num) {
-            this.showToast(`📌 Цифра ${num} зафиксирована для быстрого ввода!`);
+            this.showToast(isEn ? `📌 Number ${num} pinned for quick entry!` : `📌 Цифра ${num} зафиксирована для быстрого ввода!`);
           } else {
-            this.showToast(`📌 Фиксация снята`);
+            this.showToast(isEn ? '📌 Pin removed' : '📌 Фиксация снята');
           }
         }, 380);
       };
@@ -1638,11 +1652,12 @@ export class SudokuUI {
     if (this.btnSyncCopyKey) {
       this.btnSyncCopyKey.addEventListener('click', () => {
         soundManager.playSelect();
+        const isEn = i18n.getLanguage() === 'en';
         const key = this.getSyncKey();
         navigator.clipboard.writeText(key).then(() => {
-          this.showToast(`📋 Ключ скопирован в буфер: ${key}`);
+          this.showToast(isEn ? `📋 Key copied to clipboard: ${key}` : `📋 Ключ скопирован в буфер: ${key}`);
         }).catch(() => {
-          this.showToast(`Ключ: ${key}`);
+          this.showToast(isEn ? `Key: ${key}` : `Ключ: ${key}`);
         });
       });
     }
@@ -1659,10 +1674,11 @@ export class SudokuUI {
         localStorage.setItem('sudoku_notifications_enabled', this.notificationsEnabled.toString());
         this.updateNotifyButton(this.notificationsEnabled);
         this.syncWithCloud(false);
+        const isEn = i18n.getLanguage() === 'en';
         if (this.notificationsEnabled) {
-          this.showToast('🔔 Утренние напоминания Daily Pulse в Telegram включены');
+          this.showToast(isEn ? '🔔 Daily Pulse morning reminders enabled in Telegram' : '🔔 Утренние напоминания Daily Pulse в Telegram включены');
         } else {
-          this.showToast('🔕 Напоминания в Telegram отключены');
+          this.showToast(isEn ? '🔕 Telegram reminders disabled' : '🔕 Напоминания в Telegram отключены');
         }
       });
     }
@@ -1681,7 +1697,8 @@ export class SudokuUI {
             seed: this.activeChallenge.seed,
           });
           this.showScreen('game');
-          this.showToast(`⚔️ Дуэль с ${this.activeChallenge.challenger} началась! Побивайте рекорд!`);
+          const isEn = i18n.getLanguage() === 'en';
+          this.showToast(isEn ? `⚔️ Duel vs ${this.activeChallenge.challenger} started! Beat their record!` : `⚔️ Дуэль с ${this.activeChallenge.challenger} началась! Побивайте рекорд!`);
         }
       });
     }
@@ -1701,7 +1718,8 @@ export class SudokuUI {
         soundManager.playSelect();
         const key = (this.syncKeyInput?.value || '').trim();
         if (!key) {
-          this.showToast('⚠️ Введите ключ синхронизации');
+          const isEn = i18n.getLanguage() === 'en';
+          this.showToast(isEn ? '⚠️ Please enter sync key' : '⚠️ Введите ключ синхронизации');
           return;
         }
         await this.importSyncKey(key);
@@ -1719,7 +1737,8 @@ export class SudokuUI {
       const name = this.playerNameInput.value.trim() || 'CyberPlayer';
       this.playerNameInput.value = name;
       localStorage.setItem('sudoku_player_name', name);
-      this.showToast(`✅ Никнейм сохранён: ${name}`);
+      const isEn = i18n.getLanguage() === 'en';
+      this.showToast(isEn ? `✅ Nickname saved: ${name}` : `✅ Никнейм сохранён: ${name}`);
       try {
         const playerId = SudokuGame.getOrCreatePlayerId();
         const apiBase = `${getApiBaseUrl()}/leaderboard`;
@@ -1735,10 +1754,11 @@ export class SudokuUI {
     // Game Over buttons
     this.secondChanceBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
-      this.showMockAd('❤️ Второй шанс: +1 Жизнь', () => {
+      const isEn = i18n.getLanguage() === 'en';
+      this.showMockAd(isEn ? '❤️ Second Chance: +1 Life' : '❤️ Второй шанс: +1 Жизнь', () => {
         soundManager.stopFeverTrack();
         this.game.reviveSecondChance();
-        this.showToast('❤️ Вы получили второй шанс!');
+        this.showToast(isEn ? '❤️ Second chance granted!' : '❤️ Вы получили второй шанс!');
       });
     });
 
@@ -2082,13 +2102,14 @@ export class SudokuUI {
   }
 
   private renderHeaderAndStatus() {
+    const isEn = i18n.getLanguage() === 'en';
     // Mode badge
     const modeNames: Record<GameMode, string> = {
-      classic: '⚡ Классика',
-      fog: '🌌 Тёмный сектор',
+      classic: isEn ? '⚡ Classic' : '⚡ Классика',
+      fog: isEn ? '🌌 Dark Sector' : '🌌 Тёмный сектор',
       daily: '📅 Daily Pulse',
-      run: `🚀 Забег (Этап ${this.game.runStage})`,
-      ai_duel: '🤖 AI Дуэль',
+      run: isEn ? `🚀 Run (Stage ${this.game.runStage})` : `🚀 Забег (Этап ${this.game.runStage})`,
+      ai_duel: isEn ? '🤖 AI Duel' : '🤖 AI Дуэль',
     };
     this.gameModeBadge.textContent = modeNames[this.game.mode];
 
@@ -2097,7 +2118,9 @@ export class SudokuUI {
       if (this.game.activePerks.length === 1) {
         const perk = this.game.activePerks[0];
         const lvlStr = (perk.level && perk.level > 1) ? ` ${formatRomanLevel(perk.level)}` : '';
-        this.gamePerkBadge.textContent = `${perk.icon} ${perk.name}${lvlStr}`;
+        const perkTr = PERK_TRANSLATIONS[perk.id]?.[isEn ? 'en' : 'ru'];
+        const pName = perkTr?.name || perk.name;
+        this.gamePerkBadge.textContent = `${perk.icon} ${pName}${lvlStr}`;
       } else {
         const icons = this.game.activePerks.map((p) => {
           const lvl = p.level && p.level > 1 ? formatRomanLevel(p.level) : '';
@@ -2107,7 +2130,10 @@ export class SudokuUI {
       }
       this.gamePerkBadge.title = this.game.activePerks.map((p) => {
         const lvlStr = (p.level && p.level > 1) ? ` (${formatRomanLevel(p.level)})` : '';
-        return `${p.icon} ${p.name}${lvlStr}: ${p.description}`;
+        const perkTr = PERK_TRANSLATIONS[p.id]?.[isEn ? 'en' : 'ru'];
+        const pName = perkTr?.name || p.name;
+        const pDesc = perkTr?.desc || p.description;
+        return `${p.icon} ${pName}${lvlStr}: ${pDesc}`;
       }).join('\n');
       this.gamePerkBadge.classList.remove('hidden');
     } else {
@@ -2115,7 +2141,7 @@ export class SudokuUI {
     }
 
     // Score
-    this.scoreCounter.textContent = this.game.score.toLocaleString('ru-RU');
+    this.scoreCounter.textContent = this.game.score.toLocaleString(isEn ? 'en-US' : 'ru-RU');
 
     // Timer
     const mins = Math.floor(this.game.timerSeconds / 60);
@@ -2138,12 +2164,13 @@ export class SudokuUI {
 
   private renderPulseBar() {
     this.pulseFill.style.width = `${this.game.pulseEnergy}%`;
+    const isEn = i18n.getLanguage() === 'en';
 
     if (this.game.isFeverMode && this.game.status === 'playing') {
       this.comboBadge.textContent = `🔥 FEVER OVERDRIVE! 10x`;
       this.comboBadge.className = 'combo-badge fever';
       this.pulseFill.classList.add('fever');
-      this.pulseStatusText.textContent = `Осталось: ${this.game.feverSecondsLeft} сек!`;
+      this.pulseStatusText.textContent = isEn ? `Remaining: ${this.game.feverSecondsLeft}s!` : `Осталось: ${this.game.feverSecondsLeft} сек!`;
     } else {
       soundManager.stopFeverTrack();
       this.comboBadge.className = 'combo-badge';
@@ -2151,12 +2178,12 @@ export class SudokuUI {
 
       if (this.game.comboCount >= 2) {
         this.comboBadge.textContent = `🔥 x${this.game.comboMultiplier.toFixed(1)} COMBO (${this.game.comboCount})`;
-        this.pulseStatusText.textContent = `Удерживайте комбо-ритм!`;
+        this.pulseStatusText.textContent = isEn ? 'Hold the combo rhythm!' : 'Удерживайте комбо-ритм!';
       } else {
         this.comboBadge.textContent = `⚡ PULSE x${this.game.comboMultiplier.toFixed(1)}`;
         this.pulseStatusText.textContent = this.game.comboMultiplier > 1.0
-          ? `Ускоритель активен: множитель x${this.game.comboMultiplier.toFixed(1)}!`
-          : `Решайте быстро для комбо!`;
+          ? (isEn ? `Booster active: multiplier x${this.game.comboMultiplier.toFixed(1)}!` : `Ускоритель активен: множитель x${this.game.comboMultiplier.toFixed(1)}!`)
+          : (isEn ? 'Solve fast for combo!' : 'Решайте быстро для комбо!');
       }
     }
   }
@@ -2326,34 +2353,35 @@ export class SudokuUI {
   }
 
   private showWinModal(stats: GameStats) {
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
     const mins = Math.floor(stats.timeSeconds / 60);
     const secs = stats.timeSeconds % 60;
     this.modalTime.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    this.modalScore.textContent = stats.score.toLocaleString('ru-RU');
+    this.modalScore.textContent = stats.score.toLocaleString(locale);
     this.modalCombo.textContent = `x${stats.maxCombo}`;
     this.modalMistakes.textContent = `${stats.mistakes}/${this.game.maxMistakes}`;
 
     const modeLabels: Record<GameMode, string> = {
-      classic: 'Классический',
-      fog: 'Тёмный сектор',
+      classic: isEn ? 'Classic' : 'Классический',
+      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
       daily: 'Daily Pulse',
-      run: `Pulse Run (Этап ${this.game.runStage})`,
-      ai_duel: 'Pulse AI Дуэль',
+      run: isEn ? `Pulse Run (Stage ${this.game.runStage})` : `Pulse Run (Этап ${this.game.runStage})`,
+      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
     };
     this.modalMode.textContent = modeLabels[stats.mode];
 
     const diffLabels: Record<Difficulty, string> = {
-      easy: 'Легкий',
-      medium: 'Средний',
-      hard: 'Сложный',
-      expert: 'Эксперт',
+      easy: isEn ? 'Easy' : 'Легкий',
+      medium: isEn ? 'Medium' : 'Средний',
+      hard: isEn ? 'Hard' : 'Сложный',
+      expert: isEn ? 'Expert' : 'Эксперт',
     };
     if (this.modalDiff) {
-      this.modalDiff.textContent = diffLabels[stats.difficulty] || 'Средний';
+      this.modalDiff.textContent = diffLabels[stats.difficulty] || (isEn ? 'Medium' : 'Средний');
     }
 
     this.stopAiBotDuel();
-    const isEn = i18n.getLanguage() === 'en';
 
     const rematchContainer = document.getElementById('duel-rematch-container');
     if (rematchContainer) rematchContainer.classList.add('hidden');
@@ -2387,7 +2415,7 @@ export class SudokuUI {
       const botScore = this.aiBotProgress.score || Math.floor(stats.score * 0.8);
       const duelRecord: DuelRecord = {
         id: 'duel_' + Date.now(),
-        date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        date: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
         challenger: botName,
         won: true,
         myScore: stats.score,
@@ -2400,12 +2428,14 @@ export class SudokuUI {
       this.addDuelRecord(duelRecord);
 
       if (this.duelResultTitle) {
-        this.duelResultTitle.textContent = '🎉 ВЫ ПОБЕДИЛИ В ИИ-ДУЭЛИ!';
+        this.duelResultTitle.textContent = isEn ? '🎉 YOU WON THE AI DUEL!' : '🎉 ВЫ ПОБЕДИЛИ В ИИ-ДУЭЛИ!';
         this.duelResultTitle.style.color = '#34d399';
       }
       if (this.duelResultText) {
         const scoreDiff = stats.score - botScore;
-        this.duelResultText.textContent = `Вы опередили ${botName} и решили сетку быстрее! Преимущество: +${Math.max(0, scoreDiff).toLocaleString('ru-RU')} очков.`;
+        this.duelResultText.textContent = isEn
+          ? `You outpaced ${botName} and solved the grid faster! Advantage: +${Math.max(0, scoreDiff).toLocaleString(locale)} pts.`
+          : `Вы опередили ${botName} и решили сетку быстрее! Преимущество: +${Math.max(0, scoreDiff).toLocaleString(locale)} очков.`;
       }
     } else if (this.activeChallenge && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
@@ -2416,7 +2446,7 @@ export class SudokuUI {
 
       const duelRecord: DuelRecord = {
         id: 'duel_' + Date.now(),
-        date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        date: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
         challenger,
         won: wonDuel,
         myScore: stats.score,
@@ -2430,20 +2460,24 @@ export class SudokuUI {
 
       if (wonDuel) {
         if (this.duelResultTitle) {
-          this.duelResultTitle.textContent = '🎉 ВЫ ПОБЕДИЛИ В ДУЭЛИ!';
+          this.duelResultTitle.textContent = isEn ? '🎉 YOU WON THE DUEL!' : '🎉 ВЫ ПОБЕДИЛИ В ДУЭЛИ!';
           this.duelResultTitle.style.color = '#34d399';
         }
         if (this.duelResultText) {
           const scoreDiff = stats.score - targetScore;
-          this.duelResultText.textContent = `Ваш результат (${stats.score.toLocaleString('ru-RU')}) превзошёл рекорд ${challenger} (+${scoreDiff.toLocaleString('ru-RU')} очков)!`;
+          this.duelResultText.textContent = isEn
+            ? `Your score (${stats.score.toLocaleString(locale)}) beat ${challenger}'s record (+${scoreDiff.toLocaleString(locale)} pts)!`
+            : `Ваш результат (${stats.score.toLocaleString(locale)}) превзошёл рекорд ${challenger} (+${scoreDiff.toLocaleString(locale)} очков)!`;
         }
       } else {
         if (this.duelResultTitle) {
-          this.duelResultTitle.textContent = '⚔️ Дуэль завершена';
+          this.duelResultTitle.textContent = isEn ? '⚔️ Duel Finished' : '⚔️ Дуэль завершена';
           this.duelResultTitle.style.color = '#f59e0b';
         }
         if (this.duelResultText) {
-          this.duelResultText.textContent = `Рекорд ${challenger}: ${targetScore.toLocaleString('ru-RU')} очков. Попробуйте еще раз!`;
+          this.duelResultText.textContent = isEn
+            ? `${challenger}'s record: ${targetScore.toLocaleString(locale)} pts. Try again!`
+            : `Рекорд ${challenger}: ${targetScore.toLocaleString(locale)} очков. Попробуйте еще раз!`;
         }
       }
     } else if (this.duelResultBanner) {
@@ -2453,8 +2487,10 @@ export class SudokuUI {
     if (stats.mode === 'run') {
       const nextStage = this.game.runStage + 1;
       const stageBonus = 1500 * this.game.runStage;
-      this.modalWinTitle.textContent = `🚀 Этап ${this.game.runStage} пройден!`;
-      this.modalSubtitle.textContent = `Бонус за этап: +${stageBonus.toLocaleString('ru-RU')} очков! Выберите новый перк:`;
+      this.modalWinTitle.textContent = isEn ? `🚀 Stage ${this.game.runStage} Complete!` : `🚀 Этап ${this.game.runStage} пройден!`;
+      this.modalSubtitle.textContent = isEn
+        ? `Stage bonus: +${stageBonus.toLocaleString(locale)} pts! Select a new perk:`
+        : `Бонус за этап: +${stageBonus.toLocaleString(locale)} очков! Выберите новый перк:`;
       this.nextStageNum.textContent = nextStage.toString();
       this.runStageUpgrade.classList.remove('hidden');
       this.playAgainBtn.classList.add('hidden');
@@ -2466,11 +2502,14 @@ export class SudokuUI {
         card.className = 'perk-card';
         card.style.padding = '10px 12px';
         const lvlStr = (perk.level && perk.level > 1) ? ` (${formatRomanLevel(perk.level)})` : '';
+        const perkTr = PERK_TRANSLATIONS[perk.id]?.[isEn ? 'en' : 'ru'];
+        const pName = perkTr?.name || perk.name;
+        const pDesc = perkTr?.desc || perk.description;
         card.innerHTML = `
           <div class="perk-icon-lg" style="font-size:1.5rem;">${perk.icon}</div>
           <div class="perk-info">
-            <div class="perk-title" style="font-size:0.95rem;">${perk.name}${lvlStr}</div>
-            <div class="perk-desc" style="font-size:0.8rem;">${perk.description}</div>
+            <div class="perk-title" style="font-size:0.95rem;">${pName}${lvlStr}</div>
+            <div class="perk-desc" style="font-size:0.8rem;">${pDesc}</div>
           </div>
         `;
         card.addEventListener('click', () => {
@@ -2478,13 +2517,13 @@ export class SudokuUI {
           this.stopConfetti();
           soundManager.playCorrect(3);
           this.game.advanceRunStage(perk);
-          this.showToast(`🚀 Этап ${this.game.runStage}: ${this.game.getRunModifierDescription()}`);
+          this.showToast(isEn ? `🚀 Stage ${this.game.runStage}: ${this.game.getRunModifierDescription()}` : `🚀 Этап ${this.game.runStage}: ${this.game.getRunModifierDescription()}`);
         });
         this.runPerksDraft.appendChild(card);
       });
     } else {
-      this.modalWinTitle.textContent = 'Победа!';
-      this.modalSubtitle.textContent = 'Головоломка успешно решена!';
+      this.modalWinTitle.textContent = isEn ? 'Victory!' : 'Победа!';
+      this.modalSubtitle.textContent = isEn ? 'Puzzle solved successfully!' : 'Головоломка успешно решена!';
       this.runStageUpgrade.classList.add('hidden');
       this.playAgainBtn.classList.remove('hidden');
     }
@@ -2693,7 +2732,8 @@ export class SudokuUI {
 
   private async fetchAndRenderLeaderboard() {
     if (!this.leaderboardList) return;
-    this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Загрузка онлайн-рекордов...</div>`;
+    const isEn = i18n.getLanguage() === 'en';
+    this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Loading server leaderboards...' : 'Загрузка онлайн-рекордов...'}</div>`;
 
     if (yandexBridge.isYandex()) {
       try {
@@ -2704,7 +2744,7 @@ export class SudokuUI {
             id: 'y_' + e.rank,
             name: e.name,
             score: e.score,
-            date: new Date().toLocaleDateString('ru-RU'),
+            date: new Date().toLocaleDateString(isEn ? 'en-US' : 'ru-RU'),
             mode: 'classic' as GameMode,
             playerId: e.isUser ? myPlayerId : undefined,
           }));
@@ -2727,12 +2767,13 @@ export class SudokuUI {
       this.currentSeasonId = data.seasonId || data.currentSeason || '';
       this.renderLeaderboardList();
     } catch {
-      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Онлайн-сервер недоступен (офлайн-режим)</div>`;
+      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Server unreachable (offline mode)' : 'Онлайн-сервер недоступен (офлайн-режим)'}</div>`;
     }
   }
 
   private renderLeaderboardList() {
     if (!this.leaderboardList) return;
+    const isEn = i18n.getLanguage() === 'en';
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
     let entries = this.cachedLeaderboardEntries;
 
@@ -2743,22 +2784,22 @@ export class SudokuUI {
     let seasonHeader = '';
     if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
       const parts = this.currentSeasonId.split('-W');
-      const weekLabel = parts.length === 2 ? `Неделя ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
+      const weekLabel = parts.length === 2 ? (isEn ? `Week ${parts[1]}, ${parts[0]}` : `Неделя ${parts[1]}, ${parts[0]}`) : this.currentSeasonId;
       seasonHeader = `
         <div style="font-size:0.75rem; color:var(--accent); font-weight:600; text-align:center; margin-bottom:8px; padding:4px 8px; background:rgba(99,102,241,0.12); border-radius:6px; border:1px solid rgba(99,102,241,0.25);">
-          ⏳ Текущий сезон: ${weekLabel}
+          ⏳ ${isEn ? 'Active season:' : 'Текущий сезон:'} ${weekLabel}
         </div>
       `;
     }
 
     if (entries.length === 0) {
-      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">Пока нет записей в этом режиме.</div>`;
+      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'No records in this category yet.' : 'Пока нет записей в этом режиме.'}</div>`;
       return;
     }
 
     this.leaderboardList.innerHTML = seasonHeader + entries.slice(0, 15).map((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-      const badge = item.mode === 'run' ? `🚀 Эт.${item.runStage || 1}` : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? '🌌 Сектор' : item.mode === 'ai_duel' ? '🤖 Дуэль' : '⚡ Классика';
+      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
       const isMe = item.playerId && item.playerId === myPlayerId;
       const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
       const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
@@ -2767,11 +2808,11 @@ export class SudokuUI {
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-weight:700; min-width:24px;">${medal}</span>
-            <span title="Лига: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>' : ''}</span>
+            <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? (isEn ? ' <span style="color:var(--accent); font-size:0.75rem;">(You)</span>' : ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>') : ''}</span>
             <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
           </div>
-          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString('ru-RU')}</span>
+          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString(isEn ? 'en-US' : 'ru-RU')}</span>
         </div>
       `;
     }).join('');
@@ -2841,16 +2882,17 @@ export class SudokuUI {
 
   private updateTgMenuPill() {
     if (!this.btnMenuTgAuth || !this.menuTgAuthLabel) return;
+    const isEn = i18n.getLanguage() === 'en';
 
     if (yandexBridge.isYandex()) {
       const yName = yandexBridge.getPlayerName();
       if (yName) {
-        this.menuTgAuthLabel.textContent = `Яндекс: ${yName}`;
+        this.menuTgAuthLabel.textContent = isEn ? `Yandex: ${yName}` : `Яндекс: ${yName}`;
         this.btnMenuTgAuth.style.borderColor = '#fc3f1d';
         this.btnMenuTgAuth.style.color = '#ff6b4a';
         this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.15)';
       } else {
-        this.menuTgAuthLabel.textContent = 'Войти в Яндекс';
+        this.menuTgAuthLabel.textContent = isEn ? 'Login with Yandex' : 'Войти в Яндекс';
         this.btnMenuTgAuth.style.borderColor = 'rgba(252, 63, 29, 0.4)';
         this.btnMenuTgAuth.style.color = '#ff6b4a';
         this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.12)';
@@ -2866,7 +2908,7 @@ export class SudokuUI {
       this.btnMenuTgAuth.style.color = '#34d399';
       this.btnMenuTgAuth.style.background = 'rgba(52, 211, 153, 0.12)';
     } else {
-      this.menuTgAuthLabel.textContent = 'Войти через Telegram';
+      this.menuTgAuthLabel.textContent = isEn ? 'Login with Telegram' : 'Войти через Telegram';
       this.btnMenuTgAuth.style.borderColor = 'rgba(14, 165, 233, 0.3)';
       this.btnMenuTgAuth.style.color = '#38bdf8';
       this.btnMenuTgAuth.style.background = 'rgba(14, 165, 233, 0.12)';
@@ -2896,10 +2938,11 @@ export class SudokuUI {
 
   private updateTgAuthModalView() {
     const tgUser = this.getStoredTelegramUser();
+    const isEn = i18n.getLanguage() === 'en';
     if (tgUser) {
       this.tgAuthActiveView.classList.remove('hidden');
       this.tgAuthLoginView.classList.add('hidden');
-      this.tgAuthUserName.textContent = tgUser.first_name || (tgUser.username ? `@${tgUser.username}` : 'Игрок');
+      this.tgAuthUserName.textContent = tgUser.first_name || (tgUser.username ? `@${tgUser.username}` : (isEn ? 'Player' : 'Игрок'));
       this.tgAuthUserHandle.textContent = tgUser.username ? `@${tgUser.username}` : `Telegram ID: ${tgUser.id}`;
       if (tgUser.photo_url) {
         this.tgAuthUserAvatar.innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar" />`;
@@ -2915,9 +2958,10 @@ export class SudokuUI {
 
   private async initTgAuthSession() {
     this.stopTgAuthPolling();
+    const isEn = i18n.getLanguage() === 'en';
     if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'flex';
     if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'none';
-    if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Ожидание подтверждения в Telegram...';
+    if (this.tgPollStatusText) this.tgPollStatusText.textContent = isEn ? 'Waiting for confirmation in Telegram...' : 'Ожидание подтверждения в Telegram...';
 
     const fallbackBotUrl = 'https://t.me/sudoku_pulse_auth_bot';
     if (this.btnTgOpenBotLink) {
@@ -2946,7 +2990,7 @@ export class SudokuUI {
         this.startTgAuthPolling(data.token);
       }
     } catch {
-      if (this.tgPollStatusText) this.tgPollStatusText.textContent = 'Офлайн режим (используйте кнопку бота или ручной ввод)';
+      if (this.tgPollStatusText) this.tgPollStatusText.textContent = isEn ? 'Offline mode (use Bot button or manual entry)' : 'Офлайн режим (используйте кнопку бота или ручной ввод)';
       if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
       if (this.btnTgOpenBotLink) {
         this.btnTgOpenBotLink.href = fallbackBotUrl;
@@ -3008,7 +3052,8 @@ export class SudokuUI {
     this.updateSyncBadge();
     this.updateDailyInfoOnMenu();
     this.updateTgAuthModalView();
-    this.showToast(`🎉 Успешный вход через Telegram (${playerName})!`);
+    const isEn = i18n.getLanguage() === 'en';
+    this.showToast(isEn ? `🎉 Successfully logged in via Telegram (${playerName})!` : `🎉 Успешный вход через Telegram (${playerName})!`);
 
     // Auto-close QR / auth modal after 1.2s
     setTimeout(() => {
@@ -3032,7 +3077,8 @@ export class SudokuUI {
     this.updateTgMenuPill();
     this.updateSyncBadge();
     this.updateTgAuthModalView();
-    this.showToast('🚪 Вы вышли из аккаунта Telegram');
+    const isEn = i18n.getLanguage() === 'en';
+    this.showToast(isEn ? '🚪 You logged out of Telegram' : '🚪 Вы вышли из аккаунта Telegram');
   }
 
   private mountTelegramWidget() {
@@ -3134,22 +3180,25 @@ export class SudokuUI {
       }
 
       if (showToastNotification) {
-        this.showToast('☁️ Прогресс успешно синхронизирован с Telegram Cloud!');
+        const isEn = i18n.getLanguage() === 'en';
+        this.showToast(isEn ? '☁️ Progress successfully synchronized with Telegram Cloud!' : '☁️ Прогресс успешно синхронизирован с Telegram Cloud!');
       }
     } catch {
       if (showToastNotification) {
-        this.showToast('⚠️ Офлайн: локальный прогресс сохранён');
+        const isEn = i18n.getLanguage() === 'en';
+        this.showToast(isEn ? '⚠️ Offline: local progress saved' : '⚠️ Офлайн: локальный прогресс сохранён');
       }
     }
   }
 
   private async importSyncKey(inputKey: string) {
+    const isEn = i18n.getLanguage() === 'en';
     try {
       const key = inputKey.trim();
       const apiBase = `${getApiBaseUrl()}/sync`;
       const res = await fetch(`${apiBase}?key=${encodeURIComponent(key)}`);
       if (!res.ok) {
-        this.showToast('❌ Профиль с таким Telegram/ключом не найден в облаке');
+        this.showToast(isEn ? '❌ Profile with this Telegram/key not found in cloud' : '❌ Профиль с таким Telegram/ключом не найден в облаке');
         return;
       }
       const data = await res.json();
@@ -3178,10 +3227,10 @@ export class SudokuUI {
         this.updateSyncBadge();
         this.updateDailyInfoOnMenu();
         this.updateTgAuthModalView();
-        this.showToast('🎉 Профиль и прогресс успешно подключены!');
+        this.showToast(isEn ? '🎉 Profile and progress connected successfully!' : '🎉 Профиль и прогресс успешно подключены!');
       }
     } catch {
-      this.showToast('❌ Ошибка при связывании устройств');
+      this.showToast(isEn ? '❌ Device linking error' : '❌ Ошибка при связывании устройств');
     }
   }
 
@@ -3193,6 +3242,7 @@ export class SudokuUI {
     const badge = document.getElementById('yandex-account-badge');
     const btn = document.getElementById('btn-yandex-auth');
     const name = yandexBridge.getPlayerName();
+    const isEn = i18n.getLanguage() === 'en';
 
     if (name) {
       if (badge) {
@@ -3200,18 +3250,18 @@ export class SudokuUI {
         badge.style.color = '#34d399';
       }
       if (btn) {
-        btn.textContent = '✓ Яндекс аккаунт подключен';
+        btn.textContent = isEn ? '✓ Yandex Account Connected' : '✓ Яндекс аккаунт подключен';
         btn.setAttribute('disabled', 'true');
         btn.style.opacity = '0.7';
         btn.style.cursor = 'default';
       }
     } else {
       if (badge) {
-        badge.textContent = 'Гость';
+        badge.textContent = isEn ? 'Guest' : 'Гость';
         badge.style.color = '#f87171';
       }
       if (btn) {
-        btn.textContent = '🔴 Войти через Яндекс Паспорт';
+        btn.textContent = isEn ? '🔴 Login with Yandex ID' : '🔴 Войти через Яндекс Паспорт';
         btn.removeAttribute('disabled');
         btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
@@ -3450,14 +3500,18 @@ export class SudokuUI {
 
   private showStatsModal() {
     const stats = SudokuGame.getPlayerStats();
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
     this.statPlayed.textContent = stats.gamesPlayed.toString();
     this.statWon.textContent = stats.gamesWon.toString();
     this.statCombo.textContent = `x${stats.maxCombo}`;
-    this.statScore.textContent = stats.totalScore.toLocaleString('ru-RU');
-    this.statStreak.textContent = `🔥 ${stats.dailyStreak} дн.`;
+    this.statScore.textContent = stats.totalScore.toLocaleString(locale);
+    this.statStreak.textContent = isEn ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
     const bestRun = stats.bestRunStage || 0;
     const bestRunScore = stats.bestRunScore || 0;
-    this.statRunStage.textContent = bestRun > 0 ? `Этап ${bestRun} (${bestRunScore.toLocaleString('ru-RU')})` : '—';
+    this.statRunStage.textContent = bestRun > 0
+      ? (isEn ? `Stage ${bestRun} (${bestRunScore.toLocaleString(locale)})` : `Этап ${bestRun} (${bestRunScore.toLocaleString(locale)})`)
+      : '—';
     this.updateLeagueViews();
     this.renderPlayerSeasonMedals();
     this.renderSeasonArchive();
@@ -3503,35 +3557,42 @@ export class SudokuUI {
   private renderDuelHistory() {
     if (!this.duelHistoryList || !this.duelHistorySummary) return;
     const history = this.getDuelHistory();
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
+
     if (history.length === 0) {
-      this.duelHistorySummary.textContent = '0 дуэлей сыграно';
-      this.duelHistoryList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:10px;">Вы еще не участвовали в дуэлях. Поделитесь вызовом после победы!</div>`;
+      this.duelHistorySummary.textContent = isEn ? '0 duels played' : '0 дуэлей сыграно';
+      this.duelHistoryList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:10px;">${
+        isEn ? 'You have not participated in duels yet. Share a challenge code after winning!' : 'Вы еще не участвовали в дуэлях. Поделитесь вызовом после победы!'
+      }</div>`;
       return;
     }
 
     const wins = history.filter((d) => d.won).length;
     const losses = history.length - wins;
     const winRate = Math.round((wins / history.length) * 100);
-    this.duelHistorySummary.textContent = `Побед: ${wins} | Поражений: ${losses} (${winRate}% винрейт)`;
+    this.duelHistorySummary.textContent = isEn
+      ? `Wins: ${wins} | Defeats: ${losses} (${winRate}% win rate)`
+      : `Побед: ${wins} | Поражений: ${losses} (${winRate}% винрейт)`;
 
     const diffLabels: Record<Difficulty, string> = {
-      easy: 'Легкий',
-      medium: 'Средний',
-      hard: 'Сложный',
-      expert: 'Эксперт',
+      easy: isEn ? 'Easy' : 'Легкий',
+      medium: isEn ? 'Medium' : 'Средний',
+      hard: isEn ? 'Hard' : 'Сложный',
+      expert: isEn ? 'Expert' : 'Эксперт',
     };
 
     this.duelHistoryList.innerHTML = history.slice(0, 10).map((d) => {
       const statusIcon = d.won ? '🏆' : '💀';
       const statusClass = d.won ? 'won' : 'lost';
-      const statusText = d.won ? 'Победа' : 'Поражение';
+      const statusText = d.won ? (isEn ? 'Victory' : 'Победа') : (isEn ? 'Defeat' : 'Поражение');
       const myMins = Math.floor(d.myTime / 60);
       const mySecs = d.myTime % 60;
       const myTimeStr = `${myMins.toString().padStart(2, '0')}:${mySecs.toString().padStart(2, '0')}`;
-      const diffName = diffLabels[d.diff] || 'Средний';
+      const diffName = diffLabels[d.diff] || (isEn ? 'Medium' : 'Средний');
 
       const scoreDiff = d.myScore - d.targetScore;
-      const diffStr = scoreDiff >= 0 ? `+${scoreDiff.toLocaleString('ru-RU')}` : `${scoreDiff.toLocaleString('ru-RU')}`;
+      const diffStr = scoreDiff >= 0 ? `+${scoreDiff.toLocaleString(locale)}` : `${scoreDiff.toLocaleString(locale)}`;
 
       return `
         <div class="duel-card ${statusClass}">
@@ -3544,7 +3605,7 @@ export class SudokuUI {
           </div>
           <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted);">
             <span>${diffName} | ⏱️ ${myTimeStr}</span>
-            <span>Счёт: <strong style="color:var(--text-main);">${d.myScore.toLocaleString('ru-RU')}</strong> (<span style="color:${d.won ? '#34d399' : '#f43f5e'};">${diffStr}</span>)</span>
+            <span>${isEn ? 'Score' : 'Счёт'}: <strong style="color:var(--text-main);">${d.myScore.toLocaleString(locale)}</strong> (<span style="color:${d.won ? '#34d399' : '#f43f5e'};">${diffStr}</span>)</span>
           </div>
         </div>
       `;
@@ -3554,6 +3615,7 @@ export class SudokuUI {
   private updateLeagueViews() {
     const stats = SudokuGame.getPlayerStats();
     const league = getLeagueForScore(stats.totalScore);
+    const isEn = i18n.getLanguage() === 'en';
 
     if (this.menuLeagueBadge) {
       this.menuLeagueBadge.className = league.badgeClass;
@@ -3562,11 +3624,11 @@ export class SudokuUI {
 
     if (this.statLeagueBadge) {
       this.statLeagueBadge.className = league.badgeClass;
-      this.statLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>Лига: ${league.name}</span>`;
+      this.statLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>${isEn ? 'League' : 'Лига'}: ${league.name}</span>`;
     }
 
     if (this.statSeasonTimer) {
-      this.statSeasonTimer.textContent = `⏳ Сезон: ${getSeasonRemainingText()}`;
+      this.statSeasonTimer.textContent = `⏳ ${isEn ? 'Season' : 'Сезон'}: ${getSeasonRemainingText()}`;
     }
 
     if (this.tgAuthUserAvatar) {
@@ -3597,6 +3659,8 @@ export class SudokuUI {
     const currentSeason = getCurrentSeasonId();
     const lastSeason = localStorage.getItem('sudoku_last_season_id');
     const stats = SudokuGame.getPlayerStats();
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
 
     if (!lastSeason) {
       localStorage.setItem('sudoku_last_season_id', currentSeason);
@@ -3607,12 +3671,12 @@ export class SudokuUI {
       const finalLeague = getLeagueForScore(stats.totalScore);
       const trophy: SeasonTrophy = {
         seasonId: lastSeason,
-        seasonName: `Сезон ${lastSeason.replace('-', ' ')}`,
+        seasonName: isEn ? `Season ${lastSeason.replace('-', ' ')}` : `Сезон ${lastSeason.replace('-', ' ')}`,
         leagueId: finalLeague.id,
         leagueName: finalLeague.name,
         icon: finalLeague.icon,
         points: stats.totalScore,
-        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
       };
       this.addSeasonTrophy(trophy);
 
@@ -3628,14 +3692,14 @@ export class SudokuUI {
         title: `${finalLeague.icon} ${finalLeague.name} • ${lastSeason}`,
         icon: finalLeague.icon,
         tier: badgeTier,
-        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
       };
       this.addSeasonBadge(badge);
 
       localStorage.setItem('sudoku_last_season_id', currentSeason);
 
       setTimeout(() => {
-        this.showToast(`🏆 Итоги сезона ${lastSeason}! Вам присвоен трофей: ${finalLeague.icon} ${finalLeague.name}`);
+        this.showToast(isEn ? `🏆 Season results for ${lastSeason}! You earned trophy: ${finalLeague.icon} ${finalLeague.name}` : `🏆 Итоги сезона ${lastSeason}! Вам присвоен трофей: ${finalLeague.icon} ${finalLeague.name}`);
         soundManager.playVictory();
         haptics.victory();
       }, 1200);
@@ -3648,14 +3712,16 @@ export class SudokuUI {
       if (raw) return JSON.parse(raw);
     } catch {}
     const stats = SudokuGame.getPlayerStats();
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
     if (stats.gamesWon > 0) {
       const starter: SeasonBadge = {
         id: 'badge_starter',
         seasonId: getCurrentSeasonId(),
-        title: '⚡ Ветеран Pulse',
+        title: isEn ? '⚡ Pulse Veteran' : '⚡ Ветеран Pulse',
         icon: '⚡',
         tier: 'veteran',
-        dateAwarded: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
       };
       return [starter];
     }
@@ -3678,13 +3744,14 @@ export class SudokuUI {
   private renderPlayerSeasonMedals() {
     if (!this.playerSeasonMedals) return;
     const badges = this.getSeasonBadges();
+    const isEn = i18n.getLanguage() === 'en';
     if (badges.length === 0) {
       this.playerSeasonMedals.classList.add('hidden');
       return;
     }
     this.playerSeasonMedals.classList.remove('hidden');
     this.playerSeasonMedals.innerHTML = badges.map((b) => `
-      <span class="player-medal-chip ${b.tier}" title="Награда за ${b.title}">
+      <span class="player-medal-chip ${b.tier}" title="${isEn ? 'Reward for' : 'Награда за'} ${b.title}">
         <span>${b.icon}</span>
         <span>${b.title}</span>
       </span>
@@ -3718,24 +3785,26 @@ export class SudokuUI {
     const currentSeason = getCurrentSeasonId();
     const stats = SudokuGame.getPlayerStats();
     const currentLeague = getLeagueForScore(stats.totalScore);
+    const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
 
     const currentCard = `
       <div class="season-trophy-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.06); margin-bottom: 6px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:1.1rem;">⏳</span>
           <div>
-            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">Сезон ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">(Текущий)</span></div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Квалификация: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString('ru-RU')} очков)</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${isEn ? 'Season' : 'Сезон'} ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">${isEn ? '(Current)' : '(Текущий)'}</span></div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${isEn ? 'Qualification' : 'Квалификация'}: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString(locale)} ${isEn ? 'pts' : 'очков'})</div>
           </div>
         </div>
-        <span class="season-trophy-tag ${currentLeague.badgeClass}">${currentLeague.icon} В игре</span>
+        <span class="season-trophy-tag ${currentLeague.badgeClass}">${currentLeague.icon} ${isEn ? 'Active' : 'В игре'}</span>
       </div>
     `;
 
     if (archive.length === 0) {
       this.seasonArchiveList.innerHTML = currentCard + `
         <div style="text-align:center; color:var(--text-muted); font-size:0.78rem; padding:6px;">
-          Трофей за текущую неделю закрепится в архиве по завершению сезона!
+          ${isEn ? 'Current week trophy will be locked into the archive when the season ends!' : 'Трофей за текущую неделю закрепится в архиве по завершению сезона!'}
         </div>
       `;
       return;
@@ -3749,7 +3818,7 @@ export class SudokuUI {
             <span style="font-size:1.1rem;">${t.icon}</span>
             <div>
               <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t.seasonName}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points.toLocaleString('ru-RU')} очков</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points.toLocaleString(locale)} ${isEn ? 'pts' : 'очков'}</div>
             </div>
           </div>
           <span class="season-trophy-tag ${league.badgeClass}">${t.leagueName}</span>
@@ -4753,7 +4822,7 @@ export class SudokuUI {
     this.updateScreenBackButton();
   }
 
-  public renderTutorialStep(stepIndex: number) {
+  public renderTutorialStep(stepIndex: number = this.currentTutorialStep) {
     this.currentTutorialStep = Math.max(0, Math.min(4, stepIndex));
     const isEn = i18n.getLanguage() === 'en';
 

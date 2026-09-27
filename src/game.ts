@@ -12,6 +12,7 @@ import {
 } from './types';
 import { generatePuzzle, hashDateStringToSeed } from './generator';
 import { evaluateNewAchievements, evaluateAllAchievements } from './achievements';
+import { i18n } from './i18n';
 
 const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
 const STATS_KEY = 'sudoku_pulse_player_stats_v1';
@@ -355,17 +356,24 @@ export class SudokuGame {
 
   public getRunModifierDescription(): string {
     if (this.mode !== 'run') return '';
+    const isEn = i18n.getLanguage() === 'en';
     switch (this.runStage) {
       case 1:
-        return 'Базовый сектор (Обычные условия)';
+        return isEn ? 'Base Sector (Normal conditions)' : 'Базовый сектор (Обычные условия)';
       case 2:
-        return '🌌 Аномалия: Тёмный сектор!';
+        return isEn ? '🌌 Anomaly: Dark Sector!' : '🌌 Аномалия: Тёмный сектор!';
       case 3:
-        return '☀️ Солнечный шторм (Вспышки ⚡ в 2 раза чаще и дают +1500 очков!)';
+        return isEn
+          ? '☀️ Solar Storm (Surges ⚡ 2x more frequent and give +1,500 pts!)'
+          : '☀️ Солнечный шторм (Вспышки ⚡ в 2 раза чаще и дают +1500 очков!)';
       case 4:
-        return '🧊 Крио-утечка (Пульс остывает быстрее, но базовые очки x2!)';
+        return isEn
+          ? '🧊 Cryo Leak (Pulse cools faster, but base points x2!)'
+          : '🧊 Крио-утечка (Пульс остывает быстрее, но базовые очки x2!)';
       default:
-        return `💀 Сверхновая — Сектор ${this.runStage} (Тёмный сектор + Шторм + Очки x2!)`;
+        return isEn
+          ? `💀 Supernova — Sector ${this.runStage} (Dark Sector + Storm + Points x2!)`
+          : `💀 Сверхновая — Сектор ${this.runStage} (Тёмный сектор + Шторм + Очки x2!)`;
     }
   }
 
@@ -898,12 +906,18 @@ export class SudokuGame {
       for (let n = 1; n <= 9; n++) {
         if (this.isValidPlacement(targetRow, targetCol, n)) validNums.push(n);
       }
+      const isEn = i18n.getLanguage() === 'en';
       if (validNums.length === 1) {
-        explanation = `💡 Одиночка (Naked Single): в [Р${targetRow + 1}, С${targetCol + 1}] подходит только ${sol} (остальные цифры уже есть в линиях/блоке)!`;
+        explanation = isEn
+          ? `💡 Naked Single: in [R${targetRow + 1}, C${targetCol + 1}] only ${sol} fits (other digits already present in lines/box)!`
+          : `💡 Одиночка (Naked Single): в [Р${targetRow + 1}, С${targetCol + 1}] подходит только ${sol} (остальные цифры уже есть в линиях/блоке)!`;
       } else {
-        explanation = `💡 Подсказка: в ячейке [Р${targetRow + 1}, С${targetCol + 1}] верная цифра — ${sol}.`;
+        explanation = isEn
+          ? `💡 Hint: in cell [R${targetRow + 1}, C${targetCol + 1}], the correct digit is ${sol}.`
+          : `💡 Подсказка: в ячейке [Р${targetRow + 1}, С${targetCol + 1}] верная цифра — ${sol}.`;
       }
     } else {
+      const isEn = i18n.getLanguage() === 'en';
       // Search for Naked Single across the board
       for (let r = 0; r < 9 && targetRow === -1; r++) {
         for (let c = 0; c < 9; c++) {
@@ -916,7 +930,9 @@ export class SudokuGame {
             if (validNums.length === 1) {
               targetRow = r;
               targetCol = c;
-              explanation = `💡 Одиночка (Naked Single): в [Р${r + 1}, С${c + 1}] может стоять только ${cell.solution}!`;
+              explanation = isEn
+                ? `💡 Naked Single: in [R${r + 1}, C${c + 1}] only ${cell.solution} can be placed!`
+                : `💡 Одиночка (Naked Single): в [Р${r + 1}, С${c + 1}] может стоять только ${cell.solution}!`;
               break;
             }
           }
@@ -942,7 +958,9 @@ export class SudokuGame {
               if (this.board[r][c].solution === num) {
                 targetRow = r;
                 targetCol = c;
-                explanation = `💡 Скрытая одиночка: в строке ${r + 1} цифра ${num} может стоять только в столбце ${c + 1}!`;
+                explanation = isEn
+                  ? `💡 Hidden Single: in row ${r + 1}, digit ${num} can only be placed in column ${c + 1}!`
+                  : `💡 Скрытая одиночка: в строке ${r + 1} цифра ${num} может стоять только в столбце ${c + 1}!`;
                 break;
               }
             }
@@ -966,7 +984,9 @@ export class SudokuGame {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
         targetRow = pick.r;
         targetCol = pick.c;
-        explanation = `💡 Тактический ход: в [Р${targetRow + 1}, С${targetCol + 1}] раскрыта цифра ${this.board[targetRow][targetCol].solution}.`;
+        explanation = isEn
+          ? `💡 Tactical Move: in [R${targetRow + 1}, C${targetCol + 1}] revealed digit ${this.board[targetRow][targetCol].solution}.`
+          : `💡 Тактический ход: в [Р${targetRow + 1}, С${targetCol + 1}] раскрыта цифра ${this.board[targetRow][targetCol].solution}.`;
       }
     }
 
