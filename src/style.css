@@ -518,17 +518,35 @@ body {
 /* ========================================== */
 /* SCREEN 4: GAMEPLAY SCREEN                  */
 /* ========================================== */
+/* SCREEN 4: GAMEPLAY SCREEN                  */
+/* ========================================== */
+#screen-game {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-top: 0;
+  padding-top: max(2px, env(safe-area-inset-top));
+}
+
 .app-container {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.game-nav-bar {
+  width: 100%;
+  margin-top: -2px;
+  margin-bottom: 2px;
 }
 
 .logo-group {
@@ -576,24 +594,68 @@ body {
   color: #fbbf24;
 }
 
-.score-display {
+/* Full-Width Dedicated Score Strip */
+.score-display-wide {
+  width: 100%;
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius);
+  padding: 7px 14px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.08) 0%, var(--surface-bg) 50%, rgba(99, 102, 241, 0.08) 100%);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.score-label {
-  font-size: 0.65rem;
+.score-display-wide .score-label-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-display-wide .score-icon {
+  font-size: 1.05rem;
+  filter: drop-shadow(0 0 6px var(--pulse-glow));
+}
+
+.score-display-wide .score-label {
+  font-size: 0.72rem;
   font-weight: 800;
   color: var(--text-muted);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
 
-.score-val {
-  font-size: 1.15rem;
-  font-weight: 800;
+.score-display-wide .score-val {
+  font-size: 1.4rem;
+  font-weight: 900;
   color: var(--pulse-cyan);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+@media (min-height: 700px) {
+  #screen-game .app-container {
+    gap: 10px;
+  }
+  #screen-game .board-wrapper {
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+}
+
+@media (min-height: 800px) {
+  #screen-game .app-container {
+    gap: 12px;
+  }
+  #screen-game .board-wrapper {
+    margin-top: 12px;
+    margin-bottom: 10px;
+  }
 }
 
 /* Pulse / Combo Meter */

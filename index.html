@@ -177,20 +177,14 @@
   <div id="screen-game" class="screen hidden">
     <div class="app-container">
       <!-- Game Top Nav -->
-      <header class="header">
+      <!-- Game Top Nav Bar: Home, Mode badges, and Action Toggles -->
+      <header class="header game-nav-bar">
         <div class="logo-group">
           <button id="btn-game-home" class="icon-btn" title="В главное меню">🏠</button>
-          <div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span id="game-mode-badge" class="badge">⚡ Классика</span>
-              <span id="game-perk-badge" class="badge perk-badge hidden">🛡️</span>
-            </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span id="game-mode-badge" class="badge">⚡ Классика</span>
+            <span id="game-perk-badge" class="badge perk-badge hidden">🛡️</span>
           </div>
-        </div>
-
-        <div class="score-display">
-          <span class="score-label" data-i18n="score_label">ОЧКИ</span>
-          <span id="score-counter" class="score-val">0</span>
         </div>
 
         <div class="header-actions">
@@ -198,6 +192,15 @@
           <button id="theme-toggle" class="icon-btn" title="Тема">🌙</button>
         </div>
       </header>
+
+      <!-- Full-Width Dedicated Score Display -->
+      <div class="score-display score-display-wide">
+        <div class="score-label-group">
+          <span class="score-icon">💎</span>
+          <span class="score-label" data-i18n="score_label">ОЧКИ</span>
+        </div>
+        <span id="score-counter" class="score-val">0</span>
+      </div>
 
       <!-- Pulse Meter Bar -->
       <div class="pulse-container">

@@ -85,6 +85,7 @@ const RU: TranslationDict = {
 
   // Perks
   perks_title: 'Выберите перк',
+  perk_select_title: 'Выберите перк',
   perks_hint: 'Выберите одно пассивное усиление на эту партию:',
   perk_level: 'Ур.',
   perk_active: 'АКТИВЕН',
@@ -323,6 +324,7 @@ const EN: TranslationDict = {
 
   // Perks
   perks_title: 'Select Cyber Perk',
+  perk_select_title: 'Select Cyber Perk',
   perks_hint: 'Choose one passive upgrade for this match:',
   perk_level: 'Lvl',
   perk_active: 'ACTIVE',
