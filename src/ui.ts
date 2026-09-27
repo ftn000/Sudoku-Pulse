@@ -8,15 +8,30 @@ import { yandexBridge } from './yandex';
 import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS } from './i18n';
 
 export function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return '/sudoku/api';
+
   const isNative = Boolean(
     (window as any).Capacitor?.isNativePlatform?.() ||
-    (window as any).Capacitor ||
     window.location.protocol === 'capacitor:' ||
-    window.location.protocol === 'file:' ||
-    (window.location.hostname === 'localhost' && window.location.port !== '5173')
+    window.location.protocol === 'file:'
   );
 
-  if (isNative) {
+  const isTelegram = Boolean(
+    (window as any).Telegram?.WebApp?.initData ||
+    window.location.hostname.includes('telegram.org') ||
+    window.location.search.includes('tgWebAppData') ||
+    window.location.hash.includes('tgWebAppData')
+  );
+
+  const isYandex = yandexBridge.isYandex() || window.location.hostname.includes('yandex');
+
+  const isRemoteOrigin =
+    window.location.hostname !== '109.69.17.170.sslip.io' &&
+    window.location.hostname !== '109.69.17.170' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
+  if (isNative || isTelegram || isYandex || isRemoteOrigin) {
     return 'https://109.69.17.170.sslip.io/sudoku/api';
   }
 
@@ -53,15 +68,15 @@ export function getLeagueForScore(totalScore: number): LeagueInfo {
   return { id: 'bronze', name: 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
-export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; name: string; icon: string }> = {
-  neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', name: 'Cyber', icon: '⚡' },
-  synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', name: 'Synth', icon: '🌆' },
-  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', name: 'Aqua', icon: '🌊' },
-  matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', name: 'Matrix', icon: '🟢' },
-  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', name: 'Crimson', icon: '🩸' },
-  hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', name: 'Hologram', icon: '💎' },
-  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', name: 'Retro', icon: '👾' },
-  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', name: 'Obsidian', icon: '👑' },
+export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; nameRu: string; nameEn: string; icon: string }> = {
+  neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', nameRu: 'Кибер', nameEn: 'Cyber', icon: '⚡' },
+  synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', nameRu: 'Синтвейв', nameEn: 'Synth', icon: '🌆' },
+  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', nameRu: 'Аква', nameEn: 'Aqua', icon: '🌊' },
+  matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', nameRu: 'Матрица', nameEn: 'Matrix', icon: '🟢' },
+  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', nameRu: 'Багровый', nameEn: 'Crimson', icon: '🩸' },
+  hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', nameRu: 'Голограмма', nameEn: 'Hologram', icon: '💎' },
+  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', nameRu: 'Ретро', nameEn: 'Retro', icon: '👾' },
+  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', nameRu: 'Обсидиан', nameEn: 'Obsidian', icon: '👑' },
 };
 
 export function getSeasonRemainingText(): string {
@@ -313,6 +328,39 @@ export class SudokuUI {
     challenger: string;
   };
 
+  // 1v1 Live Multiplayer Lobby
+  private modeCardLiveDuel?: HTMLElement;
+  private liveLobbyModal?: HTMLElement;
+  private btnCloseLiveLobbyX?: HTMLButtonElement;
+  private tabLiveCreate?: HTMLButtonElement;
+  private tabLiveJoin?: HTMLButtonElement;
+  private livePanelCreate?: HTMLElement;
+  private livePanelJoin?: HTMLElement;
+  private liveDiffPills: HTMLButtonElement[] = [];
+  private selectedLiveDiff: Difficulty = 'medium';
+  private btnCreateLiveRoom?: HTMLButtonElement;
+  private inputLiveCode?: HTMLInputElement;
+  private btnPasteLiveCode?: HTMLButtonElement;
+  private btnJoinLiveRoom?: HTMLButtonElement;
+  private liveLobbyViewMain?: HTMLElement;
+  private liveLobbyViewWaiting?: HTMLElement;
+  private liveLobbyViewCountdown?: HTMLElement;
+  private liveWaitingCode?: HTMLElement;
+  private liveWaitingDiff?: HTMLElement;
+  private btnCopyLiveLink?: HTMLButtonElement;
+  private btnShareLiveLink?: HTMLButtonElement;
+  private btnCancelLiveRoom?: HTMLButtonElement;
+  private liveCountdownNumber?: HTMLElement;
+  private liveCdHostName?: HTMLElement;
+  private liveCdGuestName?: HTMLElement;
+
+  private currentLiveLobbyId: string | null = null;
+  private currentLiveLobbyCode: string | null = null;
+  private isLiveHost: boolean = false;
+  private livePollInterval?: any = null;
+  private liveOpponentName: string = 'Соперник';
+  private isLiveDuelActive: boolean = false;
+
   // Tutorial Modal Elements
   private tutorialModal!: HTMLElement;
   private btnCloseTutorialX!: HTMLButtonElement;
@@ -347,8 +395,29 @@ export class SudokuUI {
     }
 
     this.game.setCallbacks({
-      onStateChange: () => this.render(),
-      onWin: (stats) => this.showWinModal(stats),
+      onStateChange: () => {
+        this.render();
+        if (this.isLiveDuelActive) {
+          this.sendLiveDuelProgress();
+        }
+      },
+      onWin: (stats) => {
+        if (this.isLiveDuelActive && this.currentLiveLobbyId) {
+          const myId = SudokuGame.getOrCreatePlayerId();
+          fetch(`${getApiBaseUrl()}/lobby/action`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lobbyId: this.currentLiveLobbyId,
+              playerId: myId,
+              action: 'finish',
+              time: stats.timeSeconds,
+              score: stats.score,
+            }),
+          }).catch(() => {});
+        }
+        this.showWinModal(stats);
+      },
       onGameOver: () => this.showGameOverModal(),
       onLineComplete: (cells, types) => {
         this.triggerLineWave(cells);
@@ -589,6 +658,31 @@ export class SudokuUI {
     this.btnPasteChallengeCode = document.getElementById('btn-paste-challenge-code') as HTMLButtonElement;
     this.btnSubmitChallengeCode = document.getElementById('btn-submit-challenge-code') as HTMLButtonElement;
 
+    // 1v1 Live Multiplayer Lobby
+    this.modeCardLiveDuel = document.getElementById('mode-card-live-duel') || undefined;
+    this.liveLobbyModal = document.getElementById('live-lobby-modal') || undefined;
+    this.btnCloseLiveLobbyX = (document.getElementById('btn-close-live-lobby-x') as HTMLButtonElement) || undefined;
+    this.tabLiveCreate = (document.getElementById('tab-live-create') as HTMLButtonElement) || undefined;
+    this.tabLiveJoin = (document.getElementById('tab-live-join') as HTMLButtonElement) || undefined;
+    this.livePanelCreate = document.getElementById('live-panel-create') || undefined;
+    this.livePanelJoin = document.getElementById('live-panel-join') || undefined;
+    this.liveDiffPills = Array.from(document.querySelectorAll('.live-diff-pill'));
+    this.btnCreateLiveRoom = (document.getElementById('btn-create-live-room') as HTMLButtonElement) || undefined;
+    this.inputLiveCode = (document.getElementById('input-live-code') as HTMLInputElement) || undefined;
+    this.btnPasteLiveCode = (document.getElementById('btn-paste-live-code') as HTMLButtonElement) || undefined;
+    this.btnJoinLiveRoom = (document.getElementById('btn-join-live-room') as HTMLButtonElement) || undefined;
+    this.liveLobbyViewMain = document.getElementById('live-lobby-view-main') || undefined;
+    this.liveLobbyViewWaiting = document.getElementById('live-lobby-view-waiting') || undefined;
+    this.liveLobbyViewCountdown = document.getElementById('live-lobby-view-countdown') || undefined;
+    this.liveWaitingCode = document.getElementById('live-waiting-code') || undefined;
+    this.liveWaitingDiff = document.getElementById('live-waiting-diff') || undefined;
+    this.btnCopyLiveLink = (document.getElementById('btn-copy-live-link') as HTMLButtonElement) || undefined;
+    this.btnShareLiveLink = (document.getElementById('btn-share-live-link') as HTMLButtonElement) || undefined;
+    this.btnCancelLiveRoom = (document.getElementById('btn-cancel-live-room') as HTMLButtonElement) || undefined;
+    this.liveCountdownNumber = document.getElementById('live-countdown-number') || undefined;
+    this.liveCdHostName = document.getElementById('live-cd-host-name') || undefined;
+    this.liveCdGuestName = document.getElementById('live-cd-guest-name') || undefined;
+
     this.duelResultBanner = document.getElementById('duel-result-banner')!;
     this.duelResultTitle = document.getElementById('duel-result-title')!;
     this.duelResultText = document.getElementById('duel-result-text')!;
@@ -675,12 +769,15 @@ export class SudokuUI {
     this.updateBoardSkinButtons();
 
     // Platform adaptation: Yandex Games
+    yandexBridge.onLanguageDetected((detectedLang) => {
+      i18n.applyPlatformDetectedLanguage(detectedLang);
+    });
+
     if (yandexBridge.isYandex()) {
       document.body.classList.add('platform-yandex');
       const yLang = yandexBridge.getLanguage();
-      if (yLang && !localStorage.getItem('sudoku_pulse_lang')) {
-        const isRu = yLang.startsWith('ru') || yLang.startsWith('be') || yLang.startsWith('kk') || yLang.startsWith('uk');
-        i18n.setLanguage(isRu ? 'ru' : 'en');
+      if (yLang) {
+        i18n.applyPlatformDetectedLanguage(yLang);
       }
       this.updateYandexSettingsBox();
       this.loadYandexCloudData();
@@ -696,6 +793,7 @@ export class SudokuUI {
       this.updateTgMenuPill();
       this.updateYandexSettingsBox();
       this.updateSoundButtons(soundManager.isSoundEnabled());
+      this.updateThemeButtons(document.documentElement.getAttribute('data-theme') || 'dark');
     });
 
     // Background cloud sync on start
@@ -1010,7 +1108,8 @@ export class SudokuUI {
       this.settingsModal,
       this.tgAuthModal,
       this.challengeModal,
-      this.enterChallengeModal
+      this.enterChallengeModal,
+      this.liveLobbyModal
     ].forEach((modal) => {
       if (modal) {
         modal.addEventListener('click', (e) => {
@@ -1355,6 +1454,100 @@ export class SudokuUI {
       });
     }
 
+    // 1v1 Live Multiplayer Lobby Listeners
+    if (this.modeCardLiveDuel) {
+      this.modeCardLiveDuel.addEventListener('click', () => {
+        this.openLiveLobbyModal();
+      });
+    }
+
+    if (this.btnCloseLiveLobbyX) {
+      this.btnCloseLiveLobbyX.addEventListener('click', () => {
+        this.stopLiveLobbyPolling();
+        this.liveLobbyModal?.classList.add('hidden');
+      });
+    }
+
+    if (this.tabLiveCreate) {
+      this.tabLiveCreate.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.switchLiveTab('create');
+      });
+    }
+
+    if (this.tabLiveJoin) {
+      this.tabLiveJoin.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.switchLiveTab('join');
+      });
+    }
+
+    this.liveDiffPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.liveDiffPills.forEach((p) => p.classList.remove('active'));
+        pill.classList.add('active');
+        this.selectedLiveDiff = (pill.getAttribute('data-diff') as Difficulty) || 'medium';
+      });
+    });
+
+    if (this.btnCreateLiveRoom) {
+      this.btnCreateLiveRoom.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.createLiveRoom();
+      });
+    }
+
+    if (this.btnPasteLiveCode) {
+      this.btnPasteLiveCode.addEventListener('click', async () => {
+        soundManager.playSelect();
+        const isEn = i18n.getLanguage() === 'en';
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            if (text && this.inputLiveCode) {
+              const codeMatch = text.match(/\b([0-9]{4,6})\b/);
+              this.inputLiveCode.value = codeMatch ? codeMatch[1] : text.trim();
+              this.showToast(isEn ? '📋 Pasted code' : '📋 Код вставлен');
+              return;
+            }
+          }
+        } catch {}
+        this.showToast(isEn ? 'Paste 4-digit code' : 'Вставьте 4-значный код комнаты');
+      });
+    }
+
+    if (this.btnJoinLiveRoom) {
+      this.btnJoinLiveRoom.addEventListener('click', () => {
+        soundManager.playSelect();
+        const code = (this.inputLiveCode?.value || '').trim();
+        this.joinLiveRoom(code);
+      });
+    }
+
+    if (this.btnCopyLiveLink) {
+      this.btnCopyLiveLink.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.copyLiveRoomLink();
+      });
+    }
+
+    if (this.btnShareLiveLink) {
+      this.btnShareLiveLink.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.shareLiveRoomLink();
+      });
+    }
+
+    if (this.btnCancelLiveRoom) {
+      this.btnCancelLiveRoom.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.stopLiveLobbyPolling();
+        if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.remove('hidden');
+        if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
+      });
+    }
+
     // Cloud Sync & Device Linking
     if (this.btnSyncTgAuth) {
       this.btnSyncTgAuth.addEventListener('click', () => {
@@ -1673,18 +1866,34 @@ export class SudokuUI {
   }
 
   private updateThemeButtons(theme: string) {
-    const labels: Record<string, { icon: string; name: string }> = {
-      dark: { icon: '⚡', name: 'Cyber Neon' },
-      synthwave: { icon: '🌆', name: 'Synthwave 80s' },
-      matrix: { icon: '🟢', name: 'Matrix Cyber' },
-      oled: { icon: '🌑', name: 'OLED Black' },
-      light: { icon: '☀️', name: 'Светлая' },
+    const isEn = i18n.getLanguage() === 'en';
+    const labels: Record<string, { icon: string; ru: string; en: string }> = {
+      dark: { icon: '⚡', ru: 'Кибер-Неон', en: 'Cyber Neon' },
+      synthwave: { icon: '🌆', ru: 'Синтвейв 80-х', en: 'Synthwave 80s' },
+      matrix: { icon: '🟢', ru: 'Матрица', en: 'Matrix' },
+      oled: { icon: '🌑', ru: 'ОЛЕД (Черная)', en: 'OLED Black' },
+      light: { icon: '☀️', ru: 'Светлая', en: 'Light Neon' },
     };
+    const pillLabels: Record<string, { ru: string; en: string }> = {
+      dark: { ru: '⚡ Кибер', en: '⚡ Cyber' },
+      synthwave: { ru: '🌆 Синтвейв', en: '🌆 Synth' },
+      matrix: { ru: '🟢 Матрица', en: '🟢 Matrix' },
+      oled: { ru: '🌑 ОЛЕД', en: '🌑 OLED' },
+      light: { ru: '☀️ Светлая', en: '☀️ Light' },
+    };
+
     const info = labels[theme] || labels.dark;
     this.themeToggleBtn.textContent = info.icon;
-    this.settingThemeBtn.textContent = `${info.icon} ${info.name}`;
+    const themeName = isEn ? info.en : info.ru;
+    this.settingThemeBtn.textContent = `${info.icon} ${themeName}`;
+
     this.themeSkinPills.forEach((pill) => {
-      pill.classList.toggle('active', pill.getAttribute('data-skin') === theme);
+      const skinKey = pill.getAttribute('data-skin') || 'dark';
+      pill.classList.toggle('active', skinKey === theme);
+      const pLabel = pillLabels[skinKey];
+      if (pLabel) {
+        pill.textContent = isEn ? pLabel.en : pLabel.ru;
+      }
     });
   }
 
@@ -2199,15 +2408,21 @@ export class SudokuUI {
     let scoreParam: string | null = null;
     let timeParam: string | null = null;
     let challengerParam: string | null = null;
+    let lobbyParam: string | null = null;
 
     if (manualInput) {
       const trimmed = manualInput.trim();
+      const lobbyMatch = trimmed.match(/(?:lobby|room)[=_]?([0-9]{4})/i) || trimmed.match(/^([0-9]{4})$/);
+      if (lobbyMatch) {
+        lobbyParam = lobbyMatch[1];
+      }
       const codeMatch = trimmed.match(/(c_[0-9]+_[a-zA-Z0-9_]+)/);
       if (codeMatch) {
         rawParam = codeMatch[1];
       } else {
         try {
           const url = new URL(trimmed.startsWith('http') ? trimmed : `http://dummy.com/${trimmed.startsWith('?') ? '' : '?'}${trimmed}`);
+          lobbyParam = lobbyParam || url.searchParams.get('lobby') || url.searchParams.get('room');
           rawParam = url.searchParams.get('start_param') || url.searchParams.get('startapp') || url.searchParams.get('c') || url.searchParams.get('challenge');
           seedParam = url.searchParams.get('seed');
           diffParam = url.searchParams.get('diff');
@@ -2217,13 +2432,18 @@ export class SudokuUI {
           challengerParam = url.searchParams.get('challenger');
         } catch {}
       }
-      if (!rawParam && !seedParam) {
+      if (!rawParam && !seedParam && !lobbyParam) {
         rawParam = trimmed;
       }
     } else {
       const params = new URLSearchParams(window.location.search);
       const tgApp = (window as any).Telegram?.WebApp;
       const tgStartParam = tgApp?.initDataUnsafe?.start_param;
+      lobbyParam = params.get('lobby') || params.get('room');
+      if (!lobbyParam && tgStartParam) {
+        const match = tgStartParam.match(/(?:lobby|room)?_?([0-9]{4})/i);
+        if (match) lobbyParam = match[1];
+      }
       rawParam = tgStartParam || params.get('start_param') || params.get('startapp') || params.get('tgWebAppStartParam') || params.get('challenge') || params.get('c');
       seedParam = params.get('seed');
       diffParam = params.get('diff');
@@ -2231,6 +2451,18 @@ export class SudokuUI {
       scoreParam = params.get('score');
       timeParam = params.get('time');
       challengerParam = params.get('challenger');
+    }
+
+    if (lobbyParam) {
+      setTimeout(() => {
+        this.openLiveLobbyModal();
+        this.switchLiveTab('join');
+        if (this.inputLiveCode) {
+          this.inputLiveCode.value = lobbyParam!;
+        }
+        this.joinLiveRoom(lobbyParam!);
+      }, 250);
+      return true;
     }
 
     if (!manualInput && (rawParam === 'daily' || modeParam === 'daily')) {
@@ -3541,7 +3773,7 @@ export class SudokuUI {
   }
 
   private updateAiDuelHud() {
-    if (this.game.mode !== 'ai_duel') {
+    if (this.game.mode !== 'ai_duel' && !this.isLiveDuelActive) {
       if (this.aiDuelHud) this.aiDuelHud.classList.add('hidden');
       return;
     }
@@ -3559,15 +3791,17 @@ export class SudokuUI {
       this.playerDuelFill.style.width = `${playerPct}%`;
     }
 
-    const botFilled = Math.min(this.aiBotProgress.filled, this.aiBotProgress.total);
-    const botTotal = this.aiBotProgress.total;
-    const botPct = Math.min(100, Math.round((botFilled / botTotal) * 100));
+    if (!this.isLiveDuelActive) {
+      const botFilled = Math.min(this.aiBotProgress.filled, this.aiBotProgress.total);
+      const botTotal = this.aiBotProgress.total;
+      const botPct = Math.min(100, Math.round((botFilled / botTotal) * 100));
 
-    if (this.aiBotCount) {
-      this.aiBotCount.textContent = `${botFilled}/${botTotal}`;
-    }
-    if (this.aiBotFill) {
-      this.aiBotFill.style.width = `${botPct}%`;
+      if (this.aiBotCount) {
+        this.aiBotCount.textContent = `${botFilled}/${botTotal}`;
+      }
+      if (this.aiBotFill) {
+        this.aiBotFill.style.width = `${botPct}%`;
+      }
     }
   }
 
@@ -3594,6 +3828,312 @@ export class SudokuUI {
       ? `${botName} filled the grid first (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Bot score: ${this.aiBotProgress.score.toLocaleString('en-US')}.`
       : `${botName} первым заполнил сетку (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Счёт бота: ${this.aiBotProgress.score.toLocaleString('ru-RU')}.`;
     this.gameOverModal.classList.remove('hidden');
+  }
+
+  // ==========================================
+  // 1v1 LIVE MULTIPLAYER DUEL SYSTEM
+  // ==========================================
+  private openLiveLobbyModal() {
+    soundManager.playSelect();
+    haptics.light();
+    this.stopLiveLobbyPolling();
+    this.currentLiveLobbyId = null;
+    this.currentLiveLobbyCode = null;
+    this.isLiveDuelActive = false;
+
+    if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.remove('hidden');
+    if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
+    if (this.liveLobbyViewCountdown) this.liveLobbyViewCountdown.classList.add('hidden');
+    if (this.inputLiveCode) this.inputLiveCode.value = '';
+
+    this.switchLiveTab('create');
+    this.liveLobbyModal?.classList.remove('hidden');
+  }
+
+  private switchLiveTab(tab: 'create' | 'join') {
+    if (tab === 'create') {
+      this.tabLiveCreate?.classList.add('active');
+      this.tabLiveJoin?.classList.remove('active');
+      this.livePanelCreate?.classList.remove('hidden');
+      this.livePanelJoin?.classList.add('hidden');
+    } else {
+      this.tabLiveCreate?.classList.remove('active');
+      this.tabLiveJoin?.classList.add('active');
+      this.livePanelCreate?.classList.add('hidden');
+      this.livePanelJoin?.classList.remove('hidden');
+    }
+  }
+
+  private async createLiveRoom() {
+    const isEn = i18n.getLanguage() === 'en';
+    const hostId = SudokuGame.getOrCreatePlayerId();
+    const tgUser = this.getStoredTelegramUser();
+    const hostName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Host' : 'Игрок 1')).replace(/[@_\s]/g, '') || (isEn ? 'Host' : 'Игрок 1');
+
+    try {
+      if (this.btnCreateLiveRoom) this.btnCreateLiveRoom.disabled = true;
+      const res = await fetch(`${getApiBaseUrl()}/lobby/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hostId,
+          hostName,
+          difficulty: this.selectedLiveDiff,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Create room failed');
+      const data = await res.json();
+
+      this.currentLiveLobbyId = data.lobbyId;
+      this.currentLiveLobbyCode = data.code;
+      this.isLiveHost = true;
+      this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
+
+      if (this.liveWaitingCode) this.liveWaitingCode.textContent = data.code;
+      const diffLabels: Record<Difficulty, string> = {
+        easy: isEn ? 'Easy' : 'Легкий',
+        medium: isEn ? 'Medium' : 'Средний',
+        hard: isEn ? 'Hard' : 'Сложный',
+        expert: isEn ? 'Expert' : 'Эксперт',
+      };
+      if (this.liveWaitingDiff) {
+        this.liveWaitingDiff.textContent = `${isEn ? 'Difficulty' : 'Сложность'}: ${diffLabels[data.difficulty as Difficulty] || data.difficulty}`;
+      }
+
+      if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.add('hidden');
+      if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.remove('hidden');
+
+      this.startLiveLobbyPolling();
+    } catch {
+      this.showToast(isEn ? '❌ Could not create room. Check connection.' : '❌ Ошибка создания комнаты. Проверьте сеть.');
+    } finally {
+      if (this.btnCreateLiveRoom) this.btnCreateLiveRoom.disabled = false;
+    }
+  }
+
+  private async joinLiveRoom(inputCode: string) {
+    const isEn = i18n.getLanguage() === 'en';
+    const code = inputCode.trim();
+    if (!code) {
+      this.showToast(isEn ? '⚠️ Enter 4-digit room code' : '⚠️ Введите 4-значный код комнаты');
+      return;
+    }
+
+    const guestId = SudokuGame.getOrCreatePlayerId();
+    const tgUser = this.getStoredTelegramUser();
+    const guestName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Challenger' : 'Игрок 2')).replace(/[@_\s]/g, '') || (isEn ? 'Challenger' : 'Игрок 2');
+
+    try {
+      if (this.btnJoinLiveRoom) this.btnJoinLiveRoom.disabled = true;
+      const res = await fetch(`${getApiBaseUrl()}/lobby/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          guestId,
+          guestName,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Join failed');
+      }
+
+      const data = await res.json();
+      this.currentLiveLobbyId = data.lobbyId;
+      this.currentLiveLobbyCode = data.code;
+      this.isLiveHost = false;
+      this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
+
+      this.liveLobbyModal?.classList.remove('hidden');
+      this.startLiveCountdown(data.hostName, guestName, data.seed, data.difficulty);
+    } catch (err: any) {
+      this.showToast(isEn ? `❌ ${err.message || 'Room not found'}` : `❌ ${err.message || 'Комната не найдена'}`);
+    } finally {
+      if (this.btnJoinLiveRoom) this.btnJoinLiveRoom.disabled = false;
+    }
+  }
+
+  private async copyLiveRoomLink() {
+    const isEn = i18n.getLanguage() === 'en';
+    if (!this.currentLiveLobbyCode) return;
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    const link = `${origin}${pathname}?lobby=${this.currentLiveLobbyCode}`;
+    const text = `${link}`;
+    const copied = await this.copyTextToClipboard(text);
+    if (copied) {
+      this.showToast(isEn ? '📋 Link copied to clipboard!' : '📋 Ссылка на дуэль скопирована в буфер!');
+    }
+  }
+
+  private async shareLiveRoomLink() {
+    const isEn = i18n.getLanguage() === 'en';
+    if (!this.currentLiveLobbyCode) return;
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    const link = `${origin}${pathname}?lobby=${this.currentLiveLobbyCode}`;
+    const text = isEn
+      ? `⚔️ Join my 1v1 Sudoku Pulse live duel!\nRoom code: ${this.currentLiveLobbyCode}\n${link}`
+      : `⚔️ Заходи на живую 1v1 дуэль в Sudoku Pulse!\nКод комнаты: ${this.currentLiveLobbyCode}\n${link}`;
+
+    const tgApp = (window as any).Telegram?.WebApp;
+    if (tgApp?.openTelegramLink) {
+      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+      tgApp.openTelegramLink(tgShareUrl);
+      this.showToast(isEn ? '🔗 Room link copied! Opening Telegram...' : '🔗 Ссылка на комнату скопирована! Открываем Telegram...');
+      await this.copyTextToClipboard(`${text}`);
+      return;
+    }
+
+    const shared = await this.tryNativeShare({ title: 'Sudoku Pulse 1v1', text, url: link });
+    if (!shared) {
+      await this.copyTextToClipboard(`${text}`);
+      this.showToast(isEn ? '📋 Room link copied to clipboard!' : '📋 Ссылка на комнату скопирована в буфер!');
+    }
+  }
+
+  private startLiveCountdown(hostName: string, guestName: string, seed: number, difficulty: Difficulty) {
+    if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.add('hidden');
+    if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
+    if (this.liveLobbyViewCountdown) this.liveLobbyViewCountdown.classList.remove('hidden');
+
+    if (this.liveCdHostName) this.liveCdHostName.textContent = hostName;
+    if (this.liveCdGuestName) this.liveCdGuestName.textContent = guestName;
+
+    let count = 3;
+    if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = count.toString();
+    soundManager.playSelect();
+    haptics.light();
+
+    const cdInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = count.toString();
+        soundManager.playSelect();
+        haptics.light();
+      } else {
+        clearInterval(cdInterval);
+        if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = 'GO!';
+        haptics.fever();
+
+        setTimeout(() => {
+          this.liveLobbyModal?.classList.add('hidden');
+          this.startLiveDuelGame(seed, difficulty);
+        }, 500);
+      }
+    }, 1000);
+  }
+
+  private startLiveDuelGame(seed: number, difficulty: Difficulty) {
+    this.isLiveDuelActive = true;
+    this.stopAiBotDuel();
+    this.game.startNewGame({ difficulty, mode: 'classic', perks: [], seed });
+    this.showScreen('game');
+
+    const isEn = i18n.getLanguage() === 'en';
+    this.showToast(isEn ? `⚔️ Live Duel with ${this.liveOpponentName} started!` : `⚔️ Живая дуэль против ${this.liveOpponentName} началась!`);
+
+    if (this.aiDuelHud) this.aiDuelHud.classList.remove('hidden');
+    if (this.aiBotName) this.aiBotName.textContent = this.liveOpponentName;
+    if (this.aiBotAvatar) this.aiBotAvatar.className = 'ai-bot-avatar smug';
+
+    this.startLiveLobbyPolling();
+  }
+
+  private startLiveLobbyPolling() {
+    this.stopLiveLobbyPolling();
+    const myId = SudokuGame.getOrCreatePlayerId();
+
+    this.livePollInterval = setInterval(async () => {
+      if (!this.currentLiveLobbyId) return;
+
+      try {
+        const url = `${getApiBaseUrl()}/lobby/status?id=${this.currentLiveLobbyId}&playerId=${myId}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const lobby = await res.json();
+
+        // Host waiting: guest joined -> trigger countdown
+        if (this.isLiveHost && lobby.status === 'countdown' && this.liveLobbyViewWaiting && !this.liveLobbyViewWaiting.classList.contains('hidden')) {
+          this.liveOpponentName = lobby.guest?.name || 'Соперник';
+          this.startLiveCountdown(lobby.host?.name || 'Игрок 1', lobby.guest?.name || 'Игрок 2', lobby.seed, lobby.difficulty);
+          return;
+        }
+
+        // In-game live progress update
+        if (this.isLiveDuelActive) {
+          const opponent = this.isLiveHost ? lobby.guest : lobby.host;
+          if (opponent) {
+            const oppFilled = opponent.filled || 0;
+            const oppTotal = opponent.total || 45;
+            const oppPct = Math.min(100, Math.round((oppFilled / oppTotal) * 100));
+
+            if (this.aiBotCount) this.aiBotCount.textContent = `${oppFilled}/${oppTotal}`;
+            if (this.aiBotFill) this.aiBotFill.style.width = `${oppPct}%`;
+          }
+
+          // Check winner / game finish
+          if (lobby.status === 'finished') {
+            this.stopLiveLobbyPolling();
+            const won = (this.isLiveHost && lobby.winner === 'host') || (!this.isLiveHost && lobby.winner === 'guest');
+            if (!won) {
+              this.handleLiveDuelLoss();
+            }
+          }
+        }
+      } catch {}
+    }, 600);
+  }
+
+  private stopLiveLobbyPolling() {
+    if (this.livePollInterval) {
+      clearInterval(this.livePollInterval);
+      this.livePollInterval = null;
+    }
+  }
+
+  private sendLiveDuelProgress() {
+    if (!this.isLiveDuelActive || !this.currentLiveLobbyId) return;
+    const myId = SudokuGame.getOrCreatePlayerId();
+    const counts = this.game.getProgressCounts();
+
+    fetch(`${getApiBaseUrl()}/lobby/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lobbyId: this.currentLiveLobbyId,
+        playerId: myId,
+        action: 'progress',
+        filled: counts.filled,
+        total: counts.totalToFill,
+        mistakes: this.game.mistakesCount,
+        combo: this.game.comboCount,
+        score: this.game.score,
+      }),
+    }).catch(() => {});
+  }
+
+  private handleLiveDuelLoss() {
+    const isEn = i18n.getLanguage() === 'en';
+    soundManager.playError();
+    haptics.error();
+
+    if (this.duelResultTitle) this.duelResultTitle.textContent = isEn ? 'DEFEAT' : 'ПОРАЖЕНИЕ В ДУЭЛИ';
+    if (this.duelResultText) {
+      this.duelResultText.textContent = isEn
+        ? `${this.liveOpponentName} completed the puzzle first!`
+        : `${this.liveOpponentName} первым безошибочно решил сетку!`;
+    }
+    if (this.duelResultBanner) {
+      this.duelResultBanner.className = 'duel-result-banner defeat';
+      this.duelResultBanner.classList.remove('hidden');
+    }
+
+    this.showGameOverModal();
+    this.isLiveDuelActive = false;
   }
 
   private getBoardSkin(): string {
@@ -3623,11 +4163,12 @@ export class SudokuUI {
       pill.classList.toggle('active', currentSkin === skinKey);
       pill.classList.toggle('locked', !isUnlocked);
 
+      const skinName = isEn ? req.nameEn : req.nameRu;
       const leagueName = isEn ? req.leagueEn : req.leagueRu;
       if (isUnlocked) {
-        pill.textContent = `${req.icon} ${req.name}`;
+        pill.textContent = `${req.icon} ${skinName}`;
       } else {
-        pill.textContent = `🔒 ${req.name} (${leagueName})`;
+        pill.textContent = `🔒 ${skinName} (${leagueName})`;
       }
     });
   }
@@ -3972,26 +4513,26 @@ export class SudokuUI {
         break;
       }
       case 2: {
-        this.tutorialTitle.textContent = isEn ? '🌑 Dark Sector: Fog of War' : '🌑 Dark Sector: Туман войны';
+        this.tutorialTitle.textContent = isEn ? '🌑 Dark Sector: Eclipse Zone' : '🌑 Тёмный сектор: Зона затмения';
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
             <div style="display:grid;grid-template-columns:repeat(3, 38px);grid-template-rows:repeat(3, 38px);gap:4px;padding:6px;background:#0d1117;border:1px solid #ffaa00;border-radius:10px;">
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
               <div style="display:flex;align-items:center;justify-content:center;color:#ffaa00;background:rgba(255,170,0,0.15);border:1px solid #ffaa00;border-radius:6px;font-weight:900;">4</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
               <div style="display:flex;align-items:center;justify-content:center;color:#00f3ff;background:rgba(0,243,255,0.2);border:1px solid #00f3ff;border-radius:6px;font-weight:900;">7</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌫️</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
             </div>
             <span style="font-size:12px;color:rgba(255,255,255,0.7);">${isEn ? '📡 Radar pulse illuminates neighboring cells' : '📡 Радарный импульс подсвечивает соседние клетки'}</span>
           </div>
         `;
         this.tutorialDescription.textContent = isEn
-          ? 'In Dark Sector mode, numbers are shrouded in dense fog. Fill cells or deploy the 📡 Radar Scanner to temporarily unveil surrounding cells. Blind deduction earns huge bonus rating!'
-          : 'В режиме Тёмного Сектора поле окутано туманом. Заполнение клеток и использование 📡 Сканера временно освещают соседние клетки. Дедукция вслепую приносит колоссальный бонусный рейтинг!';
+          ? 'In Dark Sector mode, numbers are shrouded in deep darkness. Fill cells or deploy the 📡 Radar Scanner to temporarily unveil surrounding cells (3s echo). Blind deduction earns huge bonus rating!'
+          : 'В режиме Тёмного Сектора поле окутано тьмой. Заполнение клеток и использование 📡 Сканера временно освещают соседние клетки (эхо 3 сек). Дедукция вслепую приносит колоссальный бонусный рейтинг!';
         break;
       }
       case 3: {

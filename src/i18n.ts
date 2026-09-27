@@ -27,12 +27,14 @@ const RU: TranslationDict = {
   mode_select_title: 'Выберите режим',
   mode_classic_title: 'Классический',
   mode_classic_desc: 'Чистое судоку с комбо-множителем очков и режимом Fever',
-  mode_fog_title: 'Тёмный сектор',
+  mode_fog_title: 'Тёмный сектор: Зона затмения',
   mode_fog_desc: 'Матрица во тьме! Луч сканера (эхо 3 сек) и маяки-созвездия освещают сектор',
   mode_run_title: 'Pulse Run (Забег)',
   mode_run_desc: 'Серия из уровней с выбором усиливающих перков перед стартом',
   mode_duel_title: 'Pulse AI Дуэль',
   mode_duel_desc: 'Битва в реальном времени против виртуального ИИ-соперника!',
+  mode_live_duel_title: '1v1 Онлайн Дуэль',
+  mode_live_duel_desc: 'Живая дуэль с другом в реальном времени! Создайте лобби или подключитесь по коду',
   diff_title: 'Сложность',
   diff_easy: 'Легкий',
   diff_medium: 'Средний',
@@ -41,6 +43,20 @@ const RU: TranslationDict = {
   btn_choose_perk: 'Выбрать перк →',
   btn_start_game: 'Начать игру →',
   mode_enter_challenge_btn: 'Ввести код вызова друга',
+  live_lobby_title: '1v1 Онлайн Дуэль',
+  live_lobby_subtitle: 'Сразитесь с другом в реальном времени на одинаковой сетке!',
+  live_tab_create: '⚡ Создать лобби',
+  live_tab_join: '🔑 Войти по коду',
+  live_btn_create: '🚀 Создать комнату',
+  live_enter_code_desc: 'Введите 4-значный код комнаты от друга:',
+  live_btn_join: '⚔️ Подключиться к дуэли',
+  live_room_code_label: 'Код вашей комнаты:',
+  live_copy_link: '📋 Скопировать ссылку',
+  live_share_link: '📤 Поделиться',
+  live_waiting_opponent: 'Ожидание подключения соперника...',
+  live_cancel_btn: 'Отмена',
+  live_starting: 'Приготовьтесь к старту!',
+  live_duel_hud_opponent: 'Соперник',
 
   // Challenge modal
   challenge_enter_title: 'Код вызова друга',
@@ -148,12 +164,14 @@ const EN: TranslationDict = {
   mode_select_title: 'Select Game Mode',
   mode_classic_title: 'Classic',
   mode_classic_desc: 'Pure sudoku with dynamic combo scoring and Fever mode',
-  mode_fog_title: 'Dark Sector',
+  mode_fog_title: 'Dark Sector: Eclipse Zone',
   mode_fog_desc: 'Grid veiled in darkness! Scanner echo beam (3s) and constellation beacons illuminate cells',
   mode_run_title: 'Pulse Run',
   mode_run_desc: 'Progressive stage gauntlet with powerful cyber perk upgrades',
   mode_duel_title: 'Pulse AI Duel',
   mode_duel_desc: 'Real-time cyber battle against an adaptive virtual AI bot!',
+  mode_live_duel_title: '1v1 Online Duel',
+  mode_live_duel_desc: 'Live real-time duel with a friend! Create a lobby or join by code',
   diff_title: 'Difficulty',
   diff_easy: 'Easy',
   diff_medium: 'Medium',
@@ -162,6 +180,20 @@ const EN: TranslationDict = {
   btn_choose_perk: 'Select Perk →',
   btn_start_game: 'Start Game →',
   mode_enter_challenge_btn: 'Enter Friend Duel Code',
+  live_lobby_title: '1v1 Online Duel',
+  live_lobby_subtitle: 'Battle a friend in real time on the exact same grid!',
+  live_tab_create: '⚡ Create Lobby',
+  live_tab_join: '🔑 Join by Code',
+  live_btn_create: '🚀 Create Room',
+  live_enter_code_desc: 'Enter 4-digit room code from your friend:',
+  live_btn_join: '⚔️ Join Duel',
+  live_room_code_label: 'Your Room Code:',
+  live_copy_link: '📋 Copy Link',
+  live_share_link: '📤 Share',
+  live_waiting_opponent: 'Waiting for opponent to join...',
+  live_cancel_btn: 'Cancel',
+  live_starting: 'Get ready for battle!',
+  live_duel_hud_opponent: 'Opponent',
 
   // Challenge modal
   challenge_enter_title: 'Friend Challenge Code',
@@ -409,10 +441,26 @@ class I18nManager {
       }
     } catch {}
 
+    // Check Yandex Games environment if already loaded
+    const yLang = (window as any).ysdk?.environment?.i18n?.lang || (window as any).YaGames?.environment?.i18n?.lang;
+    if (yLang && typeof yLang === 'string') {
+      const lower = yLang.toLowerCase();
+      this.currentLang = (lower.startsWith('ru') || lower.startsWith('be') || lower.startsWith('kk') || lower.startsWith('uk') || lower.startsWith('uz')) ? 'ru' : 'en';
+      return this.currentLang;
+    }
+
+    // Check Telegram WebApp user language
+    const tgLang = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.language_code : null;
+    if (tgLang && typeof tgLang === 'string') {
+      const lower = tgLang.toLowerCase();
+      this.currentLang = (lower.startsWith('ru') || lower.startsWith('be') || lower.startsWith('kk') || lower.startsWith('uk')) ? 'ru' : 'en';
+      return this.currentLang;
+    }
+
     // Check navigator / system
     if (typeof navigator !== 'undefined') {
       const navLang = (navigator.language || (navigator as any).userLanguage || '').toLowerCase();
-      if (navLang.startsWith('ru') || navLang.startsWith('be') || navLang.startsWith('kk') || navLang.startsWith('uk')) {
+      if (navLang.startsWith('ru') || navLang.startsWith('be') || navLang.startsWith('kk') || navLang.startsWith('uk') || navLang.startsWith('uz')) {
         this.currentLang = 'ru';
       } else {
         this.currentLang = 'en';
@@ -422,6 +470,17 @@ class I18nManager {
     }
 
     return this.currentLang;
+  }
+
+  public applyPlatformDetectedLanguage(langCode: string): void {
+    try {
+      if (localStorage.getItem('sudoku_pulse_lang')) return;
+    } catch {}
+    const lower = (langCode || '').toLowerCase();
+    const resolved: Language = (lower.startsWith('ru') || lower.startsWith('be') || lower.startsWith('kk') || lower.startsWith('uk') || lower.startsWith('uz')) ? 'ru' : 'en';
+    if (this.currentLang !== resolved) {
+      this.setLanguage(resolved);
+    }
   }
 
   public getLanguage(): Language {

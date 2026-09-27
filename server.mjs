@@ -163,6 +163,36 @@ function evaluateAchievements(stats) {
   return stats.unlockedAchievements;
 }
 
+// ==========================================
+// 1v1 LIVE MULTIPLAYER LOBBY SYSTEM
+// ==========================================
+const liveLobbies = new Map();
+
+function generateLobbyCode() {
+  for (let i = 0; i < 50; i++) {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    let collision = false;
+    for (const lobby of liveLobbies.values()) {
+      if (lobby.code === code && (lobby.status === 'waiting' || lobby.status === 'countdown')) {
+        collision = true;
+        break;
+      }
+    }
+    if (!collision) return code;
+  }
+  return Math.floor(10000 + Math.random() * 90000).toString();
+}
+
+function cleanupOldLobbies() {
+  const now = Date.now();
+  for (const [id, lobby] of liveLobbies.entries()) {
+    if (now - lobby.createdAt > 30 * 60 * 1000 || (lobby.status === 'finished' && now - (lobby.finishedAt || 0) > 5 * 60 * 1000)) {
+      liveLobbies.delete(id);
+    }
+  }
+}
+setInterval(cleanupOldLobbies, 60 * 1000);
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
@@ -258,6 +288,251 @@ const server = http.createServer((req, res) => {
         } catch {}
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Invalid payload' }));
+      });
+      return;
+    }
+  }
+
+  // 1v1 Live Multiplayer Lobby API
+  if (pathname.includes('/api/lobby/')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    // 1. Create Lobby
+    if (pathname.endsWith('/api/lobby/create') && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const hostId = String(payload.hostId || 'p_' + crypto.randomBytes(4).toString('hex'));
+          const hostName = String(payload.hostName || 'Игрок 1').slice(0, 18);
+          const difficulty = ['easy', 'medium', 'hard', 'expert'].includes(payload.difficulty) ? payload.difficulty : 'medium';
+          const seed = Math.floor(100000 + Math.random() * 900000);
+          const code = generateLobbyCode();
+          const lobbyId = 'lob_' + crypto.randomBytes(6).toString('hex');
+
+          const lobby = {
+            id: lobbyId,
+            code,
+            seed,
+            difficulty,
+            createdAt: Date.now(),
+            status: 'waiting', // waiting, countdown, in_game, finished, abandoned
+            countdownStartedAt: null,
+            startedAt: null,
+            finishedAt: null,
+            winner: null,
+            abandonedBy: null,
+            host: {
+              id: hostId,
+              name: hostName,
+              filled: 0,
+              total: 45,
+              mistakes: 0,
+              combo: 1,
+              score: 0,
+              finished: false,
+              finishTime: 0,
+              lastPing: Date.now(),
+            },
+            guest: null,
+          };
+
+          liveLobbies.set(lobbyId, lobby);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: true, lobbyId, code, seed, difficulty, hostName }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
+      });
+      return;
+    }
+
+    // 2. Join Lobby by Code or ID
+    if (pathname.endsWith('/api/lobby/join') && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const codeInput = String(payload.code || '').trim();
+          const guestId = String(payload.guestId || 'p_' + crypto.randomBytes(4).toString('hex'));
+          const guestName = String(payload.guestName || 'Игрок 2').slice(0, 18);
+
+          let targetLobby = null;
+          for (const l of liveLobbies.values()) {
+            if ((l.code === codeInput || l.id === codeInput) && l.status === 'waiting') {
+              targetLobby = l;
+              break;
+            }
+          }
+
+          if (!targetLobby) {
+            res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Комната не найдена или уже заполнена' }));
+            return;
+          }
+
+          targetLobby.guest = {
+            id: guestId,
+            name: guestName,
+            filled: 0,
+            total: targetLobby.host.total || 45,
+            mistakes: 0,
+            combo: 1,
+            score: 0,
+            finished: false,
+            finishTime: 0,
+            lastPing: Date.now(),
+          };
+          targetLobby.status = 'countdown';
+          targetLobby.countdownStartedAt = Date.now();
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            success: true,
+            lobbyId: targetLobby.id,
+            code: targetLobby.code,
+            seed: targetLobby.seed,
+            difficulty: targetLobby.difficulty,
+            hostName: targetLobby.host.name,
+            guestName,
+          }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
+      });
+      return;
+    }
+
+    // 3. Lobby Status (Polling)
+    if (pathname.endsWith('/api/lobby/status') && req.method === 'GET') {
+      const lobbyId = parsedUrl.searchParams.get('id');
+      const playerId = parsedUrl.searchParams.get('playerId');
+      const lobby = liveLobbies.get(lobbyId);
+
+      if (!lobby) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Lobby not found' }));
+        return;
+      }
+
+      const now = Date.now();
+      const isHost = lobby.host && lobby.host.id === playerId;
+      const isGuest = lobby.guest && lobby.guest.id === playerId;
+
+      if (isHost) lobby.host.lastPing = now;
+      if (isGuest) lobby.guest.lastPing = now;
+
+      // Handle countdown transition
+      if (lobby.status === 'countdown' && lobby.countdownStartedAt) {
+        if (now - lobby.countdownStartedAt >= 3200) {
+          lobby.status = 'in_game';
+          lobby.startedAt = now;
+        }
+      }
+
+      // Check abandonment
+      if (lobby.status === 'in_game') {
+        if (isHost && lobby.guest && now - lobby.guest.lastPing > 15000 && !lobby.guest.finished) {
+          lobby.status = 'finished';
+          lobby.winner = 'host';
+          lobby.abandonedBy = 'guest';
+        } else if (isGuest && lobby.host && now - lobby.host.lastPing > 15000 && !lobby.host.finished) {
+          lobby.status = 'finished';
+          lobby.winner = 'guest';
+          lobby.abandonedBy = 'host';
+        }
+      }
+
+      const countdownRemainingMs = lobby.countdownStartedAt ? Math.max(0, 3200 - (now - lobby.countdownStartedAt)) : 0;
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        id: lobby.id,
+        code: lobby.code,
+        status: lobby.status,
+        difficulty: lobby.difficulty,
+        seed: lobby.seed,
+        countdownRemainingMs,
+        host: lobby.host,
+        guest: lobby.guest,
+        winner: lobby.winner,
+        abandonedBy: lobby.abandonedBy || null,
+        isHost,
+        isGuest,
+      }));
+      return;
+    }
+
+    // 4. Lobby Action / Progress update
+    if (pathname.endsWith('/api/lobby/action') && req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const lobby = liveLobbies.get(payload.lobbyId);
+          if (!lobby) {
+            res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Lobby not found' }));
+            return;
+          }
+
+          const isHost = lobby.host && lobby.host.id === payload.playerId;
+          const playerObj = isHost ? lobby.host : (lobby.guest && lobby.guest.id === payload.playerId ? lobby.guest : null);
+
+          if (!playerObj) {
+            res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Player not in lobby' }));
+            return;
+          }
+
+          playerObj.lastPing = Date.now();
+
+          if (payload.action === 'progress') {
+            if (typeof payload.filled === 'number') playerObj.filled = payload.filled;
+            if (typeof payload.total === 'number') playerObj.total = payload.total;
+            if (typeof payload.mistakes === 'number') playerObj.mistakes = payload.mistakes;
+            if (typeof payload.combo === 'number') playerObj.combo = payload.combo;
+            if (typeof payload.score === 'number') playerObj.score = payload.score;
+          } else if (payload.action === 'finish') {
+            playerObj.finished = true;
+            playerObj.finishTime = Number(payload.time) || 0;
+            playerObj.score = Number(payload.score) || playerObj.score;
+            playerObj.filled = playerObj.total;
+
+            if (!lobby.winner) {
+              lobby.winner = isHost ? 'host' : 'guest';
+              lobby.status = 'finished';
+              lobby.finishedAt = Date.now();
+            }
+          } else if (payload.action === 'leave') {
+            lobby.status = 'finished';
+            lobby.winner = isHost ? 'guest' : 'host';
+            lobby.abandonedBy = isHost ? 'host' : 'guest';
+            lobby.finishedAt = Date.now();
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: true, status: lobby.status, winner: lobby.winner }));
+          return;
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid payload' }));
+        }
       });
       return;
     }

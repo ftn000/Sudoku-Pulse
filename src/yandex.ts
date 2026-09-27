@@ -101,12 +101,26 @@ export class YandexGamesBridge {
 
         // Pre-initialize player
         await this.initPlayer();
+
+        const detectedLang = this.getLanguage();
+        if (detectedLang) {
+          this.onLanguageDetectedCallback?.(detectedLang);
+        }
+
         return true;
       } catch (err) {
         console.warn('[YandexGames] YaGames.init error:', err);
       }
     }
     return false;
+  }
+
+  private onLanguageDetectedCallback?: (lang: string) => void;
+
+  public onLanguageDetected(cb: (lang: string) => void) {
+    this.onLanguageDetectedCallback = cb;
+    const current = this.getLanguage();
+    if (current) cb(current);
   }
 
   public isYandex(): boolean {
@@ -124,6 +138,9 @@ export class YandexGamesBridge {
   public getLanguage(): string {
     if (this.ysdk?.environment?.i18n?.lang) {
       return this.ysdk.environment.i18n.lang.toLowerCase();
+    }
+    if (this.ysdk?.environment?.browser?.lang) {
+      return this.ysdk.environment.browser.lang.toLowerCase();
     }
     return '';
   }
