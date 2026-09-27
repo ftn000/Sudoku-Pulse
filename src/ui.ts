@@ -878,6 +878,15 @@ export class SudokuUI {
       });
     }
 
+    if (this.menuLeagueBadge) {
+      this.menuLeagueBadge.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.showStatsModal();
+        this.switchStatsTab('profile');
+      });
+    }
+
     const btnYandexAuth = document.getElementById('btn-yandex-auth');
     if (btnYandexAuth) {
       btnYandexAuth.addEventListener('click', () => {
