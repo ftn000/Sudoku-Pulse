@@ -840,6 +840,12 @@ export class SudokuUI {
     this.screenPerks.classList.toggle('hidden', screen !== 'perk_select');
     this.screenGame.classList.toggle('hidden', screen !== 'game');
 
+    document.body.classList.toggle('screen-is-game', screen === 'game');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    if (this.screenGame) this.screenGame.scrollTop = 0;
+
     this.updateScreenBackButton();
 
     if (screen === 'menu') {
@@ -853,6 +859,11 @@ export class SudokuUI {
       yandexBridge.gameplayStart();
       this.startTimer();
       this.render();
+      // Ensure board and digits are centered into view immediately on mobile
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+        if (this.screenGame) this.screenGame.scrollTop = 0;
+      });
     } else {
       yandexBridge.gameplayStop();
       this.stopTimer();
