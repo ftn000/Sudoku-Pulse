@@ -73,6 +73,23 @@ declare global {
 export class HapticsManager {
   private hasVibration: boolean = typeof navigator !== 'undefined' && 'vibrate' in navigator;
   private currentBackHandler: (() => void) | null = null;
+  public intensity: 'off' | 'soft' | 'medium' | 'strong' = 'medium';
+
+  constructor() {
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('sudoku_haptics_mode') : null;
+    if (saved && ['off', 'soft', 'medium', 'strong'].includes(saved)) {
+      this.intensity = saved as any;
+    }
+  }
+
+  public setIntensity(mode: 'off' | 'soft' | 'medium' | 'strong') {
+    this.intensity = mode;
+    try { localStorage.setItem('sudoku_haptics_mode', mode); } catch {}
+  }
+
+  public getIntensity(): 'off' | 'soft' | 'medium' | 'strong' {
+    return this.intensity;
+  }
 
   public initTelegram() {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -120,6 +137,7 @@ export class HapticsManager {
   }
 
   public async selection() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.selectionChanged(); } catch {}
       return;
@@ -129,25 +147,31 @@ export class HapticsManager {
       return;
     } catch {}
     if (this.hasVibration) {
-      try { navigator.vibrate(8); } catch {}
+      const ms = this.intensity === 'soft' ? 5 : this.intensity === 'strong' ? 14 : 8;
+      try { navigator.vibrate(ms); } catch {}
     }
   }
 
   public async light() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
-      try { window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); } catch {}
+      const style = this.intensity === 'strong' ? 'medium' : 'light';
+      try { window.Telegram.WebApp.HapticFeedback.impactOccurred(style); } catch {}
       return;
     }
     try {
-      await Haptics.impact({ style: ImpactStyle.Light });
+      const style = this.intensity === 'strong' ? ImpactStyle.Medium : ImpactStyle.Light;
+      await Haptics.impact({ style });
       return;
     } catch {}
     if (this.hasVibration) {
-      try { navigator.vibrate(12); } catch {}
+      const ms = this.intensity === 'soft' ? 8 : this.intensity === 'strong' ? 20 : 12;
+      try { navigator.vibrate(ms); } catch {}
     }
   }
 
   public async medium() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch {}
       return;
@@ -157,11 +181,13 @@ export class HapticsManager {
       return;
     } catch {}
     if (this.hasVibration) {
-      try { navigator.vibrate(20); } catch {}
+      const ms = this.intensity === 'soft' ? 12 : this.intensity === 'strong' ? 30 : 20;
+      try { navigator.vibrate(ms); } catch {}
     }
   }
 
   public async heavy() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
       return;
@@ -171,11 +197,13 @@ export class HapticsManager {
       return;
     } catch {}
     if (this.hasVibration) {
-      try { navigator.vibrate(35); } catch {}
+      const ms = this.intensity === 'soft' ? 20 : this.intensity === 'strong' ? 50 : 35;
+      try { navigator.vibrate(ms); } catch {}
     }
   }
 
   public async success() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {}
       return;
@@ -190,6 +218,7 @@ export class HapticsManager {
   }
 
   public async error() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('error'); } catch {}
       return;
@@ -204,6 +233,7 @@ export class HapticsManager {
   }
 
   public async fever() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy'); } catch {}
       return;
@@ -218,6 +248,7 @@ export class HapticsManager {
   }
 
   public async victory() {
+    if (this.intensity === 'off') return;
     if (window.Telegram?.WebApp?.HapticFeedback) {
       try { window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); } catch {}
       return;

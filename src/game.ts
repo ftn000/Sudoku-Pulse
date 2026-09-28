@@ -1418,6 +1418,13 @@ export class SudokuGame {
           modified = true;
         }
 
+        if (!parsed.duelElo) {
+          parsed.duelElo = 1000;
+          parsed.duelWins = parsed.duelWins || 0;
+          parsed.duelLosses = parsed.duelLosses || 0;
+          modified = true;
+        }
+
         if (modified) {
           localStorage.setItem(STATS_KEY, JSON.stringify(parsed));
         }
@@ -1437,6 +1444,11 @@ export class SudokuGame {
       flawlessWins: 0,
       darkSectorWins: 0,
       expertDarkSectorWins: 0,
+      duelElo: 1000,
+      duelWins: 0,
+      duelLosses: 0,
+      dailyLoginDay: 1,
+      dailyLoginLastClaimDate: null,
       unlockedAchievements: [],
     };
   }
@@ -1466,6 +1478,11 @@ export class SudokuGame {
       darkSectorWins: Math.max(current.darkSectorWins || 0, incoming.darkSectorWins || 0),
       expertDarkSectorWins: Math.max(current.expertDarkSectorWins || 0, incoming.expertDarkSectorWins || 0),
       highScore: Math.max(current.highScore || 0, incoming.highScore || 0),
+      duelElo: Math.max(current.duelElo || 1000, incoming.duelElo || 1000),
+      duelWins: Math.max(current.duelWins || 0, incoming.duelWins || 0),
+      duelLosses: Math.max(current.duelLosses || 0, incoming.duelLosses || 0),
+      dailyLoginDay: Math.max(current.dailyLoginDay || 1, incoming.dailyLoginDay || 1),
+      dailyLoginLastClaimDate: current.dailyLoginLastClaimDate || incoming.dailyLoginLastClaimDate || null,
       fastestWinSeconds: (current.fastestWinSeconds && incoming.fastestWinSeconds)
         ? Math.min(current.fastestWinSeconds, incoming.fastestWinSeconds)
         : (current.fastestWinSeconds ?? incoming.fastestWinSeconds ?? null),

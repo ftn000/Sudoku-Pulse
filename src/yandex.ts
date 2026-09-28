@@ -46,6 +46,10 @@ export interface YandexSDK {
     canReview: () => Promise<{ value: boolean; reason?: string }>;
     requestReview: () => Promise<{ value: boolean; reason?: string }>;
   };
+  shortcut?: {
+    canShowPrompt: () => Promise<{ canShow: boolean }>;
+    showPrompt: () => Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  };
   getPlayer: (options?: { scopes?: boolean }) => Promise<YandexPlayer>;
   getLeaderboards: () => Promise<any>;
   on?: (event: string, callback: () => void) => void;
@@ -290,6 +294,27 @@ export class YandexGamesBridge {
       return success;
     }
     return false;
+  }
+
+  public async canShowShortcut(): Promise<boolean> {
+    if (!this.ysdk?.shortcut) return false;
+    try {
+      const res = await this.ysdk.shortcut.canShowPrompt();
+      return !!res.canShow;
+    } catch {
+      return false;
+    }
+  }
+
+  public async showShortcutPrompt(): Promise<boolean> {
+    if (!this.ysdk?.shortcut) return false;
+    try {
+      const res = await this.ysdk.shortcut.showPrompt();
+      return res.outcome === 'accepted';
+    } catch (e) {
+      console.warn('[YandexGames] showPrompt failed:', e);
+      return false;
+    }
   }
 
   public gameplayStart(): void {

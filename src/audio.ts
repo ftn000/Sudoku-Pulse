@@ -5,11 +5,19 @@ export class SoundManager {
   private feverStep: number = 0;
 
   public soundTheme: string = 'neon';
+  private sfxVolume: number = 0.8;
+  private musicVolume: number = 0.7;
+  private sfxGainNode: GainNode | null = null;
+  private musicGainNode: GainNode | null = null;
 
   constructor() {
     const saved = localStorage.getItem('sudoku_sound_enabled');
     this.enabled = saved !== null ? saved === 'true' : true;
     this.soundTheme = localStorage.getItem('sudoku_board_skin') || 'neon';
+    const savedSfx = localStorage.getItem('sudoku_sfx_volume');
+    this.sfxVolume = savedSfx !== null ? Math.max(0, Math.min(1, parseFloat(savedSfx))) : 0.8;
+    const savedMusic = localStorage.getItem('sudoku_music_volume');
+    this.musicVolume = savedMusic !== null ? Math.max(0, Math.min(1, parseFloat(savedMusic))) : 0.7;
   }
 
   public setSoundTheme(theme: string) {
@@ -18,6 +26,38 @@ export class SoundManager {
 
   public isSoundEnabled(): boolean {
     return this.enabled;
+  }
+
+  public getSfxVolume(): number {
+    return this.sfxVolume;
+  }
+
+  public setSfxVolume(val: number) {
+    this.sfxVolume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('sudoku_sfx_volume', this.sfxVolume.toString());
+    if (this.sfxGainNode && this.ctx) {
+      try { this.sfxGainNode.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime); } catch {}
+    }
+  }
+
+  public getMusicVolume(): number {
+    return this.musicVolume;
+  }
+
+  public setMusicVolume(val: number) {
+    this.musicVolume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('sudoku_music_volume', this.musicVolume.toString());
+    if (this.musicGainNode && this.ctx) {
+      try { this.musicGainNode.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime); } catch {}
+    }
+  }
+
+  public getSfxDestination(): AudioNode {
+    return this.sfxGainNode || this.ctx!.destination;
+  }
+
+  public getMusicDestination(): AudioNode {
+    return this.musicGainNode || this.ctx!.destination;
   }
 
   public playBotBeep() {
@@ -32,7 +72,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.04, now + idx * 0.045);
       gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.04);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + idx * 0.045);
       osc.stop(now + idx * 0.045 + 0.045);
     });
@@ -49,6 +89,16 @@ export class SoundManager {
       }
       if (this.ctx && this.ctx.state === 'suspended') {
         this.ctx.resume();
+      }
+      if (this.ctx && !this.sfxGainNode) {
+        this.sfxGainNode = this.ctx.createGain();
+        this.sfxGainNode.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+        this.sfxGainNode.connect(this.ctx.destination);
+      }
+      if (this.ctx && !this.musicGainNode) {
+        this.musicGainNode = this.ctx.createGain();
+        this.musicGainNode.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
+        this.musicGainNode.connect(this.ctx.destination);
       }
       return this.ctx;
     } catch {
@@ -167,7 +217,7 @@ export class SoundManager {
     }
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getSfxDestination());
     osc.start();
     osc.stop(ctx.currentTime + 0.07);
   }
@@ -227,7 +277,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(volume, now + i * 0.04);
       gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + noteDuration);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + i * 0.04);
       osc.stop(now + i * 0.04 + noteDuration + 0.02);
     });
@@ -245,7 +295,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.08, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now);
       osc.stop(now + 0.22);
     });
@@ -263,7 +313,7 @@ export class SoundManager {
     gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getSfxDestination());
     osc.start(now);
     osc.stop(now + 0.25);
   }
@@ -281,7 +331,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.1, now + idx * 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + idx * 0.05);
       osc.stop(now + idx * 0.05 + 0.22);
     });
@@ -310,7 +360,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.04, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getMusicDestination());
       osc.start(now);
       osc.stop(now + 0.095);
     }, stepDuration * 1000);
@@ -344,7 +394,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.12, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now);
         osc.stop(now + 0.52);
       });
@@ -358,7 +408,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.1, now + idx * 0.045);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.045 + 0.35);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now + idx * 0.045);
         osc.stop(now + idx * 0.045 + 0.36);
       });
@@ -373,7 +423,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now);
         osc.stop(now + 0.36);
       });
@@ -387,7 +437,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.09, now + idx * 0.05);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.28);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now + idx * 0.05);
         osc.stop(now + idx * 0.05 + 0.29);
       });
@@ -406,7 +456,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.09, now + idx * 0.06);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.22);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now + idx * 0.06);
         osc.stop(now + idx * 0.06 + 0.23);
       });
@@ -433,7 +483,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.08, now + c.time);
         gain.gain.exponentialRampToValueAtTime(0.001, now + c.time + 0.4);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now + c.time);
         osc.stop(now + c.time + 0.42);
       });
@@ -454,7 +504,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.09, now + idx * 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.35);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + idx * 0.05);
       osc.stop(now + idx * 0.05 + 0.38);
     });
@@ -467,7 +517,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.07, now + 0.25);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25 + 0.5);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + 0.25);
       osc.stop(now + 0.25 + 0.52);
     });
@@ -490,7 +540,7 @@ export class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getSfxDestination());
     osc.start(now);
     osc.stop(now + 0.095);
 
@@ -502,7 +552,7 @@ export class SoundManager {
     clickGain.gain.setValueAtTime(0.04, now);
     clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
     click.connect(clickGain);
-    clickGain.connect(ctx.destination);
+    clickGain.connect(this.getSfxDestination());
     click.start(now);
     click.stop(now + 0.025);
   }
@@ -521,7 +571,7 @@ export class SoundManager {
     bassGain.gain.setValueAtTime(0.14, now);
     bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
     bass.connect(bassGain);
-    bassGain.connect(ctx.destination);
+    bassGain.connect(this.getSfxDestination());
     bass.start(now);
     bass.stop(now + 0.36);
 
@@ -535,7 +585,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.07, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now);
       osc.stop(now + 0.4);
     });
@@ -557,7 +607,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.07, now + idx * 0.04);
       gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.22);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(now + idx * 0.04);
       osc.stop(now + idx * 0.04 + 0.23);
     });
@@ -572,7 +622,7 @@ export class SoundManager {
       gain.gain.setValueAtTime(0.08, chordTime);
       gain.gain.exponentialRampToValueAtTime(0.001, chordTime + 0.65);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getSfxDestination());
       osc.start(chordTime);
       osc.stop(chordTime + 0.68);
     });
@@ -601,7 +651,7 @@ export class SoundManager {
         gain.gain.setValueAtTime(0.06, now + step.time);
         gain.gain.exponentialRampToValueAtTime(0.001, now + step.time + 0.32);
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.getSfxDestination());
         osc.start(now + step.time);
         osc.stop(now + step.time + 0.34);
       });
@@ -621,7 +671,7 @@ export class SoundManager {
     gain.gain.setValueAtTime(0.08, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getSfxDestination());
     osc.start(now);
     osc.stop(now + 0.19);
   }

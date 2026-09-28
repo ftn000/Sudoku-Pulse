@@ -107,6 +107,7 @@ export interface PlayerStats {
   totalScore: number;
   dailyStreak: number;
   lastDailyDate: string | null;
+  fastestWinSeconds?: number | null;
   bestRunStage?: number;
   bestRunScore?: number;
   surgeCaptured?: number;
@@ -117,9 +118,13 @@ export interface PlayerStats {
   darkSectorWins?: number;
   expertDarkSectorWins?: number;
   highScore?: number;
-  fastestWinSeconds?: number | null;
   aiDuelWins?: number;
   classicWins?: number;
+  duelElo?: number;
+  duelWins?: number;
+  duelLosses?: number;
+  dailyLoginDay?: number;
+  dailyLoginLastClaimDate?: string | null;
   unlockedAchievements?: string[];
   seasonBadges?: SeasonBadge[];
 }

@@ -72,6 +72,23 @@
         <span class="badge-streak" id="menu-ach-counter" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.35);">0/24</span>
       </button>
 
+      <button id="btn-menu-daily-reward" class="btn-menu-card" style="border-color: rgba(245, 158, 11, 0.35);">
+        <span class="btn-icon">🎁</span>
+        <span class="btn-text">
+          <strong data-i18n="menu_daily_rewards">Награды за вход</strong>
+          <small id="menu-daily-reward-meta" data-i18n="menu_daily_rewards_sub">7 дней ценных бонусов</small>
+        </span>
+        <span class="badge-streak" id="menu-daily-reward-badge" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">D1</span>
+      </button>
+
+      <button id="btn-menu-shortcut" class="btn-menu-card hidden" style="border-color: rgba(56, 189, 248, 0.35);">
+        <span class="btn-icon">📲</span>
+        <span class="btn-text">
+          <strong data-i18n="menu_shortcut_title">Добавить на рабочий стол</strong>
+          <small data-i18n="menu_shortcut_reward">Игра в 1 клик • Бонус: +2 подсказки</small>
+        </span>
+      </button>
+
       <div class="menu-grid-row">
         <button id="btn-menu-stats" class="btn-menu-secondary">
           <span>📊</span> <span data-i18n="menu_stats">Рекорды</span>
@@ -376,6 +393,7 @@
       <div id="duel-result-banner" class="hidden" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 0.88rem; text-align: center; color: var(--text-main);">
         <div id="duel-result-title" style="font-weight: 700; color: #38bdf8; margin-bottom: 2px;" data-i18n="duel_result_title">⚔️ Результат дуэли</div>
         <div id="duel-result-text" data-i18n="duel_result_beat">Вы побили рекорд соперника!</div>
+        <div id="duel-win-elo-box" class="hidden" style="font-size: 0.92rem; font-weight: 800; color: #4ade80; margin-top: 6px;"></div>
         <div id="duel-rematch-container" class="duel-rematch-container hidden" style="margin-top: 8px;">
           <button id="btn-duel-rematch" class="btn-primary btn-block" style="padding: 10px; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #10b981); box-shadow: 0 0 12px rgba(0,243,255,0.35); font-size: 0.9rem;" data-i18n="live_btn_rematch">
             🔄 Реванш (Новый раунд)
@@ -420,6 +438,7 @@
       <p id="gameover-subtitle" style="color: var(--text-muted); font-size: 0.95rem;" data-i18n="gameover_subtitle">Вы совершили максимум ошибок.</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div id="duel-loss-elo-box" class="hidden" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius); padding: 8px 12px; font-size: 0.9rem; text-align: center; color: #f87171; font-weight: 700;"></div>
         <div id="duel-loss-rematch-container" class="duel-rematch-container hidden">
           <button id="btn-duel-loss-rematch" class="btn-primary btn-block" style="padding: 10px; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #10b981); box-shadow: 0 0 12px rgba(0,243,255,0.35); font-size: 0.9rem;" data-i18n="live_btn_rematch">
             🔄 Реванш (Новый раунд)
@@ -557,9 +576,34 @@
             <button id="lang-btn-en" class="diff-pill" style="padding: 4px 10px; font-size: 0.8rem;">🇺🇸 EN</button>
           </div>
         </div>
-        <div class="setting-item">
-          <span data-i18n="setting_sound">Звуковые эффекты</span>
-          <button id="setting-sound-btn" class="diff-pill active">Вкл</button>
+        <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span data-i18n="setting_sound">Звуковые эффекты</span>
+            <button id="setting-sound-btn" class="diff-pill active">Вкл</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 4px 0;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted);">
+              <span data-i18n="setting_sfx_volume">🔊 Громкость звуков (SFX)</span>
+              <span id="setting-sfx-val">80%</span>
+            </div>
+            <input type="range" id="setting-sfx-slider" min="0" max="100" value="80" style="width: 100%; accent-color: var(--pulse-cyan); cursor: pointer;">
+            
+            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+              <span data-i18n="setting_music_volume">🎵 Громкость музыки (Fever)</span>
+              <span id="setting-music-val">60%</span>
+            </div>
+            <input type="range" id="setting-music-slider" min="0" max="100" value="60" style="width: 100%; accent-color: var(--pulse-pink); cursor: pointer;">
+          </div>
+        </div>
+
+        <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 6px;">
+          <span data-i18n="setting_haptics">📳 Вибрация (Haptics)</span>
+          <div id="haptics-intensity-selector" style="display: flex; gap: 4px;">
+            <button class="diff-pill haptic-pill" data-intensity="off" style="flex: 1; font-size: 0.78rem;" data-i18n="haptic_off">Выкл</button>
+            <button class="diff-pill haptic-pill" data-intensity="soft" style="flex: 1; font-size: 0.78rem;" data-i18n="haptic_soft">Мягко</button>
+            <button class="diff-pill haptic-pill active" data-intensity="medium" style="flex: 1; font-size: 0.78rem;" data-i18n="haptic_med">Норм</button>
+            <button class="diff-pill haptic-pill" data-intensity="strong" style="flex: 1; font-size: 0.78rem;" data-i18n="haptic_strong">Макс</button>
+          </div>
         </div>
         <div class="setting-item">
           <span data-i18n="setting_theme">Тема оформления</span>
@@ -785,6 +829,21 @@
 
       <!-- View 1: Main actions (Quick Match / Create / Join tabs) -->
       <div id="live-lobby-view-main">
+        <!-- Player ELO Rating Card -->
+        <div id="live-player-elo-card" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="text-align: left;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;" data-i18n="duel_rating_label">Ваш рейтинг 1v1</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--pulse-cyan); display: flex; align-items: center; gap: 6px;">
+              <span id="duel-elo-val">1000</span>
+              <span id="duel-rank-badge" style="font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: rgba(0,243,255,0.15); color: var(--pulse-cyan); border: 1px solid rgba(0,243,255,0.3);">Новичок</span>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted);">
+            <div>Побед: <strong id="duel-wins-val" style="color: #4ade80;">0</strong></div>
+            <div>Поражений: <strong id="duel-losses-val" style="color: #f87171;">0</strong></div>
+          </div>
+        </div>
+
         <div style="margin-bottom: 12px;">
           <button id="btn-live-quick-match" class="btn-primary btn-block" style="padding: 13px; font-size: 0.95rem; font-weight: 800; background: linear-gradient(135deg, #00f3ff, #ff0055); box-shadow: 0 0 16px rgba(0,243,255,0.35); border: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
             <span>⚡</span>
@@ -858,6 +917,8 @@
           <div style="font-size:1.05rem; font-weight:800; color:var(--pulse-cyan); margin-bottom:4px;" data-i18n="live_quick_searching">Ищем соперника в сети...</div>
           <div style="font-size:0.8rem; color:var(--text-muted);" data-i18n="live_quick_searching_desc">Автоматическое подключение к первому свободному игроку</div>
           <div id="live-quick-diff-label" style="font-size:0.82rem; color:var(--accent); font-weight:600; margin-top:8px;">Сложность: Средний</div>
+          <div id="live-quick-timer-label" style="font-size: 0.95rem; font-weight: 700; color: #fbbf24; margin-top: 8px;">⏳ Поиск: 10с</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;" data-i18n="live_bot_fallback_notice">Если игрок не найдется, подключится AI-бот равного рейтинга</div>
         </div>
 
         <div style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; color:var(--text-muted); font-size:0.82rem;">
@@ -879,6 +940,33 @@
         </div>
         <div id="live-countdown-number" style="font-size:4rem; font-weight:900; color:var(--accent); line-height:1; animation:pulse 0.8s infinite;">3</div>
         <div style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;" data-i18n="live_starting">Приготовьтесь к старту!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: 7-DAY DAILY LOGIN REWARDS           -->
+  <!-- ========================================== -->
+  <div id="daily-reward-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+      <button id="btn-close-daily-reward-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div class="modal-icon">🎁</div>
+      <h2 class="modal-title" data-i18n="daily_reward_title">Награды за вход</h2>
+      <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 14px;" data-i18n="daily_reward_desc">
+        Заходите каждый день и получайте мощные кибер-бонусы для побед!
+      </p>
+
+      <div id="daily-reward-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+        <!-- Day cards 1-7 rendered dynamically by UI -->
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-claim-daily-reward" class="btn-primary btn-block" style="padding: 12px; font-size: 0.95rem;" data-i18n="daily_reward_claim_btn">
+          🎁 Забрать награду дня
+        </button>
+        <button id="btn-rescue-daily-streak" class="btn-secondary btn-block hidden" style="padding: 10px; font-size: 0.85rem; border-color: #f59e0b; color: #fbbf24;" data-i18n="daily_reward_rescue_btn">
+          📺 Восстановить стрик за рекламу
+        </button>
       </div>
     </div>
   </div>

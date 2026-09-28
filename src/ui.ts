@@ -254,6 +254,37 @@ export class SudokuUI {
   private btnSyncTgAuth!: HTMLButtonElement;
   private notificationsEnabled: boolean = true;
 
+  // Settings Audio & Haptics
+  private settingSfxSlider?: HTMLInputElement | null;
+  private settingSfxVal?: HTMLElement | null;
+  private settingMusicSlider?: HTMLInputElement | null;
+  private settingMusicVal?: HTMLElement | null;
+  private hapticPills: HTMLButtonElement[] = [];
+
+  // Daily Login Rewards
+  private btnMenuDailyReward?: HTMLButtonElement | null;
+  private menuDailyRewardBadge?: HTMLElement | null;
+  private dailyRewardModal?: HTMLElement | null;
+  private btnCloseDailyRewardX?: HTMLButtonElement | null;
+  private dailyRewardGrid?: HTMLElement | null;
+  private btnClaimDailyReward?: HTMLButtonElement | null;
+  private btnRescueDailyStreak?: HTMLButtonElement | null;
+
+  // Desktop Shortcut
+  private btnMenuShortcut?: HTMLButtonElement | null;
+
+  // 1v1 ELO & AI Matchmaking
+  private duelEloVal?: HTMLElement | null;
+  private duelRankBadge?: HTMLElement | null;
+  private duelWinsVal?: HTMLElement | null;
+  private duelLossesVal?: HTMLElement | null;
+  private liveQuickTimerLabel?: HTMLElement | null;
+  private quickMatchCountdownInterval?: any = null;
+  private isLiveBotDuel: boolean = false;
+  private currentOpponentElo: number = 1000;
+  private duelWinEloBox?: HTMLElement | null;
+  private duelLossEloBox?: HTMLElement | null;
+
   // AI Duel HUD elements
   private aiDuelHud!: HTMLElement;
   private playerDuelCount!: HTMLElement;
@@ -545,6 +576,9 @@ export class SudokuUI {
     this.btnMenuTgAuth = document.getElementById('btn-menu-tg-auth') as HTMLButtonElement;
     this.menuTgAuthLabel = document.getElementById('menu-tg-auth-label')!;
     this.menuLeagueBadge = document.getElementById('menu-league-badge')!;
+    this.btnMenuDailyReward = (document.getElementById('btn-menu-daily-reward') as HTMLButtonElement) || null;
+    this.menuDailyRewardBadge = document.getElementById('menu-daily-reward-badge');
+    this.btnMenuShortcut = (document.getElementById('btn-menu-shortcut') as HTMLButtonElement) || null;
 
     // Mode Select
     this.btnModesBack = document.getElementById('btn-modes-back') as HTMLButtonElement;
@@ -643,6 +677,11 @@ export class SudokuUI {
     this.settingsModal = document.getElementById('settings-modal')!;
     this.btnCloseSettings = document.getElementById('btn-close-settings') as HTMLButtonElement;
     this.settingSoundBtn = document.getElementById('setting-sound-btn') as HTMLButtonElement;
+    this.settingSfxSlider = (document.getElementById('setting-sfx-slider') as HTMLInputElement) || null;
+    this.settingSfxVal = document.getElementById('setting-sfx-val');
+    this.settingMusicSlider = (document.getElementById('setting-music-slider') as HTMLInputElement) || null;
+    this.settingMusicVal = document.getElementById('setting-music-val');
+    this.hapticPills = Array.from(document.querySelectorAll('.haptic-pill'));
     this.settingThemeBtn = document.getElementById('setting-theme-btn') as HTMLButtonElement;
     this.settingNotifyBtn = document.getElementById('setting-notify-btn') as HTMLButtonElement | null;
     this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
@@ -698,13 +737,28 @@ export class SudokuUI {
     this.liveWaitingQuickBox = document.getElementById('live-waiting-quick-box') || undefined;
     this.liveQuickDiffLabel = document.getElementById('live-quick-diff-label') || undefined;
     this.liveWaitingStatusLabel = document.getElementById('live-waiting-status-label') || undefined;
+    this.liveQuickTimerLabel = document.getElementById('live-quick-timer-label');
     this.liveCountdownNumber = document.getElementById('live-countdown-number') || undefined;
     this.liveCdHostName = document.getElementById('live-cd-host-name') || undefined;
     this.liveCdGuestName = document.getElementById('live-cd-guest-name') || undefined;
 
+    this.duelEloVal = document.getElementById('duel-elo-val');
+    this.duelRankBadge = document.getElementById('duel-rank-badge');
+    this.duelWinsVal = document.getElementById('duel-wins-val');
+    this.duelLossesVal = document.getElementById('duel-losses-val');
+    this.duelWinEloBox = document.getElementById('duel-win-elo-box');
+    this.duelLossEloBox = document.getElementById('duel-loss-elo-box');
+
     this.duelResultBanner = document.getElementById('duel-result-banner')!;
     this.duelResultTitle = document.getElementById('duel-result-title')!;
     this.duelResultText = document.getElementById('duel-result-text')!;
+
+    // 7-Day Daily Login Rewards Modal
+    this.dailyRewardModal = document.getElementById('daily-reward-modal');
+    this.btnCloseDailyRewardX = (document.getElementById('btn-close-daily-reward-x') as HTMLButtonElement) || null;
+    this.dailyRewardGrid = document.getElementById('daily-reward-grid');
+    this.btnClaimDailyReward = (document.getElementById('btn-claim-daily-reward') as HTMLButtonElement) || null;
+    this.btnRescueDailyStreak = (document.getElementById('btn-rescue-daily-streak') as HTMLButtonElement) || null;
 
     // Telegram Auth Modal
     this.tgAuthModal = document.getElementById('tg-auth-modal')!;
@@ -824,6 +878,19 @@ export class SudokuUI {
     setTimeout(() => {
       this.syncWithCloud(false);
     }, 800);
+
+    // Initialize Daily Rewards & Desktop Shortcut
+    this.updateDailyRewardBadge();
+    this.initShortcutPrompt();
+
+    // Auto show daily reward if not yet claimed today
+    setTimeout(() => {
+      const stats = SudokuGame.getPlayerStats();
+      const today = new Date().toISOString().slice(0, 10);
+      if (stats.dailyLoginLastClaimDate !== today && localStorage.getItem('sudoku_pulse_tutorial_seen')) {
+        this.openDailyRewardModal();
+      }
+    }, 1200);
 
     // First launch onboarding tutorial check
     setTimeout(() => {
@@ -969,6 +1036,7 @@ export class SudokuUI {
       soundManager.playSelect();
       this.updateSyncBadge();
       this.updateBoardSkinButtons();
+      this.updateSettingsSlidersAndHaptics();
       if (this.syncKeyInput) {
         this.syncKeyInput.value = this.getSyncKey();
       }
@@ -978,6 +1046,33 @@ export class SudokuUI {
         this.updateScreenBackButton();
       });
     });
+
+    if (this.btnMenuDailyReward) {
+      this.btnMenuDailyReward.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        this.openDailyRewardModal();
+      });
+    }
+
+    if (this.btnCloseDailyRewardX) {
+      this.btnCloseDailyRewardX.addEventListener('click', () => {
+        if (this.dailyRewardModal) this.dailyRewardModal.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+
+    if (this.btnClaimDailyReward) {
+      this.btnClaimDailyReward.addEventListener('click', () => {
+        this.claimDailyReward();
+      });
+    }
+
+    if (this.btnRescueDailyStreak) {
+      this.btnRescueDailyStreak.addEventListener('click', () => {
+        this.rescueDailyStreak();
+      });
+    }
 
     this.btnCloseStats.addEventListener('click', () => {
       this.statsModal.classList.add('hidden');
@@ -1345,6 +1440,35 @@ export class SudokuUI {
     // Sound / Theme toggles
     this.soundToggleBtn.addEventListener('click', () => this.toggleSound());
     this.settingSoundBtn.addEventListener('click', () => this.toggleSound());
+
+    if (this.settingSfxSlider) {
+      this.settingSfxSlider.addEventListener('input', () => {
+        const val = parseInt(this.settingSfxSlider!.value, 10);
+        soundManager.setSfxVolume(val / 100);
+        if (this.settingSfxVal) this.settingSfxVal.textContent = `${val}%`;
+      });
+      this.settingSfxSlider.addEventListener('change', () => {
+        soundManager.playSelect();
+      });
+    }
+
+    if (this.settingMusicSlider) {
+      this.settingMusicSlider.addEventListener('input', () => {
+        const val = parseInt(this.settingMusicSlider!.value, 10);
+        soundManager.setMusicVolume(val / 100);
+        if (this.settingMusicVal) this.settingMusicVal.textContent = `${val}%`;
+      });
+    }
+
+    this.hapticPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const intensity = (pill.getAttribute('data-intensity') || 'medium') as 'off' | 'soft' | 'medium' | 'strong';
+        haptics.setIntensity(intensity);
+        this.updateHapticPills();
+        soundManager.playSelect();
+        haptics.selection();
+      });
+    });
 
     this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
     this.settingThemeBtn.addEventListener('click', () => this.toggleTheme());
@@ -1966,6 +2090,28 @@ export class SudokuUI {
     this.settingSoundBtn.classList.toggle('active', enabled);
   }
 
+  private updateSettingsSlidersAndHaptics() {
+    if (this.settingSfxSlider) {
+      const sfx = Math.round(soundManager.getSfxVolume() * 100);
+      this.settingSfxSlider.value = sfx.toString();
+      if (this.settingSfxVal) this.settingSfxVal.textContent = `${sfx}%`;
+    }
+    if (this.settingMusicSlider) {
+      const music = Math.round(soundManager.getMusicVolume() * 100);
+      this.settingMusicSlider.value = music.toString();
+      if (this.settingMusicVal) this.settingMusicVal.textContent = `${music}%`;
+    }
+    this.updateHapticPills();
+  }
+
+  private updateHapticPills() {
+    const current = haptics.getIntensity();
+    this.hapticPills.forEach((pill) => {
+      const intensity = pill.getAttribute('data-intensity');
+      pill.classList.toggle('active', intensity === current);
+    });
+  }
+
   private setTheme(theme: string) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('sudoku_theme', theme);
@@ -2396,6 +2542,7 @@ export class SudokuUI {
 
     const rematchContainer = document.getElementById('duel-rematch-container');
     if (rematchContainer) rematchContainer.classList.add('hidden');
+    if (this.duelWinEloBox) this.duelWinEloBox.classList.add('hidden');
 
     // 1v1 Live Multiplayer Duel Victory Comparison
     if (this.isLiveDuelActive && this.duelResultBanner) {
@@ -2411,6 +2558,22 @@ export class SudokuUI {
           : `Вы решили судоку быстрее, чем ${this.liveOpponentName}! Чистая победа на скорости.`;
       }
       soundManager.playDuelWin();
+
+      // Calculate and display ELO gain
+      const playerStats = SudokuGame.getPlayerStats();
+      const playerElo = playerStats.duelElo || 1000;
+      const oppElo = this.currentOpponentElo || 1000;
+      const delta = this.calculateEloDelta(playerElo, oppElo, true);
+      const newElo = Math.max(100, playerElo + delta);
+      playerStats.duelElo = newElo;
+      playerStats.duelWins = (playerStats.duelWins || 0) + 1;
+      SudokuGame.savePlayerStats(playerStats);
+      this.updateLobbyEloDisplay();
+
+      if (this.duelWinEloBox) {
+        this.duelWinEloBox.textContent = `+${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
+        this.duelWinEloBox.classList.remove('hidden');
+      }
 
       if (rematchContainer) rematchContainer.classList.remove('hidden');
       const statusEl = document.getElementById('duel-rematch-status');
@@ -2437,6 +2600,22 @@ export class SudokuUI {
         mode: stats.mode,
       };
       this.addDuelRecord(duelRecord);
+
+      // Calculate and display ELO gain for AI duel
+      const playerStats = SudokuGame.getPlayerStats();
+      const playerElo = playerStats.duelElo || 1000;
+      const oppElo = this.currentOpponentElo || 1000;
+      const delta = this.calculateEloDelta(playerElo, oppElo, true);
+      const newElo = Math.max(100, playerElo + delta);
+      playerStats.duelElo = newElo;
+      playerStats.duelWins = (playerStats.duelWins || 0) + 1;
+      SudokuGame.savePlayerStats(playerStats);
+      this.updateLobbyEloDisplay();
+
+      if (this.duelWinEloBox) {
+        this.duelWinEloBox.textContent = `+${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
+        this.duelWinEloBox.classList.remove('hidden');
+      }
 
       if (this.duelResultTitle) {
         this.duelResultTitle.textContent = isEn ? '🎉 YOU WON THE AI DUEL!' : '🎉 ВЫ ПОБЕДИЛИ В ИИ-ДУЭЛИ!';
@@ -3506,6 +3685,26 @@ export class SudokuUI {
         rematchLossContainer.classList.add('hidden');
       }
     }
+
+    if (this.isLiveDuelActive || this.game.mode === 'ai_duel') {
+      const stats = SudokuGame.getPlayerStats();
+      const playerElo = stats.duelElo || 1000;
+      const oppElo = this.currentOpponentElo || 1000;
+      const delta = this.calculateEloDelta(playerElo, oppElo, false);
+      const newElo = Math.max(100, playerElo + delta);
+      stats.duelElo = newElo;
+      stats.duelLosses = (stats.duelLosses || 0) + 1;
+      SudokuGame.savePlayerStats(stats);
+      this.updateLobbyEloDisplay();
+
+      if (this.duelLossEloBox) {
+        this.duelLossEloBox.textContent = `${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
+        this.duelLossEloBox.classList.remove('hidden');
+      }
+    } else {
+      if (this.duelLossEloBox) this.duelLossEloBox.classList.add('hidden');
+    }
+
     this.gameOverModal.classList.remove('hidden');
   }
 
@@ -4040,6 +4239,8 @@ export class SudokuUI {
     this.currentLiveLobbyCode = null;
     this.isLiveDuelActive = false;
     this.isQuickMatchWaiting = false;
+    this.isLiveBotDuel = false;
+    this.updateLobbyEloDisplay();
 
     if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.remove('hidden');
     if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.add('hidden');
@@ -4096,13 +4297,16 @@ export class SudokuUI {
       if (data.matched) {
         // Instant match found as guest!
         this.isLiveHost = false;
+        this.isLiveBotDuel = false;
         this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
         this.isQuickMatchWaiting = false;
+        this.currentOpponentElo = 1000;
         this.showToast(isEn ? `⚡ Opponent found: ${data.hostName}!` : `⚡ Соперник найден: ${data.hostName}!`);
         this.startLiveCountdown(data.hostName, playerName, data.seed, data.difficulty);
       } else {
         // Waiting in queue as host
         this.isLiveHost = true;
+        this.isLiveBotDuel = false;
         this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
         this.isQuickMatchWaiting = true;
 
@@ -4125,6 +4329,33 @@ export class SudokuUI {
         if (this.liveLobbyViewWaiting) this.liveLobbyViewWaiting.classList.remove('hidden');
 
         this.startLiveLobbyPolling();
+
+        // 10-second matchmaking countdown with intelligent AI bot fallback
+        if (this.quickMatchCountdownInterval) clearInterval(this.quickMatchCountdownInterval);
+        let secondsLeft = 10;
+        if (this.liveQuickTimerLabel) {
+          this.liveQuickTimerLabel.textContent = isEn ? `⏳ Searching: ${secondsLeft}s` : `⏳ Поиск: ${secondsLeft}с`;
+        }
+
+        this.quickMatchCountdownInterval = setInterval(() => {
+          secondsLeft--;
+          if (this.liveQuickTimerLabel) {
+            this.liveQuickTimerLabel.textContent = isEn ? `⏳ Searching: ${secondsLeft}s` : `⏳ Поиск: ${secondsLeft}с`;
+          }
+
+          if (secondsLeft <= 0) {
+            if (this.quickMatchCountdownInterval) {
+              clearInterval(this.quickMatchCountdownInterval);
+              this.quickMatchCountdownInterval = null;
+            }
+
+            if (this.isQuickMatchWaiting) {
+              this.stopLiveLobbyPolling();
+              this.isQuickMatchWaiting = false;
+              this.fallbackToAiDuel(data.difficulty as Difficulty);
+            }
+          }
+        }, 1000);
       }
     } catch {
       this.showToast(isEn ? '❌ Could not find match. Check connection.' : '❌ Ошибка быстрого поиска. Проверьте соединение.');
@@ -4298,7 +4529,11 @@ export class SudokuUI {
 
         setTimeout(() => {
           this.liveLobbyModal?.classList.add('hidden');
-          this.startLiveDuelGame(seed, difficulty);
+          if (this.isLiveBotDuel) {
+            this.startLiveBotDuelGame(seed, difficulty);
+          } else {
+            this.startLiveDuelGame(seed, difficulty);
+          }
         }, 500);
       }
     }, 1000);
@@ -4306,6 +4541,7 @@ export class SudokuUI {
 
   private startLiveDuelGame(seed: number, difficulty: Difficulty) {
     this.isLiveDuelActive = true;
+    this.isLiveBotDuel = false;
     this.stopAiBotDuel();
     this.game.startNewGame({ difficulty, mode: 'classic', perks: [], seed });
     this.showScreen('game');
@@ -4340,11 +4576,17 @@ export class SudokuUI {
 
         // Host waiting: guest joined -> trigger countdown
         if (this.isLiveHost && lobby.status === 'countdown' && this.liveLobbyViewWaiting && !this.liveLobbyViewWaiting.classList.contains('hidden')) {
+          if (this.quickMatchCountdownInterval) {
+            clearInterval(this.quickMatchCountdownInterval);
+            this.quickMatchCountdownInterval = null;
+          }
           if (this.isQuickMatchWaiting) {
             const isEn = i18n.getLanguage() === 'en';
             this.showToast(isEn ? `⚡ Opponent found: ${lobby.guest?.name || 'Player'}!` : `⚡ Соперник найден: ${lobby.guest?.name || 'Игрок'}!`);
           }
           this.isQuickMatchWaiting = false;
+          this.isLiveBotDuel = false;
+          this.currentOpponentElo = 1000;
           this.liveOpponentName = lobby.guest?.name || 'Соперник';
           this.startLiveCountdown(lobby.host?.name || 'Игрок 1', lobby.guest?.name || 'Игрок 2', lobby.seed, lobby.difficulty);
           return;
@@ -4408,6 +4650,10 @@ export class SudokuUI {
     if (this.livePollInterval) {
       clearInterval(this.livePollInterval);
       this.livePollInterval = null;
+    }
+    if (this.quickMatchCountdownInterval) {
+      clearInterval(this.quickMatchCountdownInterval);
+      this.quickMatchCountdownInterval = null;
     }
   }
 
@@ -5110,6 +5356,283 @@ export class SudokuUI {
         break;
       }
     }
+  }
+
+  // ==========================================
+  // ELO & AI MATCHMAKING HELPERS
+  // ==========================================
+  private getDuelRankName(elo: number): string {
+    const isEn = i18n.getLanguage() === 'en';
+    if (elo < 1100) return t('duel_rank_novice', isEn ? 'Novice' : 'Новичок');
+    if (elo < 1400) return t('duel_rank_agent', isEn ? 'Cyber Agent' : 'Кибер-оперативник');
+    if (elo < 1700) return t('duel_rank_master', isEn ? 'Sector Master' : 'Сектор-мастер');
+    return t('duel_rank_grandmaster', isEn ? 'Grandmaster' : 'Грандмастер');
+  }
+
+  private calculateEloDelta(playerElo: number, opponentElo: number, won: boolean): number {
+    const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
+    const actual = won ? 1 : 0;
+    const k = 32;
+    const rawDelta = Math.round(k * (actual - expected));
+    if (won) return Math.max(12, rawDelta);
+    return Math.min(-10, rawDelta);
+  }
+
+  private updateLobbyEloDisplay() {
+    const stats = SudokuGame.getPlayerStats();
+    const elo = stats.duelElo || 1000;
+    if (this.duelEloVal) this.duelEloVal.textContent = elo.toString();
+    if (this.duelWinsVal) this.duelWinsVal.textContent = (stats.duelWins || 0).toString();
+    if (this.duelLossesVal) this.duelLossesVal.textContent = (stats.duelLosses || 0).toString();
+    if (this.duelRankBadge) {
+      this.duelRankBadge.textContent = this.getDuelRankName(elo);
+    }
+  }
+
+  private fallbackToAiDuel(difficulty: Difficulty) {
+    const isEn = i18n.getLanguage() === 'en';
+    const stats = SudokuGame.getPlayerStats();
+    const playerElo = stats.duelElo || 1000;
+
+    let botName = 'PulseBot v1';
+    let botElo = 1050;
+    let botDiff: Difficulty = difficulty || 'medium';
+
+    if (playerElo < 1100) {
+      botName = 'PulseBot v1';
+      botElo = Math.max(900, playerElo + Math.floor((Math.random() - 0.5) * 40));
+      botDiff = 'easy';
+    } else if (playerElo < 1400) {
+      botName = 'CyberPulse v2';
+      botElo = playerElo + Math.floor((Math.random() - 0.5) * 50);
+      botDiff = 'medium';
+    } else if (playerElo < 1700) {
+      botName = 'NeuralPulse v3';
+      botElo = playerElo + Math.floor((Math.random() - 0.5) * 60);
+      botDiff = 'hard';
+    } else {
+      botName = 'QuantumPulse v4';
+      botElo = playerElo + Math.floor((Math.random() - 0.5) * 70);
+      botDiff = 'expert';
+    }
+
+    this.isLiveBotDuel = true;
+    this.currentOpponentElo = botElo;
+    this.liveOpponentName = botName;
+
+    const toastMsg = t('live_ai_matched_toast', isEn ? '🤖 AI challenger matched: ' : '🤖 К дуэли подключился AI-соперник: ');
+    this.showToast(`${toastMsg}${botName} (${botElo} ELO)`);
+
+    const tgUser = this.getStoredTelegramUser();
+    const playerName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+    const seed = Date.now();
+
+    this.startLiveCountdown(playerName, `${botName} [AI]`, seed, botDiff);
+  }
+
+  private startLiveBotDuelGame(seed: number, difficulty: Difficulty) {
+    this.isLiveDuelActive = true;
+    this.stopAiBotDuel();
+    this.game.startNewGame({ difficulty, mode: 'ai_duel', perks: [], seed });
+    this.showScreen('game');
+
+    const isEn = i18n.getLanguage() === 'en';
+    this.showToast(isEn ? `⚔️ 1v1 Battle vs ${this.liveOpponentName} (${this.currentOpponentElo} ELO)!` : `⚔️ 1v1 Битва против ${this.liveOpponentName} (${this.currentOpponentElo} ELO)!`);
+
+    if (this.aiDuelHud) this.aiDuelHud.classList.remove('hidden');
+    if (this.aiBotName) this.aiBotName.textContent = `${this.liveOpponentName} [${this.currentOpponentElo} ELO]`;
+    if (this.aiBotAvatar) this.aiBotAvatar.className = 'ai-bot-avatar smug';
+
+    this.startAiBotDuel();
+  }
+
+  // ==========================================
+  // DESKTOP SHORTCUT & YANDEX RETENTION
+  // ==========================================
+  private async initShortcutPrompt() {
+    if (!this.btnMenuShortcut) return;
+    try {
+      const canShow = await yandexBridge.canShowShortcut();
+      if (canShow) {
+        this.btnMenuShortcut.classList.remove('hidden');
+        this.btnMenuShortcut.addEventListener('click', async () => {
+          soundManager.playSelect();
+          haptics.selection();
+          const res = await yandexBridge.showShortcutPrompt();
+          if (res) {
+            this.game.addBonusHint();
+            this.game.addBonusHint();
+            const isEn = i18n.getLanguage() === 'en';
+            this.showToast(t('shortcut_reward_toast', isEn ? '📲 Shortcut added! +2 Hints received' : '📲 Ярлык добавлен! Получено +2 подсказки'));
+            soundManager.playVictory();
+            haptics.victory();
+            this.btnMenuShortcut?.classList.add('hidden');
+          }
+        });
+      }
+    } catch {
+      // Ignore if not supported
+    }
+  }
+
+  // ==========================================
+  // 7-DAY DAILY LOGIN REWARDS SYSTEM
+  // ==========================================
+  private readonly DAILY_REWARDS_CONFIG = [
+    { day: 1, icon: '💡', titleRu: '+1 Подсказка', titleEn: '+1 Hint', type: 'hint', count: 1 },
+    { day: 2, icon: '⚡', titleRu: '+150 Pulse очков', titleEn: '+150 Pulse Score', type: 'score', count: 150 },
+    { day: 3, icon: '🛡️', titleRu: 'Щит от ошибок (+1 жизнь)', titleEn: 'Mistake Shield (+1 Life)', type: 'shield', count: 1 },
+    { day: 4, icon: '💡💡', titleRu: '+2 Подсказки', titleEn: '+2 Hints', type: 'hint', count: 2 },
+    { day: 5, icon: '⚡⚡', titleRu: '+300 Pulse очков', titleEn: '+300 Pulse Score', type: 'score', count: 300 },
+    { day: 6, icon: '🛡️⚡', titleRu: 'Щит + 200 очков', titleEn: 'Shield + 200 Score', type: 'combo', count: 200 },
+    { day: 7, icon: '👑', titleRu: 'Трофей + 500 очков + 3 подсказки', titleEn: 'Grand Trophy + 500 Score + 3 Hints', type: 'grand', count: 500 },
+  ];
+
+  private updateDailyRewardBadge() {
+    const stats = SudokuGame.getPlayerStats();
+    const currentDay = stats.dailyLoginDay || 1;
+    if (this.menuDailyRewardBadge) {
+      this.menuDailyRewardBadge.textContent = `D${currentDay}`;
+    }
+  }
+
+  private openDailyRewardModal() {
+    this.renderDailyRewardGrid();
+    if (this.dailyRewardModal) {
+      this.dailyRewardModal.classList.remove('hidden');
+      haptics.setBackButton(() => {
+        this.dailyRewardModal?.classList.add('hidden');
+        this.updateScreenBackButton();
+      });
+    }
+  }
+
+  private renderDailyRewardGrid() {
+    if (!this.dailyRewardGrid) return;
+    const stats = SudokuGame.getPlayerStats();
+    const isEn = i18n.getLanguage() === 'en';
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    const alreadyClaimedToday = stats.dailyLoginLastClaimDate === today;
+    const missedStreak = Boolean(stats.dailyLoginLastClaimDate && stats.dailyLoginLastClaimDate !== today && stats.dailyLoginLastClaimDate !== yesterday);
+
+    const activeDay = stats.dailyLoginDay || 1;
+
+    // Rescue button visibility
+    if (this.btnRescueDailyStreak) {
+      if (missedStreak && !alreadyClaimedToday) {
+        this.btnRescueDailyStreak.classList.remove('hidden');
+      } else {
+        this.btnRescueDailyStreak.classList.add('hidden');
+      }
+    }
+
+    // Claim button text and state
+    if (this.btnClaimDailyReward) {
+      if (alreadyClaimedToday) {
+        this.btnClaimDailyReward.disabled = true;
+        this.btnClaimDailyReward.style.opacity = '0.6';
+        this.btnClaimDailyReward.textContent = t('daily_reward_claimed', isEn ? '✅ Reward claimed! Return tomorrow' : '✅ Награда получена! Возвращайтесь завтра');
+      } else {
+        this.btnClaimDailyReward.disabled = false;
+        this.btnClaimDailyReward.style.opacity = '1';
+        this.btnClaimDailyReward.textContent = `${t('daily_reward_claim_btn', isEn ? '🎁 Claim Day Reward' : '🎁 Забрать награду дня')} (D${activeDay})`;
+      }
+    }
+
+    this.dailyRewardGrid.innerHTML = this.DAILY_REWARDS_CONFIG.map((cfg) => {
+      const isPast = cfg.day < activeDay || (cfg.day === activeDay && alreadyClaimedToday);
+      const isCurrent = cfg.day === activeDay && !alreadyClaimedToday;
+      const title = isEn ? cfg.titleEn : cfg.titleRu;
+
+      let borderStyle = 'border: 1px solid var(--surface-border); background: var(--surface-bg);';
+      let statusBadge = `<span style="font-size: 0.68rem; color: var(--text-muted);">🔒</span>`;
+
+      if (isPast) {
+        borderStyle = 'border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);';
+        statusBadge = `<span style="font-size: 0.72rem; color: #34d399; font-weight: 700;">✓</span>`;
+      } else if (isCurrent) {
+        borderStyle = 'border: 1px solid var(--pulse-cyan); background: rgba(0, 243, 255, 0.12); box-shadow: 0 0 10px rgba(0, 243, 255, 0.25);';
+        statusBadge = `<span style="font-size: 0.72rem; color: var(--pulse-cyan); font-weight: 800;">⚡</span>`;
+      }
+
+      const gridSpan = cfg.day === 7 ? 'grid-column: span 2;' : '';
+
+      return `
+        <div style="border-radius: 10px; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; ${borderStyle} ${gridSpan}">
+          <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text-muted); font-weight: 700; padding: 0 4px;">
+            <span>${t('daily_day_label', isEn ? 'Day' : 'День')} ${cfg.day}</span>
+            ${statusBadge}
+          </div>
+          <div style="font-size: 1.5rem; margin: 2px 0;">${cfg.icon}</div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: ${isCurrent ? 'var(--pulse-cyan)' : 'var(--text-main)'}; line-height: 1.15;">
+            ${title}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  private claimDailyReward() {
+    const stats = SudokuGame.getPlayerStats();
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    if (stats.dailyLoginLastClaimDate === today) {
+      return;
+    }
+
+    let day = stats.dailyLoginDay || 1;
+    if (stats.dailyLoginLastClaimDate && stats.dailyLoginLastClaimDate !== yesterday) {
+      day = 1;
+    }
+
+    const cfg = this.DAILY_REWARDS_CONFIG[(day - 1) % 7];
+    if (cfg.type === 'hint') {
+      for (let i = 0; i < cfg.count; i++) this.game.addBonusHint();
+    } else if (cfg.type === 'score') {
+      stats.totalScore += cfg.count;
+    } else if (cfg.type === 'shield') {
+      this.game.addBonusHint();
+    } else if (cfg.type === 'combo') {
+      stats.totalScore += cfg.count;
+      this.game.addBonusHint();
+    } else if (cfg.type === 'grand') {
+      stats.totalScore += cfg.count;
+      this.game.addBonusHint();
+      this.game.addBonusHint();
+      this.game.addBonusHint();
+    }
+
+    stats.dailyLoginLastClaimDate = today;
+    stats.dailyLoginDay = (day % 7) + 1;
+    SudokuGame.savePlayerStats(stats);
+
+    soundManager.playVictory();
+    haptics.victory();
+
+    const isEn = i18n.getLanguage() === 'en';
+    const rewardTitle = isEn ? cfg.titleEn : cfg.titleRu;
+    this.showToast((isEn ? '🎁 Claimed: ' : '🎁 Получено: ') + rewardTitle);
+
+    this.renderDailyRewardGrid();
+    this.updateDailyRewardBadge();
+  }
+
+  private rescueDailyStreak() {
+    const isEn = i18n.getLanguage() === 'en';
+    this.showMockAd(t('daily_reward_rescue_btn', isEn ? 'Streak Rescue' : 'Восстановление стрика'), () => {
+      const stats = SudokuGame.getPlayerStats();
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      stats.dailyLoginLastClaimDate = yesterday;
+      SudokuGame.savePlayerStats(stats);
+
+      this.showToast(isEn ? '🔥 Streak restored! Claim your daily reward!' : '🔥 Стрик восстановлен! Заберите награду!');
+      soundManager.playCorrect();
+      haptics.success();
+      this.renderDailyRewardGrid();
+    });
   }
 }
 
