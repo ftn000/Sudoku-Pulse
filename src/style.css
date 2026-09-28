@@ -696,6 +696,9 @@ body.screen-is-game {
   #screen-game .app-container {
     gap: 4px;
   }
+  .board-wrapper {
+    max-width: min(100%, calc(100dvh - 330px), calc(100vh - 330px), 360px);
+  }
   .score-display-wide {
     padding: 4px 10px;
   }
@@ -734,6 +737,9 @@ body.screen-is-game {
   #screen-game .app-container {
     gap: 2px;
   }
+  .board-wrapper {
+    max-width: min(100%, calc(100dvh - 280px), calc(100vh - 280px), 310px);
+  }
   .score-display-wide {
     padding: 3px 8px;
   }
@@ -757,6 +763,24 @@ body.screen-is-game {
   }
   .num-digit {
     font-size: 1.15rem;
+  }
+}
+
+@media (max-height: 560px) {
+  #screen-game .app-container {
+    gap: 1px;
+  }
+  .board-wrapper {
+    max-width: min(100%, calc(100dvh - 240px), calc(100vh - 240px), 260px);
+  }
+  .cell-digit {
+    font-size: 1.05rem;
+  }
+  .score-display-wide {
+    padding: 2px 6px;
+  }
+  .pulse-container {
+    padding: 1px 6px;
   }
 }
 
@@ -877,7 +901,7 @@ body.screen-is-game {
 .board-wrapper {
   position: relative;
   width: 100%;
-  max-width: min(100%, calc(100dvh - 330px), calc(100vh - 330px), 415px);
+  max-width: min(100%, calc(100dvh - 380px), calc(100vh - 380px), 415px);
   aspect-ratio: 1;
   margin: 0 auto;
   background: var(--grid-thick-border);
@@ -1146,6 +1170,7 @@ body.screen-is-game {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .tool-btn {
@@ -1213,6 +1238,7 @@ body.screen-is-game {
   grid-template-columns: repeat(9, 1fr);
   gap: clamp(3px, 1vw, 6px);
   padding-bottom: max(4px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
 }
 
 .num-btn {

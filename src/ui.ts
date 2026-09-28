@@ -245,6 +245,7 @@ export class SudokuUI {
     difficulty?: string;
     runStage?: number;
   }> = [];
+  private cachedMyRank: { rank: number; entry: any } | null = null;
   private statPlayed!: HTMLElement;
   private statWon!: HTMLElement;
   private statCombo!: HTMLElement;
@@ -912,6 +913,7 @@ export class SudokuUI {
 
     // Initialize Daily Rewards & Desktop Shortcut
     this.updateDailyRewardBadge();
+    this.updateSettingsSlidersAndHaptics();
     this.initShortcutPrompt();
 
     // Auto show daily reward if not yet claimed today
@@ -2248,6 +2250,10 @@ export class SudokuUI {
       this.settingMusicSlider.value = music.toString();
       if (this.settingMusicVal) this.settingMusicVal.textContent = `${music}%`;
     }
+    const hapticsRow = document.getElementById('setting-haptics-row');
+    if (hapticsRow) {
+      hapticsRow.style.display = haptics.isSupportedOnDevice() ? 'flex' : 'none';
+    }
     this.updateHapticPills();
   }
 
@@ -3095,7 +3101,7 @@ export class SudokuUI {
 
     if (yandexBridge.isYandex()) {
       try {
-        const yEntries = await yandexBridge.getLeaderboardEntries('records', 15);
+        const yEntries = await yandexBridge.getLeaderboardEntries('records', 30);
         if (yEntries && yEntries.length > 0) {
           const myPlayerId = SudokuGame.getOrCreatePlayerId();
           this.cachedLeaderboardEntries = yEntries.map((e) => ({
@@ -3107,6 +3113,7 @@ export class SudokuUI {
             playerId: e.isUser ? myPlayerId : undefined,
           }));
           this.currentSeasonId = '';
+          this.cachedMyRank = null;
           this.renderLeaderboardList();
           return;
         }
@@ -3116,13 +3123,15 @@ export class SudokuUI {
     }
 
     try {
+      const myPlayerId = SudokuGame.getOrCreatePlayerId();
       const apiBase = `${getApiBaseUrl()}/leaderboard`;
-      const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}`;
+      const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}&playerId=${encodeURIComponent(myPlayerId)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
       this.cachedLeaderboardEntries = data.entries || data.leaderboard || [];
       this.currentSeasonId = data.seasonId || data.currentSeason || '';
+      this.cachedMyRank = data.myRank || null;
       this.renderLeaderboardList();
     } catch {
       this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Server unreachable (offline mode)' : 'Онлайн-сервер недоступен (офлайн-режим)'}</div>`;
@@ -3132,6 +3141,7 @@ export class SudokuUI {
   private renderLeaderboardList() {
     if (!this.leaderboardList) return;
     const isEn = i18n.getLanguage() === 'en';
+    const locale = isEn ? 'en-US' : 'ru-RU';
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
     let entries = this.cachedLeaderboardEntries;
 
@@ -3155,7 +3165,10 @@ export class SudokuUI {
       return;
     }
 
-    this.leaderboardList.innerHTML = seasonHeader + entries.slice(0, 15).map((item, idx) => {
+    const topEntries = entries.slice(0, 30);
+    const isUserInTop = topEntries.some((item) => item.playerId && item.playerId === myPlayerId);
+
+    const listHtml = topEntries.map((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
       const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
       const isMe = item.playerId && item.playerId === myPlayerId;
@@ -3170,10 +3183,34 @@ export class SudokuUI {
             <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? (isEn ? ' <span style="color:var(--accent); font-size:0.75rem;">(You)</span>' : ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>') : ''}</span>
             <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
           </div>
-          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString(isEn ? 'en-US' : 'ru-RU')}</span>
+          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString(locale)}</span>
         </div>
       `;
     }).join('');
+
+    let pinnedUserHtml = '';
+    if (!isUserInTop && this.cachedMyRank && this.cachedMyRank.entry) {
+      const myRank = this.cachedMyRank.rank;
+      const item = this.cachedMyRank.entry;
+      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
+      const league = getLeagueForScore(item.score);
+      pinnedUserHtml = `
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
+          <span>•••••••••••••</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
+            <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+            <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+          </div>
+          <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
+        </div>
+      `;
+    }
+
+    this.leaderboardList.innerHTML = seasonHeader + listHtml + pinnedUserHtml;
   }
 
   private showAchievementsModal() {
@@ -3882,6 +3919,12 @@ export class SudokuUI {
       }
     } else {
       if (this.duelLossEloBox) this.duelLossEloBox.classList.add('hidden');
+    }
+
+    if (this.game.score > 0) {
+      const stats = this.game.getStats();
+      this.submitScoreToLeaderboard(stats);
+      this.syncWithCloud(false).catch(() => {});
     }
 
     this.gameOverModal.classList.remove('hidden');
@@ -5987,9 +6030,18 @@ export class SudokuUI {
 
   private updateDailyRewardBadge() {
     const stats = SudokuGame.getPlayerStats();
-    const currentDay = stats.dailyLoginDay || 1;
+    const today = new Date().toISOString().slice(0, 10);
+    const claimedToday = stats.dailyLoginLastClaimDate === today;
     if (this.menuDailyRewardBadge) {
-      this.menuDailyRewardBadge.textContent = `D${currentDay}`;
+      if (claimedToday) {
+        this.menuDailyRewardBadge.textContent = '✓';
+        this.menuDailyRewardBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+        this.menuDailyRewardBadge.style.color = '#34d399';
+      } else {
+        this.menuDailyRewardBadge.textContent = '🎁';
+        this.menuDailyRewardBadge.style.background = 'rgba(236, 72, 153, 0.25)';
+        this.menuDailyRewardBadge.style.color = '#f43f5e';
+      }
     }
   }
 
@@ -6014,7 +6066,9 @@ export class SudokuUI {
     const alreadyClaimedToday = stats.dailyLoginLastClaimDate === today;
     const missedStreak = Boolean(stats.dailyLoginLastClaimDate && stats.dailyLoginLastClaimDate !== today && stats.dailyLoginLastClaimDate !== yesterday);
 
-    const activeDay = stats.dailyLoginDay || 1;
+    const activeDay = alreadyClaimedToday
+      ? (stats.dailyLoginDay || 1)
+      : (stats.dailyLoginLastClaimDate === yesterday ? (((stats.dailyLoginDay || 1) % 7) + 1) : 1);
 
     // Rescue button visibility
     if (this.btnRescueDailyStreak) {
@@ -6034,7 +6088,7 @@ export class SudokuUI {
       } else {
         this.btnClaimDailyReward.disabled = false;
         this.btnClaimDailyReward.style.opacity = '1';
-        this.btnClaimDailyReward.textContent = `${t('daily_reward_claim_btn', isEn ? '🎁 Claim Day Reward' : '🎁 Забрать награду дня')} (D${activeDay})`;
+        this.btnClaimDailyReward.textContent = t('daily_reward_claim_btn', isEn ? '🎁 Claim Reward' : '🎁 Забрать награду');
       }
     }
 
@@ -6080,8 +6134,10 @@ export class SudokuUI {
       return;
     }
 
-    let day = stats.dailyLoginDay || 1;
-    if (stats.dailyLoginLastClaimDate && stats.dailyLoginLastClaimDate !== yesterday) {
+    let day = 1;
+    if (stats.dailyLoginLastClaimDate === yesterday) {
+      day = ((stats.dailyLoginDay || 1) % 7) + 1;
+    } else {
       day = 1;
     }
 
@@ -6103,7 +6159,7 @@ export class SudokuUI {
     }
 
     stats.dailyLoginLastClaimDate = today;
-    stats.dailyLoginDay = (day % 7) + 1;
+    stats.dailyLoginDay = day;
     SudokuGame.savePlayerStats(stats);
 
     soundManager.playVictory();

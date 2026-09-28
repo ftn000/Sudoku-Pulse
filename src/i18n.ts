@@ -143,7 +143,7 @@ const RU: TranslationDict = {
   menu_daily_rewards_sub: '7 дней ценных бонусов',
   daily_reward_title: 'Награды за вход',
   daily_reward_desc: 'Заходите каждый день и получайте мощные кибер-бонусы для побед!',
-  daily_reward_claim_btn: '🎁 Забрать награду дня',
+  daily_reward_claim_btn: '🎁 Забрать награду',
   daily_reward_claimed: '✅ Награда получена! Возвращайтесь завтра',
   daily_reward_rescue_btn: '📺 Восстановить стрик за рекламу',
   daily_day_label: 'День',
@@ -230,6 +230,7 @@ const RU: TranslationDict = {
   ach_subtitle: 'Открыто 0 из 10 трофеев',
 
   // Settings & Sync
+  settings_title: '⚙️ Настройки',
   sync_cloud_title: '✈️ Облачная синхронизация (Telegram & Cloud)',
   sync_account_label: 'Аккаунт:',
   guest: 'Гость',
@@ -431,7 +432,7 @@ const EN: TranslationDict = {
   menu_daily_rewards_sub: '7 days of cyber bonuses',
   daily_reward_title: 'Daily Login Rewards',
   daily_reward_desc: 'Log in daily to claim tactical cyber bonuses and boosts!',
-  daily_reward_claim_btn: '🎁 Claim Day Reward',
+  daily_reward_claim_btn: '🎁 Claim Reward',
   daily_reward_claimed: '✅ Reward claimed! Return tomorrow',
   daily_reward_rescue_btn: '📺 Restore streak with Ad',
   daily_day_label: 'Day',

@@ -91,6 +91,19 @@ export class HapticsManager {
     return this.intensity;
   }
 
+  public isSupportedOnDevice(): boolean {
+    if (typeof window === 'undefined') return false;
+    const isCapacitor = Boolean((window as any).Capacitor?.isNativePlatform?.());
+    if (isCapacitor) return true;
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    if (this.isTelegramMiniApp()) {
+      return isMobileDevice && Boolean(window.Telegram?.WebApp?.HapticFeedback);
+    }
+
+    return isMobileDevice && typeof navigator !== 'undefined' && 'vibrate' in navigator;
+  }
+
   public initTelegram() {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       try {

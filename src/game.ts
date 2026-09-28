@@ -1079,6 +1079,20 @@ export class SudokuGame {
     }
   }
 
+  public getStats(): GameStats {
+    return {
+      difficulty: this.difficulty,
+      mode: this.mode,
+      timeSeconds: this.timerSeconds,
+      mistakes: this.mistakesCount,
+      hintsUsed: this.hintsUsed,
+      score: this.score,
+      maxCombo: this.maxComboAchieved,
+      activePerks: this.activePerks,
+      runStage: this.runStage,
+    };
+  }
+
   private checkForCompletedUnits(row: number, col: number) {
     const newlyCompletedCells: Array<[number, number]> = [];
     const completedTypes: Array<'row' | 'col' | 'box'> = [];

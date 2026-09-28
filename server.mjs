@@ -213,6 +213,7 @@ const server = http.createServer((req, res) => {
       const period = parsedUrl.searchParams.get('period') || 'all';
       const currentSeason = getIsoSeasonId();
       const requestedSeason = parsedUrl.searchParams.get('seasonId') || currentSeason;
+      const myPlayerId = parsedUrl.searchParams.get('playerId') || '';
 
       const allEntries = readLeaderboard();
       let filtered = allEntries;
@@ -223,11 +224,31 @@ const server = http.createServer((req, res) => {
         });
       }
 
-      const list = filtered
-        .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
-        .slice(0, 15);
+      const sorted = filtered
+        .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds);
+
+      let myRankInfo = null;
+      if (myPlayerId) {
+        const pIdx = sorted.findIndex((e) => e.playerId === myPlayerId);
+        if (pIdx !== -1) {
+          myRankInfo = {
+            rank: pIdx + 1,
+            entry: sorted[pIdx],
+          };
+        }
+      }
+
+      const topList = sorted.slice(0, 30);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ entries: list, leaderboard: list, seasonId: requestedSeason, currentSeason, period }));
+      res.end(JSON.stringify({
+        entries: topList,
+        leaderboard: topList,
+        totalPlayers: sorted.length,
+        myRank: myRankInfo,
+        seasonId: requestedSeason,
+        currentSeason,
+        period,
+      }));
       return;
     }
 
@@ -245,13 +266,18 @@ const server = http.createServer((req, res) => {
 
           if (payload.action === 'rename' && playerId) {
             const list = readLeaderboard();
-            const existingIdx = list.findIndex((e) => e.playerId && e.playerId === playerId);
-            if (existingIdx !== -1) {
-              list[existingIdx].name = name;
+            let renamedAny = false;
+            list.forEach((e) => {
+              if (e.playerId && e.playerId === playerId) {
+                e.name = name;
+                renamedAny = true;
+              }
+            });
+            if (renamedAny) {
               saveLeaderboard(list);
             }
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ entries: list.slice(0, 15), leaderboard: list.slice(0, 15) }));
+            res.end(JSON.stringify({ entries: list.slice(0, 30), leaderboard: list.slice(0, 30) }));
             return;
           }
 
@@ -266,8 +292,8 @@ const server = http.createServer((req, res) => {
           if (score > 0) {
             const list = readLeaderboard();
             const existingIdx = playerId
-              ? list.findIndex((e) => e.playerId === playerId)
-              : list.findIndex((e) => !e.playerId && e.name.toLowerCase() === name.toLowerCase());
+              ? list.findIndex((e) => e.playerId === playerId && (e.mode || 'classic') === mode)
+              : list.findIndex((e) => !e.playerId && e.name.toLowerCase() === name.toLowerCase() && (e.mode || 'classic') === mode);
 
             if (existingIdx !== -1) {
               list[existingIdx].name = name;
@@ -279,10 +305,29 @@ const server = http.createServer((req, res) => {
             }
             const sorted = list
               .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
-              .slice(0, 100);
+              .slice(0, 500);
             saveLeaderboard(sorted);
+
+            let myRankInfo = null;
+            if (playerId) {
+              const pIdx = sorted.findIndex((e) => e.playerId === playerId && (e.mode || 'classic') === mode);
+              if (pIdx !== -1) {
+                myRankInfo = {
+                  rank: pIdx + 1,
+                  entry: sorted[pIdx],
+                };
+              }
+            }
+
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(JSON.stringify({ entries: sorted.slice(0, 15), leaderboard: sorted.slice(0, 15), seasonId, currentSeason: getIsoSeasonId() }));
+            res.end(JSON.stringify({
+              entries: sorted.slice(0, 30),
+              leaderboard: sorted.slice(0, 30),
+              totalPlayers: sorted.length,
+              myRank: myRankInfo,
+              seasonId,
+              currentSeason: getIsoSeasonId(),
+            }));
             return;
           }
         } catch {}
