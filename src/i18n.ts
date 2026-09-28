@@ -262,6 +262,26 @@ const RU: TranslationDict = {
   challenge_modal_subtitle: 'Вам бросили вызов на одинаковом раскладе Sudoku!',
   btn_paste: '📋 Вставить',
 
+  // Mode Category Select
+  mode_category_title: 'Выберите тип игры',
+  mode_cat_solo_title: 'Соло игра',
+  mode_cat_solo_desc: 'Классическое судоку, Тёмный сектор и забег Pulse Run',
+  mode_cat_duel_title: '1v1 Дуэли',
+  mode_cat_duel_desc: 'Битва на скорость против ИИ-бота или с другом онлайн',
+  mode_cat_solo_badge: '3 Режима',
+  mode_cat_duel_badge: '2 Режима',
+
+  // Duel Disconnect & Pause
+  duel_abandon_title: 'Соперник вышел!',
+  duel_abandon_desc: 'Противник покинул дуэль. Вам засчитана безоговорочная победа (+ELO)!',
+  duel_abandon_choice: 'Хотите продолжить решать эту доску соло или вернуться в меню?',
+  duel_abandon_btn_solo: '🧩 Продолжить соло',
+  duel_abandon_btn_menu: '🏠 В главное меню',
+  live_paused_by_opp_title: 'Пауза от соперника',
+  live_paused_by_opp_desc: 'Соперник приостановил дуэль. Ожидание возобновления матча...',
+  rotate_device_title: 'Пожалуйста, поверните устройство',
+  rotate_device_desc: 'Для лучшего игрового опыта Sudoku Pulse оптимизирован для портретного режима.',
+
   // Tutorial
   tutorial_prev: '◀ Назад',
   tutorial_next: 'Далее ▶',
@@ -525,6 +545,26 @@ const EN: TranslationDict = {
   challenge_modal_title: 'Duel Challenge!',
   challenge_modal_subtitle: 'You have been challenged on the exact same Sudoku grid!',
   btn_paste: '📋 Paste',
+
+  // Mode Category Select
+  mode_category_title: 'Select Game Type',
+  mode_cat_solo_title: 'Solo Game',
+  mode_cat_solo_desc: 'Classic Sudoku, Dark Sector & Pulse Run',
+  mode_cat_duel_title: '1v1 Duels',
+  mode_cat_duel_desc: 'Speed battles vs AI Bot or Live Online Player',
+  mode_cat_solo_badge: '3 Modes',
+  mode_cat_duel_badge: '2 Modes',
+
+  // Duel Disconnect & Pause
+  duel_abandon_title: 'Opponent Left!',
+  duel_abandon_desc: 'Opponent disconnected from the duel. Victory (+ELO) awarded to you!',
+  duel_abandon_choice: 'Would you like to finish solving this board solo or return to menu?',
+  duel_abandon_btn_solo: '🧩 Continue Solo',
+  duel_abandon_btn_menu: '🏠 Main Menu',
+  live_paused_by_opp_title: 'Paused by Opponent',
+  live_paused_by_opp_desc: 'Opponent paused the duel. Waiting for match to resume...',
+  rotate_device_title: 'Please Rotate Device',
+  rotate_device_desc: 'Sudoku Pulse is best experienced in portrait orientation.',
 
   // Tutorial
   tutorial_prev: '◀ Back',

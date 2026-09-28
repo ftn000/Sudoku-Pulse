@@ -317,6 +317,7 @@ const server = http.createServer((req, res) => {
           const difficulty = ['easy', 'medium', 'hard', 'expert'].includes(payload.difficulty) ? payload.difficulty : 'medium';
           const seed = Math.floor(100000 + Math.random() * 900000);
           const code = generateLobbyCode();
+          const avatarUrl = payload.avatarUrl ? String(payload.avatarUrl).slice(0, 300) : null;
           const lobbyId = 'lob_' + crypto.randomBytes(6).toString('hex');
 
           const lobby = {
@@ -331,9 +332,13 @@ const server = http.createServer((req, res) => {
             finishedAt: null,
             winner: null,
             abandonedBy: null,
+            isPaused: false,
+            pausedBy: null,
+            pausedAt: null,
             host: {
               id: hostId,
               name: hostName,
+              avatarUrl,
               filled: 0,
               total: 45,
               mistakes: 0,
@@ -381,11 +386,14 @@ const server = http.createServer((req, res) => {
             }
           }
 
+          const avatarUrl = payload.avatarUrl ? String(payload.avatarUrl).slice(0, 300) : null;
+
           if (targetLobby) {
             // Join as guest immediately
             targetLobby.guest = {
               id: playerId,
               name: playerName,
+              avatarUrl,
               filled: 0,
               total: targetLobby.host.total || 45,
               mistakes: 0,
@@ -431,9 +439,13 @@ const server = http.createServer((req, res) => {
             finishedAt: null,
             winner: null,
             abandonedBy: null,
+            isPaused: false,
+            pausedBy: null,
+            pausedAt: null,
             host: {
               id: playerId,
               name: playerName,
+              avatarUrl,
               filled: 0,
               total: 45,
               mistakes: 0,
@@ -492,9 +504,11 @@ const server = http.createServer((req, res) => {
             return;
           }
 
+          const avatarUrl = payload.avatarUrl ? String(payload.avatarUrl).slice(0, 300) : null;
           targetLobby.guest = {
             id: guestId,
             name: guestName,
+            avatarUrl,
             filled: 0,
             total: targetLobby.host.total || 45,
             mistakes: 0,
@@ -583,13 +597,15 @@ const server = http.createServer((req, res) => {
         rematchRequestedBy: lobby.rematchRequestedBy || null,
         rematchState: lobby.rematchState || null,
         lastReaction: lobby.lastReaction || null,
+        isPaused: lobby.isPaused || false,
+        pausedBy: lobby.pausedBy || null,
         isHost,
         isGuest,
       }));
       return;
     }
 
-    // 4. Lobby Action / Progress update / Reactions / Rematch
+    // 4. Lobby Action / Progress update / Reactions / Rematch / Pause
     if (pathname.endsWith('/api/lobby/action') && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
@@ -626,6 +642,24 @@ const server = http.createServer((req, res) => {
             return;
           }
 
+          if (payload.action === 'pause') {
+            lobby.isPaused = true;
+            lobby.pausedBy = payload.playerId;
+            lobby.pausedAt = Date.now();
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, isPaused: true, pausedBy: lobby.pausedBy }));
+            return;
+          }
+
+          if (payload.action === 'resume') {
+            lobby.isPaused = false;
+            lobby.pausedBy = null;
+            lobby.pausedAt = null;
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true, isPaused: false }));
+            return;
+          }
+
           if (payload.action === 'rematch_request') {
             if (!lobby.rematchState) lobby.rematchState = { hostReady: false, guestReady: false };
             if (isHost) lobby.rematchState.hostReady = true;
@@ -643,6 +677,9 @@ const server = http.createServer((req, res) => {
               lobby.rematchRequestedBy = null;
               lobby.rematchState = { hostReady: false, guestReady: false };
               lobby.lastReaction = null;
+              lobby.isPaused = false;
+              lobby.pausedBy = null;
+              lobby.pausedAt = null;
               lobby.host.filled = 0;
               lobby.host.mistakes = 0;
               lobby.host.combo = 1;

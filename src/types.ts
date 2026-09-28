@@ -1,8 +1,8 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
 
-export type GameMode = 'classic' | 'fog' | 'daily' | 'run' | 'ai_duel';
+export type GameMode = 'classic' | 'fog' | 'daily' | 'run' | 'ai_duel' | 'live_duel';
 
-export type AppScreen = 'menu' | 'mode_select' | 'perk_select' | 'game';
+export type AppScreen = 'menu' | 'mode_category' | 'mode_select' | 'perk_select' | 'game';
 
 export interface DifficultyConfig {
   name: string;
@@ -123,6 +123,7 @@ export interface PlayerStats {
   duelElo?: number;
   duelWins?: number;
   duelLosses?: number;
+  duelMatches?: number;
   dailyLoginDay?: number;
   dailyLoginLastClaimDate?: string | null;
   unlockedAchievements?: string[];

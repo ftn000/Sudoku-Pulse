@@ -104,17 +104,54 @@
   </div>
 
   <!-- ========================================== -->
+  <!-- SCREEN 1.5: MODE CATEGORY SELECT           -->
+  <!-- ========================================== -->
+  <div id="screen-mode-category" class="screen hidden">
+    <div class="screen-header">
+      <button id="btn-mode-cat-back" class="icon-btn" title="Назад в меню">◀</button>
+      <h2 data-i18n="mode_category_title">Выберите тип игры</h2>
+      <div style="width: 38px;"></div>
+    </div>
+
+    <div class="mode-category-list">
+      <div class="mode-cat-card" data-category="solo">
+        <div class="mode-cat-icon">🧩</div>
+        <div class="mode-cat-info">
+          <div class="mode-cat-header-row">
+            <h3 data-i18n="mode_cat_solo_title">Соло игра</h3>
+            <span class="mode-cat-badge" data-i18n="mode_cat_solo_badge">3 Режима</span>
+          </div>
+          <p data-i18n="mode_cat_solo_desc">Классическое судоку, Тёмный сектор и забег Pulse Run</p>
+        </div>
+        <div class="mode-cat-arrow">➔</div>
+      </div>
+
+      <div class="mode-cat-card" data-category="duel">
+        <div class="mode-cat-icon">⚔️</div>
+        <div class="mode-cat-info">
+          <div class="mode-cat-header-row">
+            <h3 data-i18n="mode_cat_duel_title">1v1 Дуэли</h3>
+            <span class="mode-cat-badge duel-badge" data-i18n="mode_cat_duel_badge">2 Режима</span>
+          </div>
+          <p data-i18n="mode_cat_duel_desc">Битва на скорость против ИИ-бота или с другом онлайн</p>
+        </div>
+        <div class="mode-cat-arrow">➔</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
   <!-- SCREEN 2: MODE SELECT                      -->
   <!-- ========================================== -->
   <div id="screen-modes" class="screen hidden">
     <div class="screen-header">
-      <button id="btn-modes-back" class="icon-btn" title="Назад в меню">◀</button>
-      <h2 data-i18n="mode_select_title">Выберите режим</h2>
+      <button id="btn-modes-back" class="icon-btn" title="Назад">◀</button>
+      <h2 id="mode-select-title-text" data-i18n="mode_select_title">Выберите режим</h2>
       <div style="width: 38px;"></div>
     </div>
 
     <div class="modes-list">
-      <div class="mode-card selected" data-mode="classic">
+      <div class="mode-card selected" data-mode="classic" data-category="solo">
         <div class="mode-icon">⚡</div>
         <div class="mode-info">
           <h3 data-i18n="mode_classic_title">Классический</h3>
@@ -122,7 +159,7 @@
         </div>
       </div>
 
-      <div class="mode-card" data-mode="fog">
+      <div class="mode-card" data-mode="fog" data-category="solo">
         <div class="mode-icon">🌌</div>
         <div class="mode-info">
           <h3 data-i18n="mode_fog_title">Тёмный сектор: Зона затмения</h3>
@@ -130,7 +167,7 @@
         </div>
       </div>
 
-      <div class="mode-card" data-mode="run">
+      <div class="mode-card" data-mode="run" data-category="solo">
         <div class="mode-icon">🚀</div>
         <div class="mode-info">
           <h3 data-i18n="mode_run_title">Pulse Run (Забег)</h3>
@@ -138,7 +175,7 @@
         </div>
       </div>
 
-      <div class="mode-card" data-mode="ai_duel">
+      <div class="mode-card" data-mode="ai_duel" data-category="duel">
         <div class="mode-icon">🤖</div>
         <div class="mode-info">
           <h3 data-i18n="mode_duel_title">Pulse AI Дуэль</h3>
@@ -146,7 +183,7 @@
         </div>
       </div>
 
-      <div class="mode-card" data-mode="live_duel" id="mode-card-live-duel" style="border: 1px solid rgba(239, 68, 68, 0.45); background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.05));">
+      <div class="mode-card" data-mode="live_duel" data-category="duel" id="mode-card-live-duel" style="border: 1px solid rgba(239, 68, 68, 0.45); background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.05));">
         <div class="mode-icon">⚔️</div>
         <div class="mode-info">
           <h3 data-i18n="mode_live_duel_title">1v1 Онлайн Дуэль</h3>
@@ -247,7 +284,10 @@
         <div class="ai-duel-hud-top">
           <div class="ai-duel-player">
             <div class="ai-duel-info-row">
-              <span class="ai-duel-name" data-i18n="ai_duel_you">Вы</span>
+              <div class="ai-bot-avatar-wrap">
+                <div id="player-duel-avatar" class="duel-mini-avatar player-avatar" title="You"></div>
+                <span class="ai-duel-name" id="player-duel-name" data-i18n="ai_duel_you">Вы</span>
+              </div>
               <span id="player-duel-count" class="ai-duel-count">0/0</span>
             </div>
             <div class="ai-duel-progress-track">
@@ -258,7 +298,7 @@
           <div class="ai-duel-player">
             <div class="ai-duel-info-row">
               <div class="ai-bot-avatar-wrap">
-                <div id="ai-bot-avatar" class="ai-bot-avatar idle" title="Pulse AI">
+                <div id="ai-bot-avatar" class="ai-bot-avatar duel-mini-avatar idle" title="Pulse AI">
                   <svg viewBox="0 0 32 32" class="bot-face-svg">
                     <rect x="3" y="5" width="26" height="23" rx="5" class="bot-head-base" />
                     <line x1="16" y1="5" x2="16" y2="1.5" class="bot-antenna" />
@@ -308,6 +348,13 @@
         <div id="pause-overlay" class="pause-overlay hidden">
           <h2 data-i18n="pause_title">Игра на паузе</h2>
           <button id="btn-resume" class="btn-primary" data-i18n="btn_resume">Продолжить</button>
+        </div>
+
+        <!-- Live Opponent Paused Overlay -->
+        <div id="live-opponent-paused-overlay" class="pause-overlay hidden" style="z-index: 45; backdrop-filter: blur(10px); background: rgba(5,8,17,0.88);">
+          <div style="font-size: 2.8rem; margin-bottom: 8px;">⏸️</div>
+          <h2 style="font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin-bottom: 6px;" data-i18n="live_paused_by_opp_title">Пауза от соперника</h2>
+          <p style="font-size: 0.88rem; color: var(--text-muted); max-width: 260px; margin: 0 auto;" data-i18n="live_paused_by_opp_desc">Соперник приостановил дуэль. Ожидание возобновления матча...</p>
         </div>
       </div>
 
@@ -1000,6 +1047,42 @@
         <button id="btn-tutorial-prev" class="btn-secondary" style="flex: 1; padding: 10px;" data-i18n="tutorial_prev">◀ Назад</button>
         <button id="btn-tutorial-next" class="btn-primary" style="flex: 2; padding: 10px;" data-i18n="tutorial_next">Далее ▶</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: DUEL OPPONENT ABANDONED / DISCONNECT-->
+  <!-- ========================================== -->
+  <div id="duel-abandoned-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="border-color: rgba(16, 185, 129, 0.5);">
+      <div class="modal-icon">🏆</div>
+      <h2 class="modal-title" style="color: #4ade80;" data-i18n="duel_abandon_title">Соперник вышел!</h2>
+      <p id="duel-abandon-desc" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.4;" data-i18n="duel_abandon_desc">
+        Противник покинул дуэль. Вам засчитана безоговорочная победа (+ELO)!
+      </p>
+      <div id="duel-abandon-elo" style="font-size: 1.15rem; font-weight: 800; color: #4ade80; margin: 4px 0;">+25 ELO</div>
+      <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 6px;" data-i18n="duel_abandon_choice">
+        Хотите продолжить решать эту доску соло или вернуться в меню?
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+        <button id="btn-duel-continue-solo" class="btn-primary btn-block" style="background: linear-gradient(135deg, #00f3ff, #10b981);" data-i18n="duel_abandon_btn_solo">
+          🧩 Продолжить соло
+        </button>
+        <button id="btn-duel-abandon-menu" class="btn-secondary btn-block" data-i18n="duel_abandon_btn_menu">
+          🏠 В главное меню
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PORTRAIT ORIENTATION LOCK OVERLAY          -->
+  <!-- ========================================== -->
+  <div id="portrait-lock-overlay" class="portrait-lock-overlay">
+    <div class="portrait-lock-content">
+      <div class="portrait-rotate-icon">📱🔄</div>
+      <h3 data-i18n="rotate_device_title">Пожалуйста, поверните устройство</h3>
+      <p data-i18n="rotate_device_desc">Для лучшего игрового опыта Sudoku Pulse оптимизирован для портретного режима.</p>
     </div>
   </div>
 

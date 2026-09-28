@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Yandex Games SDK
   yandexBridge.init().catch(() => {});
 
+  // Lock to portrait orientation if supported
+  try {
+    if (screen.orientation && (screen.orientation as any).lock) {
+      (screen.orientation as any).lock('portrait').catch(() => {});
+    }
+  } catch {}
+
   // Register PWA Service Worker and purge outdated caches
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'http:')) {
     navigator.serviceWorker.register('./sw.js?v=1.7.0').then((reg) => {
