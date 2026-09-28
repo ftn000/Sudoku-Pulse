@@ -946,6 +946,12 @@ export class SudokuUI {
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
     if (this.screenGame) this.screenGame.scrollTop = 0;
+    try {
+      const vv = window.visualViewport;
+      const h = vv ? vv.height : window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${h * 0.01}px`);
+      document.documentElement.style.setProperty('--app-height', `${h}px`);
+    } catch {}
 
     this.updateScreenBackButton();
 

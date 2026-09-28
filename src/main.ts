@@ -4,7 +4,25 @@ import { haptics } from './haptics';
 import { yandexBridge } from './yandex';
 import './style.css';
 
+// Dynamic Visual Viewport Height tracking (taking browser address & search bar into account)
+export function updateViewportHeight() {
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  const vh = h * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+  document.documentElement.style.setProperty('--app-height', `${h}px`);
+}
+
+updateViewportHeight();
+window.addEventListener('resize', updateViewportHeight);
+window.addEventListener('orientationchange', updateViewportHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateViewportHeight);
+  window.visualViewport.addEventListener('scroll', updateViewportHeight);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  updateViewportHeight();
   // Initialize Telegram WebApp bridge
   haptics.initTelegram();
 
