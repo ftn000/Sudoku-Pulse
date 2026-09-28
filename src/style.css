@@ -2970,6 +2970,49 @@ body.platform-yandex .tg-menu-auth-pill:hover {
   margin-top: 4px;
 }
 
+.live-spectator-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  width: 100%;
+  max-width: 415px;
+  box-sizing: border-box;
+  animation: tauntFadeIn 0.3s ease-out;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+}
+
+.live-spectator-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #34d399;
+  line-height: 1.25;
+}
+
+.btn-spectator-return {
+  background: linear-gradient(135deg, #00f3ff, #10b981);
+  color: #050811;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-spectator-return:active {
+  transform: scale(0.96);
+  filter: brightness(1.1);
+}
+
 @media (max-width: 480px) {
   .stats-modal-card {
     padding: 14px 10px;

@@ -675,6 +675,98 @@ export class SoundManager {
     osc.start(now);
     osc.stop(now + 0.19);
   }
+
+  public playDuelPause() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Freeze chord: sweeping down triangle + resonant glitch
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(960, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.22);
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain);
+    gain.connect(this.getSfxDestination());
+    osc.start(now);
+    osc.stop(now + 0.26);
+
+    // Staccato cyber click
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'square';
+    subOsc.frequency.setValueAtTime(240, now);
+    subGain.gain.setValueAtTime(0.05, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    subOsc.connect(subGain);
+    subGain.connect(this.getSfxDestination());
+    subOsc.start(now);
+    subOsc.stop(now + 0.09);
+  }
+
+  public playDuelResume() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Rising energetic unfreeze chirp
+    [440, 660, 880].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      gain.gain.setValueAtTime(0.07, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.09);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.095);
+    });
+  }
+
+  public playOpponentAbandon() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Dual alarm stabs
+    [0, 0.14].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(880, now + offset);
+      osc.frequency.exponentialRampToValueAtTime(320, now + offset + 0.11);
+      gain.gain.setValueAtTime(0.08, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.13);
+    });
+  }
+
+  public playRematchOffer() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Bright dual chime: 1046.5Hz (C6) -> 1318.5Hz (E6)
+    [1046.5, 1318.5].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+      gain.gain.setValueAtTime(0.08, now + idx * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.16);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(now + idx * 0.07);
+      osc.stop(now + idx * 0.07 + 0.17);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

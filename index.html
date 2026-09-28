@@ -337,6 +337,16 @@
         </div>
       </div>
 
+      <!-- Live Spectator Mode HUD -->
+      <div id="live-spectator-hud" class="live-spectator-hud hidden">
+        <div class="live-spectator-badge" data-i18n="live_spectate_banner">
+          Вы решили судоку первым! Соперник ещё в процессе решения...
+        </div>
+        <button id="btn-spectator-return-result" class="btn-spectator-return" data-i18n="live_btn_view_result">
+          🏆 К результатам матча
+        </button>
+      </div>
+
       <!-- Floating Multi-Clear Popups (Safe Zone: Above Board) -->
       <div id="multi-clear-container" class="multi-clear-container"></div>
 
@@ -448,6 +458,9 @@
           <div id="duel-rematch-status" style="font-size: 0.78rem; color: var(--pulse-cyan); margin-top: 4px; font-weight: 600;" class="hidden" data-i18n="live_rematch_waiting">
             ⏳ Ожидаем согласия соперника...
           </div>
+          <button id="btn-duel-spectate" class="btn-secondary btn-block hidden" style="margin-top: 6px; padding: 8px 12px; font-size: 0.85rem; border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" data-i18n="live_btn_spectate">
+            👀 Наблюдать за соперником
+          </button>
         </div>
       </div>
 
