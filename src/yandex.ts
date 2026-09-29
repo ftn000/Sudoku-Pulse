@@ -50,6 +50,7 @@ export interface YandexSDK {
     canShowPrompt: () => Promise<{ canShow: boolean }>;
     showPrompt: () => Promise<{ outcome: 'accepted' | 'dismissed' }>;
   };
+  getPayments?: (options?: { signed?: boolean }) => Promise<YandexPaymentsService>;
   getPlayer: (options?: { scopes?: boolean }) => Promise<YandexPlayer>;
   getLeaderboards: () => Promise<any>;
   on?: (event: string, callback: () => void) => void;
@@ -61,6 +62,82 @@ export interface YandexSDK {
   };
 }
 
+export interface YandexPaymentPurchase {
+  productID: string;
+  purchaseToken: string;
+  developerPayload?: string;
+  signature?: string;
+}
+
+export interface YandexCatalogItem {
+  id: string;
+  title: string;
+  description: string;
+  imageURI: string;
+  price: string;
+  priceValue: string;
+  priceCurrencyCode: string;
+}
+
+export interface YandexPaymentsService {
+  getPurchases: () => Promise<YandexPaymentPurchase[]>;
+  getCatalog: () => Promise<YandexCatalogItem[]>;
+  purchase: (options: { id: string; developerPayload?: string }) => Promise<YandexPaymentPurchase>;
+  consumePurchase: (purchaseToken: string) => Promise<void>;
+}
+
+export interface ShopProduct {
+  id: string;
+  priceYans: number;
+  icon: string;
+  titleRu: string;
+  titleEn: string;
+  descRu: string;
+  descEn: string;
+  badgeRu?: string;
+  badgeEn?: string;
+  isConsumable: boolean;
+}
+
+export const SHOP_PRODUCTS: Record<string, ShopProduct> = {
+  no_ads: {
+    id: 'no_ads',
+    priceYans: 249,
+    icon: '🛡️',
+    titleRu: 'Отключение рекламы',
+    titleEn: 'No Ads Pass',
+    descRu: 'Полное отключение межстраничной рекламы и баннеров навсегда',
+    descEn: 'Permanent removal of all fullscreen interstitial ads and banners',
+    badgeRu: 'Популярно',
+    badgeEn: 'Popular',
+    isConsumable: false,
+  },
+  vip_pass: {
+    id: 'vip_pass',
+    priceYans: 299,
+    icon: '👑',
+    titleRu: 'Cyber VIP Pass',
+    titleEn: 'Cyber VIP Pass',
+    descRu: 'No Ads навсегда + Золотой скин "Cyber Gold" + 25 подсказок + VIP значок',
+    descEn: 'No Ads forever + Cyber Gold grid skin + 25 hints + VIP badge',
+    badgeRu: 'Хит • VIP',
+    badgeEn: 'Best Value',
+    isConsumable: false,
+  },
+  hints_pack_20: {
+    id: 'hints_pack_20',
+    priceYans: 79,
+    icon: '💡',
+    titleRu: 'Пакет: 20 подсказок',
+    titleEn: '20 Hints Pack',
+    descRu: '+20 подсказок для мгновенного раскрытия сложнейших ячеек',
+    descEn: '+20 hints for instant solution of the toughest cells',
+    badgeRu: 'Выгодно',
+    badgeEn: 'Useful',
+    isConsumable: true,
+  },
+};
+
 export class YandexGamesBridge {
   private ysdk: YandexSDK | null = null;
   private player: YandexPlayer | null = null;
@@ -70,6 +147,26 @@ export class YandexGamesBridge {
   private isGameplayActive: boolean = false;
   private onPauseCallback?: () => void;
   private onResumeCallback?: () => void;
+
+  private paymentsService: YandexPaymentsService | null = null;
+  private paymentsInitialized: boolean = false;
+  private noAdsActive: boolean = false;
+  private vipPassActive: boolean = false;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.noAdsActive = localStorage.getItem('sudoku_pulse_no_ads') === 'true' || localStorage.getItem('sudoku_pulse_vip_pass') === 'true';
+      this.vipPassActive = localStorage.getItem('sudoku_pulse_vip_pass') === 'true';
+    }
+  }
+
+  public hasNoAds(): boolean {
+    return this.noAdsActive || this.vipPassActive;
+  }
+
+  public isVip(): boolean {
+    return this.vipPassActive;
+  }
 
   public setPauseResumeCallbacks(onPause?: () => void, onResume?: () => void) {
     this.onPauseCallback = onPause;
@@ -103,8 +200,9 @@ export class YandexGamesBridge {
           });
         }
 
-        // Pre-initialize player
+        // Pre-initialize player & payments
         await this.initPlayer();
+        await this.restorePurchases();
 
         const detectedLang = this.getLanguage();
         if (detectedLang) {
@@ -333,6 +431,133 @@ export class YandexGamesBridge {
     } catch {}
   }
 
+  public async initPayments(): Promise<boolean> {
+    if (this.paymentsInitialized && this.paymentsService) return true;
+    if (!this.ysdk?.getPayments) return false;
+    try {
+      this.paymentsService = await this.ysdk.getPayments({ signed: true });
+      this.paymentsInitialized = true;
+      console.log('[YandexGames] Payments service initialized');
+      return true;
+    } catch (e) {
+      console.warn('[YandexGames] getPayments failed or unsupported:', e);
+      return false;
+    }
+  }
+
+  public async restorePurchases(): Promise<{ hasNoAds: boolean; isVip: boolean }> {
+    // 1. Check local storage
+    if (typeof window !== 'undefined') {
+      if (localStorage.getItem('sudoku_pulse_vip_pass') === 'true') {
+        this.vipPassActive = true;
+        this.noAdsActive = true;
+      } else if (localStorage.getItem('sudoku_pulse_no_ads') === 'true') {
+        this.noAdsActive = true;
+      }
+    }
+
+    // 2. Check cloud player data
+    try {
+      const cloud = await this.loadCloudData(['no_ads', 'vip_pass']);
+      if (cloud) {
+        if (cloud.vip_pass) {
+          this.vipPassActive = true;
+          this.noAdsActive = true;
+          localStorage.setItem('sudoku_pulse_vip_pass', 'true');
+          localStorage.setItem('sudoku_pulse_no_ads', 'true');
+        } else if (cloud.no_ads) {
+          this.noAdsActive = true;
+          localStorage.setItem('sudoku_pulse_no_ads', 'true');
+        }
+      }
+    } catch {}
+
+    // 3. Query Yandex Payments service
+    try {
+      const hasPayments = await this.initPayments();
+      if (hasPayments && this.paymentsService) {
+        const purchases = await this.paymentsService.getPurchases();
+        if (Array.isArray(purchases)) {
+          for (const p of purchases) {
+            if (p.productID === 'vip_pass') {
+              this.vipPassActive = true;
+              this.noAdsActive = true;
+              localStorage.setItem('sudoku_pulse_vip_pass', 'true');
+              localStorage.setItem('sudoku_pulse_no_ads', 'true');
+            } else if (p.productID === 'no_ads') {
+              this.noAdsActive = true;
+              localStorage.setItem('sudoku_pulse_no_ads', 'true');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[YandexGames] restorePurchases failed:', e);
+    }
+
+    return { hasNoAds: this.hasNoAds(), isVip: this.isVip() };
+  }
+
+  public async purchaseProduct(productId: string): Promise<{ success: boolean; productId: string; error?: string }> {
+    const product = SHOP_PRODUCTS[productId];
+    if (!product) {
+      return { success: false, productId, error: 'Unknown product' };
+    }
+
+    // In Yandex environment:
+    if (this.isYandex() && this.ysdk?.getPayments) {
+      try {
+        await this.initPayments();
+        if (!this.paymentsService) {
+          return { success: false, productId, error: 'Payments unavailable' };
+        }
+
+        const purchase = await this.paymentsService.purchase({ id: productId });
+        console.log('[YandexGames] Purchase successful:', purchase);
+
+        // Process based on product type
+        if (productId === 'no_ads') {
+          this.noAdsActive = true;
+          localStorage.setItem('sudoku_pulse_no_ads', 'true');
+          await this.saveCloudData({ no_ads: true });
+        } else if (productId === 'vip_pass') {
+          this.vipPassActive = true;
+          this.noAdsActive = true;
+          localStorage.setItem('sudoku_pulse_vip_pass', 'true');
+          localStorage.setItem('sudoku_pulse_no_ads', 'true');
+          await this.saveCloudData({ no_ads: true, vip_pass: true });
+        } else if (productId === 'hints_pack_20') {
+          // Consumable product: must consume purchase token so it can be bought again
+          if (purchase.purchaseToken) {
+            try {
+              await this.paymentsService.consumePurchase(purchase.purchaseToken);
+            } catch (ce) {
+              console.warn('[YandexGames] consumePurchase error:', ce);
+            }
+          }
+        }
+
+        return { success: true, productId };
+      } catch (err: any) {
+        console.warn('[YandexGames] purchase error:', err);
+        return { success: false, productId, error: err?.message || 'Payment cancelled' };
+      }
+    }
+
+    // In standalone/dev sandbox mode (test purchase flow)
+    console.log('[Sandbox Payments] Simulating purchase for:', productId);
+    if (productId === 'no_ads') {
+      this.noAdsActive = true;
+      localStorage.setItem('sudoku_pulse_no_ads', 'true');
+    } else if (productId === 'vip_pass') {
+      this.vipPassActive = true;
+      this.noAdsActive = true;
+      localStorage.setItem('sudoku_pulse_vip_pass', 'true');
+      localStorage.setItem('sudoku_pulse_no_ads', 'true');
+    }
+    return { success: true, productId };
+  }
+
   public showFullscreenAdv(callbacks?: {
     onOpen?: () => void;
     onClose?: () => void;
@@ -341,6 +566,13 @@ export class YandexGamesBridge {
     const onFinished = typeof callbacks === 'function' ? callbacks : callbacks?.onClose;
     const onOpen = typeof callbacks === 'object' ? callbacks?.onOpen : undefined;
     const onError = typeof callbacks === 'object' ? callbacks?.onError : undefined;
+
+    // Respect No Ads purchase!
+    if (this.hasNoAds()) {
+      console.log('[YandexGames] Fullscreen ad skipped (No Ads active)');
+      if (onFinished) onFinished();
+      return;
+    }
 
     if (!this.ysdk) {
       if (onFinished) onFinished();
@@ -428,6 +660,10 @@ export class YandexGamesBridge {
   }
 
   public async showStickyBanner(): Promise<boolean> {
+    if (this.hasNoAds()) {
+      await this.hideStickyBanner();
+      return false;
+    }
     if (!this.ysdk?.adv) return false;
     try {
       const adv = this.ysdk.adv as any;

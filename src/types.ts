@@ -126,6 +126,8 @@ export interface PlayerStats {
   duelMatches?: number;
   dailyLoginDay?: number;
   dailyLoginLastClaimDate?: string | null;
+  bonusHints?: number;
+  seasonScore?: number;
   unlockedAchievements?: string[];
   seasonBadges?: SeasonBadge[];
 }

@@ -89,6 +89,15 @@
         </span>
       </button>
 
+      <button id="btn-menu-shop" class="btn-menu-card" style="border-color: rgba(245, 158, 11, 0.45); background: linear-gradient(135deg, rgba(245, 158, 11, 0.09), rgba(239, 68, 68, 0.05));">
+        <span class="btn-icon">💎</span>
+        <span class="btn-text">
+          <strong data-i18n="menu_shop_title">Кибер-Маркет</strong>
+          <small data-i18n="menu_shop_sub">No Ads • VIP Pass • Подсказки</small>
+        </span>
+        <span class="badge-streak" style="background: rgba(255, 215, 0, 0.22); color: #ffd700; border-color: rgba(255, 215, 0, 0.5);">👑 VIP</span>
+      </button>
+
       <div class="menu-grid-row">
         <button id="btn-menu-stats" class="btn-menu-secondary">
           <span>📊</span> <span data-i18n="menu_stats">Рекорды</span>
@@ -470,6 +479,12 @@
         <div id="run-perks-draft" class="perks-list" style="max-height: 210px; overflow-y: auto;"></div>
       </div>
 
+      <!-- Double Win Score (Rewarded Ad) -->
+      <button id="btn-double-win-score" class="btn-primary btn-double-win-score" style="width: 100%; margin-bottom: 8px; font-weight: 800; font-size: 0.92rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>🎁</span>
+        <span id="btn-double-win-score-label">✨ Удвоить очки партии (+<strong id="double-win-bonus-val">0</strong>)</span>
+      </button>
+
       <!-- Share Buttons -->
       <button id="btn-daily-share" class="btn-primary" style="background: linear-gradient(135deg, #10b981, #059669); width: 100%;">
         <span data-i18n="win_share_btn">📋 Скопировать результат</span>
@@ -687,7 +702,12 @@
           <button class="diff-pill board-skin-pill" data-board-skin="hologram" style="flex:1; font-size: 0.78rem;">💎 Hologram</button>
           <button class="diff-pill board-skin-pill" data-board-skin="retro" style="flex:1; font-size: 0.78rem;">👾 Retro</button>
           <button class="diff-pill board-skin-pill" data-board-skin="obsidian" style="flex:1; font-size: 0.78rem;">👑 Obsidian</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="cyber_gold" style="flex:1; font-size: 0.78rem; border-color: rgba(255,215,0,0.5);">👑 Gold VIP</button>
         </div>
+
+        <button id="btn-settings-open-shop" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; margin-top: 10px; margin-bottom: 4px; font-weight: 700; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);">
+          <span>💎</span> <span data-i18n="settings_open_shop_btn">Кибер-Маркет (No Ads / VIP)</span>
+        </button>
       </div>
 
       <div class="section-title yandex-hidden" style="margin-top: 14px; margin-bottom: 6px;" data-i18n="sync_cloud_title">✈️ Облачная синхронизация (Telegram & Cloud)</div>
@@ -1083,6 +1103,112 @@
         </button>
         <button id="btn-duel-abandon-menu" class="btn-secondary btn-block" data-i18n="duel_abandon_btn_menu">
           🏠 В главное меню
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CYBER SHOP / MARKET                -->
+  <!-- ========================================== -->
+  <div id="shop-modal" class="modal-overlay hidden">
+    <div class="modal-card shop-modal-card">
+      <button id="btn-close-shop-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div class="modal-icon" style="margin-bottom: 2px;">💎</div>
+      <h2 class="modal-title" style="margin-bottom: 2px;" data-i18n="shop_title">Кибер-Маркет</h2>
+      <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0;" data-i18n="shop_subtitle">Премиум возможности и поддержка игры</p>
+
+      <div class="shop-products-list">
+        <!-- PRODUCT 1: CYBER VIP PASS (FEATURED) -->
+        <div class="shop-product-card vip">
+          <span class="shop-card-badge vip-badge-tag" data-i18n="shop_badge_vip">ХИТ • VIP</span>
+          <div class="shop-card-header">
+            <div class="shop-card-icon" style="background: rgba(255, 215, 0, 0.15); border-color: rgba(255, 215, 0, 0.4); color: #ffd700;">👑</div>
+            <div class="shop-card-details">
+              <div class="shop-card-title">
+                <span data-i18n="shop_vip_title">Cyber VIP Pass</span>
+              </div>
+              <div class="shop-card-desc" data-i18n="shop_vip_desc">
+                No Ads навсегда + Золотой скин «Cyber Gold» + 25 подсказок + VIP значок
+              </div>
+            </div>
+          </div>
+          <div class="shop-card-action">
+            <div class="shop-price-tag">
+              <span>299 Янов</span> <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">(~299 ₽)</span>
+            </div>
+            <button id="btn-buy-vip" class="btn-shop-buy" style="background: linear-gradient(135deg, #ffd700, #f59e0b); color: #000;" data-i18n="shop_btn_buy">Купить</button>
+          </div>
+        </div>
+
+        <!-- PRODUCT 2: NO ADS (STANDARD) -->
+        <div class="shop-product-card featured">
+          <span class="shop-card-badge" data-i18n="shop_badge_noads">ПОПУЛЯРНО</span>
+          <div class="shop-card-header">
+            <div class="shop-card-icon" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">🛡️</div>
+            <div class="shop-card-details">
+              <div class="shop-card-title">
+                <span data-i18n="shop_noads_title">Отключение рекламы</span>
+              </div>
+              <div class="shop-card-desc" data-i18n="shop_noads_desc">
+                Полное отключение всей межстраничной рекламы и баннеров навсегда
+              </div>
+            </div>
+          </div>
+          <div class="shop-card-action">
+            <div class="shop-price-tag">
+              <span>249 Янов</span> <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">(~249 ₽)</span>
+            </div>
+            <button id="btn-buy-noads" class="btn-shop-buy" data-i18n="shop_btn_buy">Купить</button>
+          </div>
+        </div>
+
+        <!-- PRODUCT 3: HINTS PACK -->
+        <div class="shop-product-card">
+          <div class="shop-card-header">
+            <div class="shop-card-icon" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399;">💡</div>
+            <div class="shop-card-details">
+              <div class="shop-card-title">
+                <span data-i18n="shop_hints_title">Пакет: 20 подсказок</span>
+              </div>
+              <div class="shop-card-desc" data-i18n="shop_hints_desc">
+                +20 подсказок для мгновенного раскрытия сложнейших ячеек
+              </div>
+            </div>
+          </div>
+          <div class="shop-card-action">
+            <div class="shop-price-tag">
+              <span>79 Янов</span> <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">(~79 ₽)</span>
+            </div>
+            <button id="btn-buy-hints" class="btn-shop-buy" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;" data-i18n="shop_btn_buy">Купить</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 6px;">
+        <button id="btn-shop-restore" class="btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 8px;" data-i18n="shop_btn_restore">🔄 Восстановить</button>
+        <button id="btn-close-shop" class="btn-primary" style="flex: 1; font-size: 0.78rem; padding: 8px;" data-i18n="btn_done">Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SKIN TRIAL (REWARDED AD)            -->
+  <!-- ========================================== -->
+  <div id="skin-trial-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-close-skin-trial-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div class="modal-icon">🎨</div>
+      <h2 id="skin-trial-title" class="modal-title" data-i18n="skin_trial_title">Примерить стиль</h2>
+      <p id="skin-trial-desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">
+        Этот стиль ячеек ещё закрыт. Хотите примерить его на текущую сессию за просмотр короткого рекламного ролика?
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 10px;">
+        <button id="btn-confirm-skin-trial" class="btn-primary btn-block" style="background: linear-gradient(135deg, #f59e0b, #ef4444); font-weight: 800;" data-i18n="skin_trial_btn_watch">
+          🎬 Примерить за видео
+        </button>
+        <button id="btn-cancel-skin-trial" class="btn-secondary btn-block" data-i18n="btn_cancel">
+          Отмена
         </button>
       </div>
     </div>

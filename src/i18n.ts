@@ -290,6 +290,33 @@ const RU: TranslationDict = {
   // Tutorial
   tutorial_prev: '◀ Назад',
   tutorial_next: 'Далее ▶',
+
+  // Cyber Shop & Monetization
+  menu_shop_title: 'Кибер-Маркет',
+  menu_shop_sub: 'No Ads • VIP Pass • Подсказки',
+  settings_open_shop_btn: 'Кибер-Маркет (No Ads / VIP)',
+  shop_title: 'Кибер-Маркет',
+  shop_subtitle: 'Премиум возможности и поддержка игры',
+  shop_badge_vip: 'ХИТ • VIP',
+  shop_badge_noads: 'ПОПУЛЯРНО',
+  shop_vip_title: 'Cyber VIP Pass',
+  shop_vip_desc: 'No Ads навсегда + Золотой скин «Cyber Gold» + 25 подсказок + VIP значок',
+  shop_noads_title: 'Отключение рекламы',
+  shop_noads_desc: 'Полное отключение всей межстраничной рекламы и баннеров навсегда',
+  shop_hints_title: 'Пакет: 20 подсказок',
+  shop_hints_desc: '+20 подсказок для мгновенного раскрытия сложнейших ячеек',
+  shop_btn_buy: 'Купить',
+  shop_btn_restore: '🔄 Восстановить',
+  shop_owned: 'Куплено ✅',
+  shop_toast_success: '🎉 Покупка успешно совершена! Спасибо за поддержку!',
+  shop_toast_restored: '✨ Покупки успешно восстановлены!',
+  win_double_score_btn: 'Удвоить очки партии',
+  win_double_score_done: '✅ Очки удвоены!',
+  win_double_score_toast: '🎉 Очки победы удвоены!',
+  skin_trial_title: 'Примерить стиль',
+  skin_trial_desc: 'Этот стиль ячеек ещё закрыт. Хотите примерить его на текущую сессию за просмотр короткого рекламного ролика?',
+  skin_trial_btn_watch: '🎬 Примерить за видео',
+  skin_trial_active_toast: '🎨 Стиль ячеек временно разблокирован на текущую игру!',
 };
 
 const EN: TranslationDict = {
@@ -578,6 +605,33 @@ const EN: TranslationDict = {
   // Tutorial
   tutorial_prev: '◀ Back',
   tutorial_next: 'Next ▶',
+
+  // Cyber Shop & Monetization
+  menu_shop_title: 'Cyber Market',
+  menu_shop_sub: 'No Ads • VIP Pass • Hints',
+  settings_open_shop_btn: 'Cyber Market (No Ads / VIP)',
+  shop_title: 'Cyber Market',
+  shop_subtitle: 'Premium perks and game support',
+  shop_badge_vip: 'BEST VALUE',
+  shop_badge_noads: 'POPULAR',
+  shop_vip_title: 'Cyber VIP Pass',
+  shop_vip_desc: 'No Ads forever + Cyber Gold grid skin + 25 hints + VIP badge',
+  shop_noads_title: 'No Ads Pass',
+  shop_noads_desc: 'Permanent removal of all fullscreen ads and banners',
+  shop_hints_title: '20 Hints Pack',
+  shop_hints_desc: '+20 hints for instant solution of tough cells',
+  shop_btn_buy: 'Buy',
+  shop_btn_restore: '🔄 Restore',
+  shop_owned: 'Owned ✅',
+  shop_toast_success: '🎉 Purchase successful! Thank you for supporting the game!',
+  shop_toast_restored: '✨ Purchases restored successfully!',
+  win_double_score_btn: 'Double Round Score',
+  win_double_score_done: '✅ Score Doubled!',
+  win_double_score_toast: '🎉 Victory score doubled!',
+  skin_trial_title: 'Try Skin',
+  skin_trial_desc: 'This grid skin is locked. Would you like to try it for this session by watching a short video?',
+  skin_trial_btn_watch: '🎬 Try via Video',
+  skin_trial_active_toast: '🎨 Grid skin temporarily unlocked for this game!',
 };
 
 export const PERK_TRANSLATIONS: Record<string, { ru: { name: string; desc: string }; en: { name: string; desc: string } }> = {

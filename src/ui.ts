@@ -69,7 +69,7 @@ export function getLeagueForScore(totalScore: number): LeagueInfo {
   return { id: 'bronze', name: isEn ? 'Bronze' : 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
-export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; nameRu: string; nameEn: string; icon: string }> = {
+export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; nameRu: string; nameEn: string; icon: string; isVipOnly?: boolean }> = {
   neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', nameRu: 'Кибер', nameEn: 'Cyber', icon: '⚡' },
   synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', nameRu: 'Синтвейв', nameEn: 'Synth', icon: '🌆' },
   aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', nameRu: 'Аква', nameEn: 'Aqua', icon: '🌊' },
@@ -78,6 +78,7 @@ export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: st
   hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', nameRu: 'Голограмма', nameEn: 'Hologram', icon: '💎' },
   retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', nameRu: 'Ретро', nameEn: 'Retro', icon: '👾' },
   obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', nameRu: 'Обсидиан', nameEn: 'Obsidian', icon: '👑' },
+  cyber_gold: { minScore: -1, isVipOnly: true, leagueRu: 'VIP Pass', leagueEn: 'VIP Pass', nameRu: 'Cyber Gold', nameEn: 'Gold VIP', icon: '👑' },
 };
 
 export function getSeasonRemainingText(): string {
@@ -436,6 +437,29 @@ export class SudokuUI {
   private btnMenuTutorial!: HTMLButtonElement;
   private currentTutorialStep: number = 0;
 
+  // Cyber Shop & Monetization
+  private btnMenuShop?: HTMLButtonElement | null;
+  private btnSettingsOpenShop?: HTMLButtonElement | null;
+  private shopModal?: HTMLElement | null;
+  private btnCloseShop?: HTMLButtonElement | null;
+  private btnCloseShopX?: HTMLButtonElement | null;
+  private btnBuyVip?: HTMLButtonElement | null;
+  private btnBuyNoAds?: HTMLButtonElement | null;
+  private btnBuyHints?: HTMLButtonElement | null;
+  private btnShopRestore?: HTMLButtonElement | null;
+  private btnDoubleWinScore?: HTMLButtonElement | null;
+  private doubleWinBonusVal?: HTMLElement | null;
+  private hasDoubledCurrentWinScore: boolean = false;
+  private currentWinStats?: GameStats;
+
+  // Skin Trial
+  private skinTrialModal?: HTMLElement | null;
+  private btnCloseSkinTrialX?: HTMLButtonElement | null;
+  private btnConfirmSkinTrial?: HTMLButtonElement | null;
+  private btnCancelSkinTrial?: HTMLButtonElement | null;
+  private pendingTrialSkinKey: string | null = null;
+  private activeTrialSkinKey: string | null = null;
+
   // Background Particles & Confetti
   private bgParticlesCanvas!: HTMLCanvasElement;
   private bgParticlesCtx!: CanvasRenderingContext2D | null;
@@ -727,6 +751,25 @@ export class SudokuUI {
     this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement;
     this.btnSyncTgAuth = document.getElementById('btn-sync-tg-auth') as HTMLButtonElement;
 
+    // Cyber Shop & Monetization
+    this.btnMenuShop = (document.getElementById('btn-menu-shop') as HTMLButtonElement) || null;
+    this.btnSettingsOpenShop = (document.getElementById('btn-settings-open-shop') as HTMLButtonElement) || null;
+    this.shopModal = document.getElementById('shop-modal');
+    this.btnCloseShop = (document.getElementById('btn-close-shop') as HTMLButtonElement) || null;
+    this.btnCloseShopX = (document.getElementById('btn-close-shop-x') as HTMLButtonElement) || null;
+    this.btnBuyVip = (document.getElementById('btn-buy-vip') as HTMLButtonElement) || null;
+    this.btnBuyNoAds = (document.getElementById('btn-buy-noads') as HTMLButtonElement) || null;
+    this.btnBuyHints = (document.getElementById('btn-buy-hints') as HTMLButtonElement) || null;
+    this.btnShopRestore = (document.getElementById('btn-shop-restore') as HTMLButtonElement) || null;
+    this.btnDoubleWinScore = (document.getElementById('btn-double-win-score') as HTMLButtonElement) || null;
+    this.doubleWinBonusVal = document.getElementById('double-win-bonus-val');
+
+    // Skin Trial
+    this.skinTrialModal = document.getElementById('skin-trial-modal');
+    this.btnCloseSkinTrialX = (document.getElementById('btn-close-skin-trial-x') as HTMLButtonElement) || null;
+    this.btnConfirmSkinTrial = (document.getElementById('btn-confirm-skin-trial') as HTMLButtonElement) || null;
+    this.btnCancelSkinTrial = (document.getElementById('btn-cancel-skin-trial') as HTMLButtonElement) || null;
+
     // Challenge / Duel Modal
     this.challengeModal = document.getElementById('challenge-modal')!;
     this.challengeChallengerName = document.getElementById('challenge-challenger-name')!;
@@ -937,6 +980,15 @@ export class SudokuUI {
 
   public showScreen(screen: AppScreen) {
     this.currentScreen = screen;
+
+    if (screen === 'game') {
+      yandexBridge.hideStickyBanner().catch(() => {});
+    } else {
+      if (!yandexBridge.hasNoAds()) {
+        yandexBridge.showStickyBanner().catch(() => {});
+      }
+    }
+
     this.screenMenu.classList.toggle('hidden', screen !== 'menu');
     this.screenModeCategory?.classList.toggle('hidden', screen !== 'mode_category');
     this.screenModes.classList.toggle('hidden', screen !== 'mode_select');
@@ -1178,6 +1230,104 @@ export class SudokuUI {
       this.settingsModal.classList.add('hidden');
       this.updateScreenBackButton();
     });
+
+    // Cyber Shop & Monetization Listeners
+    if (this.btnMenuShop) {
+      this.btnMenuShop.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.openShopModal();
+      });
+    }
+
+    if (this.btnSettingsOpenShop) {
+      this.btnSettingsOpenShop.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.settingsModal.classList.add('hidden');
+        this.openShopModal();
+      });
+    }
+
+    if (this.btnCloseShop) {
+      this.btnCloseShop.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeShopModal();
+      });
+    }
+
+    if (this.btnCloseShopX) {
+      this.btnCloseShopX.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeShopModal();
+      });
+    }
+
+    if (this.btnBuyVip) {
+      this.btnBuyVip.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.handleBuyProduct('vip_pass');
+      });
+    }
+
+    if (this.btnBuyNoAds) {
+      this.btnBuyNoAds.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.handleBuyProduct('no_ads');
+      });
+    }
+
+    if (this.btnBuyHints) {
+      this.btnBuyHints.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.handleBuyProduct('hints_pack_20');
+      });
+    }
+
+    if (this.btnShopRestore) {
+      this.btnShopRestore.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        this.handleRestorePurchases();
+      });
+    }
+
+    // Double Win Score Button (Win Modal)
+    if (this.btnDoubleWinScore) {
+      this.btnDoubleWinScore.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        if (this.currentWinStats) {
+          this.handleDoubleWinScore(this.currentWinStats.score);
+        }
+      });
+    }
+
+    // Skin Trial Modal Listeners
+    if (this.btnCloseSkinTrialX) {
+      this.btnCloseSkinTrialX.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeSkinTrialModal();
+      });
+    }
+
+    if (this.btnCancelSkinTrial) {
+      this.btnCancelSkinTrial.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeSkinTrialModal();
+      });
+    }
+
+    if (this.btnConfirmSkinTrial) {
+      this.btnConfirmSkinTrial.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        this.handleConfirmSkinTrial();
+      });
+    }
 
     if (this.btnMenuTutorial) {
       this.btnMenuTutorial.addEventListener('click', () => {
@@ -1645,20 +1795,24 @@ export class SudokuUI {
         const req = BOARD_SKINS_CONFIG[skinKey];
         const stats = SudokuGame.getPlayerStats();
         const lang = i18n.getLanguage();
-        if (req && stats.totalScore < req.minScore) {
-          const needed = (req.minScore - stats.totalScore).toLocaleString(lang === 'en' ? 'en-US' : 'ru-RU');
-          const leagueName = lang === 'en' ? req.leagueEn : req.leagueRu;
-          const msg = lang === 'en'
-            ? `🔒 Unlocks in ${leagueName} League! Need ${needed} more points.`
-            : `🔒 Стиль откроется в лиге: ${leagueName}! Нужно ещё ${needed} очков.`;
-          this.showToast(msg);
-          haptics.error();
+        const isEn = lang === 'en';
+
+        // Check if VIP only
+        if (req?.isVipOnly) {
+          if (!yandexBridge.isVip() && this.activeTrialSkinKey !== skinKey) {
+            this.showToast(isEn ? '👑 Cyber Gold is exclusive to Cyber VIP Pass!' : '👑 Стиль Cyber Gold доступен в Cyber VIP Pass!');
+            haptics.error();
+            this.openShopModal();
+            return;
+          }
+        } else if (req && stats.totalScore < req.minScore && this.activeTrialSkinKey !== skinKey) {
+          this.openSkinTrialModal(skinKey);
           return;
         }
 
         this.setBoardSkin(skinKey);
         haptics.selection();
-        const appliedMsg = lang === 'en' ? '🎨 Grid skin applied!' : '🎨 Применён скин сетки!';
+        const appliedMsg = isEn ? '🎨 Grid skin applied!' : '🎨 Применён скин сетки!';
         this.showToast(appliedMsg);
       });
     });
@@ -2672,6 +2826,8 @@ export class SudokuUI {
   }
 
   private showWinModal(stats: GameStats) {
+    this.currentWinStats = stats;
+    this.hasDoubledCurrentWinScore = false;
     yandexBridge.gameplayStop();
     const isEn = i18n.getLanguage() === 'en';
     const locale = isEn ? 'en-US' : 'ru-RU';
@@ -2898,6 +3054,26 @@ export class SudokuUI {
       this.modalSubtitle.textContent = isEn ? 'Puzzle solved successfully!' : 'Головоломка успешно решена!';
       this.runStageUpgrade.classList.add('hidden');
       this.playAgainBtn.classList.remove('hidden');
+    }
+
+    // Setup Double Win Score button
+    if (this.btnDoubleWinScore) {
+      if (stats.score > 0) {
+        this.btnDoubleWinScore.classList.remove('hidden');
+        this.btnDoubleWinScore.disabled = false;
+        this.btnDoubleWinScore.style.opacity = '1';
+        if (this.doubleWinBonusVal) {
+          this.doubleWinBonusVal.textContent = stats.score.toLocaleString(locale);
+        }
+        const lbl = document.getElementById('btn-double-win-score-label');
+        if (lbl) {
+          lbl.textContent = isEn
+            ? `✨ Double Score (+${stats.score.toLocaleString(locale)}) 🎁`
+            : `✨ Удвоить очки партии (+${stats.score.toLocaleString(locale)}) 🎁`;
+        }
+      } else {
+        this.btnDoubleWinScore.classList.add('hidden');
+      }
     }
 
     this.winModal.classList.remove('hidden');
@@ -5428,14 +5604,25 @@ export class SudokuUI {
       const req = BOARD_SKINS_CONFIG[skinKey];
       if (!req) return;
 
-      const isUnlocked = totalScore >= req.minScore;
+      let isUnlocked = false;
+      if (req.isVipOnly) {
+        isUnlocked = yandexBridge.isVip() || this.activeTrialSkinKey === skinKey;
+      } else {
+        isUnlocked = totalScore >= req.minScore || this.activeTrialSkinKey === skinKey;
+      }
+
       pill.classList.toggle('active', currentSkin === skinKey);
       pill.classList.toggle('locked', !isUnlocked);
 
       const skinName = isEn ? req.nameEn : req.nameRu;
       const leagueName = isEn ? req.leagueEn : req.leagueRu;
-      if (isUnlocked) {
+
+      if (this.activeTrialSkinKey === skinKey && !yandexBridge.isVip() && (req.isVipOnly || totalScore < req.minScore)) {
+        pill.textContent = `✨ ${skinName} (Trial)`;
+      } else if (isUnlocked) {
         pill.textContent = `${req.icon} ${skinName}`;
+      } else if (req.isVipOnly) {
+        pill.textContent = `👑 ${skinName} (VIP)`;
       } else {
         pill.textContent = `🔒 ${skinName} (${leagueName})`;
       }
@@ -6228,6 +6415,185 @@ export class SudokuUI {
       soundManager.playCorrect();
       haptics.success();
       this.renderDailyRewardGrid();
+    });
+  }
+
+  // ==========================================
+  // CYBER SHOP & MONETIZATION METHODS
+  // ==========================================
+  private openShopModal() {
+    this.updateShopButtons();
+    if (this.shopModal) {
+      this.shopModal.classList.remove('hidden');
+      haptics.setBackButton(() => {
+        this.closeShopModal();
+      });
+    }
+  }
+
+  private closeShopModal() {
+    if (this.shopModal) {
+      this.shopModal.classList.add('hidden');
+    }
+    this.updateScreenBackButton();
+  }
+
+  private updateShopButtons() {
+    const isEn = i18n.getLanguage() === 'en';
+    const hasNoAds = yandexBridge.hasNoAds();
+    const isVip = yandexBridge.isVip();
+
+    if (this.btnBuyNoAds) {
+      if (hasNoAds) {
+        this.btnBuyNoAds.textContent = isEn ? 'Owned ✅' : 'Куплено ✅';
+        this.btnBuyNoAds.classList.add('owned');
+        this.btnBuyNoAds.disabled = true;
+      } else {
+        this.btnBuyNoAds.textContent = isEn ? 'Buy' : 'Купить';
+        this.btnBuyNoAds.classList.remove('owned');
+        this.btnBuyNoAds.disabled = false;
+      }
+    }
+
+    if (this.btnBuyVip) {
+      if (isVip) {
+        this.btnBuyVip.textContent = isEn ? 'Owned ✅' : 'Куплено ✅';
+        this.btnBuyVip.classList.add('owned');
+        this.btnBuyVip.disabled = true;
+      } else {
+        this.btnBuyVip.textContent = isEn ? 'Buy' : 'Купить';
+        this.btnBuyVip.classList.remove('owned');
+        this.btnBuyVip.disabled = false;
+      }
+    }
+  }
+
+  private async handleBuyProduct(productId: string) {
+    const isEn = i18n.getLanguage() === 'en';
+    soundManager.playSelect();
+    haptics.light();
+
+    const res = await yandexBridge.purchaseProduct(productId);
+    if (res.success) {
+      soundManager.playVictory();
+      haptics.victory();
+      this.startConfetti();
+
+      if (productId === 'hints_pack_20') {
+        this.game.hintsRemaining += 20;
+        const stats = SudokuGame.getPlayerStats();
+        stats.bonusHints = (stats.bonusHints || 0) + 20;
+        SudokuGame.savePlayerStats(stats);
+        this.renderToolbar();
+      } else if (productId === 'vip_pass') {
+        this.game.hintsRemaining += 25;
+        const stats = SudokuGame.getPlayerStats();
+        stats.bonusHints = (stats.bonusHints || 0) + 25;
+        SudokuGame.savePlayerStats(stats);
+        this.renderToolbar();
+        this.updateBoardSkinButtons();
+        this.updateTgMenuPill();
+      }
+
+      this.updateShopButtons();
+      this.updateBoardSkinButtons();
+      this.showToast(isEn ? '🎉 Purchase successful! Thank you for supporting the game!' : '🎉 Покупка успешно совершена! Спасибо за поддержку!');
+    } else if (res.error) {
+      haptics.error();
+      if (!res.error.includes('cancel')) {
+        this.showToast((isEn ? '⚠️ Payment error: ' : '⚠️ Ошибка оплаты: ') + res.error);
+      }
+    }
+  }
+
+  private async handleRestorePurchases() {
+    const isEn = i18n.getLanguage() === 'en';
+    soundManager.playSelect();
+    await yandexBridge.restorePurchases();
+    this.updateShopButtons();
+    this.updateBoardSkinButtons();
+    this.updateTgMenuPill();
+    this.showToast(isEn ? '✨ Purchases restored successfully!' : '✨ Покупки успешно восстановлены!');
+  }
+
+  private handleDoubleWinScore(score: number) {
+    if (this.hasDoubledCurrentWinScore || score <= 0) return;
+    const isEn = i18n.getLanguage() === 'en';
+
+    this.showMockAd(isEn ? '🎁 Double Score' : '🎁 Удвоение очков', () => {
+      this.hasDoubledCurrentWinScore = true;
+      const playerStats = SudokuGame.getPlayerStats();
+      playerStats.totalScore = (playerStats.totalScore || 0) + score;
+      playerStats.seasonScore = (playerStats.seasonScore || 0) + score;
+      SudokuGame.savePlayerStats(playerStats);
+
+      soundManager.playCorrect(3);
+      haptics.success();
+      this.startConfetti();
+
+      if (this.btnDoubleWinScore) {
+        this.btnDoubleWinScore.disabled = true;
+        this.btnDoubleWinScore.style.opacity = '0.6';
+        const lbl = document.getElementById('btn-double-win-score-label');
+        if (lbl) lbl.textContent = isEn ? '✅ Score Doubled!' : '✅ Очки удвоены!';
+      }
+
+      this.modalScore.textContent = (score * 2).toLocaleString(isEn ? 'en-US' : 'ru-RU');
+      this.showToast(isEn ? `🎉 Victory score doubled! (+${score.toLocaleString('en-US')})` : `🎉 Очки победы удвоены! (+${score.toLocaleString('ru-RU')})`);
+      this.updateDailyInfoOnMenu();
+
+      if (yandexBridge.isYandex()) {
+        yandexBridge.submitLeaderboardScore(playerStats.totalScore);
+      }
+    });
+  }
+
+  // ==========================================
+  // SKIN TRIAL (REWARDED AD) METHODS
+  // ==========================================
+  private openSkinTrialModal(skinKey: string) {
+    this.pendingTrialSkinKey = skinKey;
+    const req = BOARD_SKINS_CONFIG[skinKey];
+    const isEn = i18n.getLanguage() === 'en';
+    const titleEl = document.getElementById('skin-trial-title');
+    const descEl = document.getElementById('skin-trial-desc');
+    if (titleEl && req) {
+      titleEl.textContent = isEn ? `Try ${req.nameEn}` : `Примерить стиль: ${req.nameRu}`;
+    }
+    if (descEl && req) {
+      descEl.textContent = isEn
+        ? `The "${req.nameEn}" grid skin is locked. Would you like to try it for this session by watching a short video?`
+        : `Стиль "${req.nameRu}" закрыт. Хотите примерить его на текущую сессию за просмотр короткого рекламного ролика?`;
+    }
+    if (this.skinTrialModal) {
+      this.skinTrialModal.classList.remove('hidden');
+      haptics.setBackButton(() => {
+        this.closeSkinTrialModal();
+      });
+    }
+  }
+
+  private closeSkinTrialModal() {
+    if (this.skinTrialModal) {
+      this.skinTrialModal.classList.add('hidden');
+    }
+    this.pendingTrialSkinKey = null;
+    this.updateScreenBackButton();
+  }
+
+  private handleConfirmSkinTrial() {
+    const key = this.pendingTrialSkinKey;
+    if (!key) return;
+    this.closeSkinTrialModal();
+    const isEn = i18n.getLanguage() === 'en';
+
+    this.showMockAd(isEn ? '🎨 Skin Trial' : '🎨 Примерка стиля', () => {
+      this.activeTrialSkinKey = key;
+      this.setBoardSkin(key);
+      soundManager.playCorrect(2);
+      haptics.success();
+      this.showToast(isEn ? '🎨 Grid skin temporarily unlocked for this game!' : '🎨 Стиль ячеек временно разблокирован на текущую игру!');
+      this.updateBoardSkinButtons();
     });
   }
 }
