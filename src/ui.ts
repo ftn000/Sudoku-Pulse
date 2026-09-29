@@ -244,6 +244,8 @@ export class SudokuUI {
     mode: string;
     difficulty?: string;
     runStage?: number;
+    timeSeconds?: number;
+    date?: string;
   }> = [];
   private cachedMyRank: { rank: number; entry: any } | null = null;
   private statPlayed!: HTMLElement;
@@ -3149,11 +3151,30 @@ export class SudokuUI {
     const isEn = i18n.getLanguage() === 'en';
     const locale = isEn ? 'en-US' : 'ru-RU';
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
-    let entries = this.cachedLeaderboardEntries;
+    let entries = [...this.cachedLeaderboardEntries];
 
     if (this.currentLeaderboardModeFilter !== 'all') {
       entries = entries.filter((e) => e.mode === this.currentLeaderboardModeFilter);
     }
+
+    // Sort descending by score, then ascending by time
+    entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.timeSeconds || 0) - (b.timeSeconds || 0)));
+
+    // Deduplicate entries so each player appears only once with their single best record in this view
+    const seen = new Set<string>();
+    const deduped: typeof entries = [];
+    for (const e of entries) {
+      const key = (e.playerId && String(e.playerId).trim()) || (e.name ? String(e.name).toLowerCase().trim() : '');
+      if (!key) {
+        deduped.push(e);
+        continue;
+      }
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(e);
+      }
+    }
+    entries = deduped;
 
     let seasonHeader = '';
     if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
@@ -3195,25 +3216,39 @@ export class SudokuUI {
     }).join('');
 
     let pinnedUserHtml = '';
-    if (!isUserInTop && this.cachedMyRank && this.cachedMyRank.entry) {
-      const myRank = this.cachedMyRank.rank;
-      const item = this.cachedMyRank.entry;
-      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
-      const league = getLeagueForScore(item.score);
-      pinnedUserHtml = `
-        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
-          <span>•••••••••••••</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
-            <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-            <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
-            <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+    const myEntryInCurrentList = entries.find((item) => item.playerId && item.playerId === myPlayerId);
+    const myIndexInCurrentList = entries.findIndex((item) => item.playerId && item.playerId === myPlayerId);
+
+    if (!isUserInTop) {
+      let myRank: number | null = null;
+      let item: any = null;
+
+      if (myIndexInCurrentList !== -1) {
+        myRank = myIndexInCurrentList + 1;
+        item = myEntryInCurrentList;
+      } else if (this.cachedMyRank && this.cachedMyRank.entry) {
+        myRank = this.cachedMyRank.rank;
+        item = this.cachedMyRank.entry;
+      }
+
+      if (myRank && item) {
+        const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
+        const league = getLeagueForScore(item.score);
+        pinnedUserHtml = `
+          <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
+            <span>•••••••••••••</span>
           </div>
-          <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
-        </div>
-      `;
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
+              <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+              <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+            </div>
+            <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
+          </div>
+        `;
+      }
     }
 
     this.leaderboardList.innerHTML = seasonHeader + listHtml + pinnedUserHtml;

@@ -193,6 +193,23 @@ function cleanupOldLobbies() {
 }
 setInterval(cleanupOldLobbies, 60 * 1000);
 
+function deduplicateLeaderboardEntries(entries) {
+  const seen = new Set();
+  const deduped = [];
+  for (const entry of entries) {
+    const key = (entry.playerId && String(entry.playerId).trim()) || (entry.name ? String(entry.name).toLowerCase().trim() : '');
+    if (!key) {
+      deduped.push(entry);
+      continue;
+    }
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(entry);
+    }
+  }
+  return deduped;
+}
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
@@ -214,6 +231,7 @@ const server = http.createServer((req, res) => {
       const currentSeason = getIsoSeasonId();
       const requestedSeason = parsedUrl.searchParams.get('seasonId') || currentSeason;
       const myPlayerId = parsedUrl.searchParams.get('playerId') || '';
+      const requestedMode = parsedUrl.searchParams.get('mode') || 'all';
 
       const allEntries = readLeaderboard();
       let filtered = allEntries;
@@ -223,27 +241,31 @@ const server = http.createServer((req, res) => {
           return sId === requestedSeason;
         });
       }
+      if (requestedMode && requestedMode !== 'all') {
+        filtered = filtered.filter((e) => (e.mode || 'classic') === requestedMode);
+      }
 
       const sorted = filtered
         .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds);
 
+      const deduplicated = deduplicateLeaderboardEntries(sorted);
+
       let myRankInfo = null;
       if (myPlayerId) {
-        const pIdx = sorted.findIndex((e) => e.playerId === myPlayerId);
+        const pIdx = deduplicated.findIndex((e) => e.playerId === myPlayerId);
         if (pIdx !== -1) {
           myRankInfo = {
             rank: pIdx + 1,
-            entry: sorted[pIdx],
+            entry: deduplicated[pIdx],
           };
         }
       }
 
-      const topList = sorted.slice(0, 30);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
-        entries: topList,
-        leaderboard: topList,
-        totalPlayers: sorted.length,
+        entries: sorted.slice(0, 300),
+        leaderboard: deduplicated.slice(0, 30),
+        totalPlayers: deduplicated.length,
         myRank: myRankInfo,
         seasonId: requestedSeason,
         currentSeason,
@@ -308,22 +330,24 @@ const server = http.createServer((req, res) => {
               .slice(0, 500);
             saveLeaderboard(sorted);
 
+            const deduplicated = deduplicateLeaderboardEntries(sorted);
+
             let myRankInfo = null;
             if (playerId) {
-              const pIdx = sorted.findIndex((e) => e.playerId === playerId && (e.mode || 'classic') === mode);
+              const pIdx = deduplicated.findIndex((e) => e.playerId === playerId);
               if (pIdx !== -1) {
                 myRankInfo = {
                   rank: pIdx + 1,
-                  entry: sorted[pIdx],
+                  entry: deduplicated[pIdx],
                 };
               }
             }
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
-              entries: sorted.slice(0, 30),
-              leaderboard: sorted.slice(0, 30),
-              totalPlayers: sorted.length,
+              entries: sorted.slice(0, 300),
+              leaderboard: deduplicated.slice(0, 30),
+              totalPlayers: deduplicated.length,
               myRank: myRankInfo,
               seasonId,
               currentSeason: getIsoSeasonId(),
