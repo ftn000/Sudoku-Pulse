@@ -426,6 +426,35 @@ export class YandexGamesBridge {
       options.onError?.(e);
     }
   }
+
+  public async showStickyBanner(): Promise<boolean> {
+    if (!this.ysdk?.adv) return false;
+    try {
+      const adv = this.ysdk.adv as any;
+      if (typeof adv.getBannerAdvStatus === 'function') {
+        const status = await adv.getBannerAdvStatus();
+        if (status?.stickyAdvIsShowing) return true;
+      }
+      if (typeof adv.showBannerAdv === 'function') {
+        const res = await adv.showBannerAdv();
+        return !!res?.stickyAdvIsShowing;
+      }
+      return false;
+    } catch (e) {
+      console.warn('[YandexGames] showStickyBanner error:', e);
+      return false;
+    }
+  }
+
+  public async hideStickyBanner(): Promise<void> {
+    if (!this.ysdk?.adv) return;
+    try {
+      const adv = this.ysdk.adv as any;
+      if (typeof adv.hideBannerAdv === 'function') {
+        await adv.hideBannerAdv();
+      }
+    } catch {}
+  }
 }
 
 export const yandexBridge = new YandexGamesBridge();

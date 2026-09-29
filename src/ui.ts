@@ -2672,6 +2672,7 @@ export class SudokuUI {
   }
 
   private showWinModal(stats: GameStats) {
+    yandexBridge.gameplayStop();
     const isEn = i18n.getLanguage() === 'en';
     const locale = isEn ? 'en-US' : 'ru-RU';
     const mins = Math.floor(stats.timeSeconds / 60);
@@ -3911,6 +3912,7 @@ export class SudokuUI {
   }
 
   private showGameOverModal() {
+    yandexBridge.gameplayStop();
     this.stopAiBotDuel();
     const isEn = i18n.getLanguage() === 'en';
     if (this.game.mode === 'run') {

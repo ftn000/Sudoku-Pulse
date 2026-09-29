@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch {}
 
-  // Register PWA Service Worker and purge outdated caches
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'http:')) {
+  // Register PWA Service Worker and purge outdated caches (skip in Yandex Games iframe to prevent sandbox/caching errors)
+  if (!yandexBridge.isYandex() && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'http:')) {
     navigator.serviceWorker.register('./sw.js?v=1.7.0').then((reg) => {
       reg.update().catch(() => {});
     }).catch(() => {});
