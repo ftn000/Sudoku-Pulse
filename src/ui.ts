@@ -976,6 +976,32 @@ export class SudokuUI {
         this.openTutorial(0);
       }
     }, 600);
+
+    // Keep board strictly square across all screen sizes and orientations
+    window.addEventListener('resize', () => {
+      if (this.currentScreen === 'game') this.fitBoardSquare();
+    });
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (this.currentScreen === 'game') this.fitBoardSquare();
+      }, 150);
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (this.currentScreen === 'game') this.fitBoardSquare();
+      });
+    }
+
+    if (typeof ResizeObserver !== 'undefined' && this.screenGame) {
+      const ro = new ResizeObserver(() => {
+        if (this.currentScreen === 'game') {
+          this.fitBoardSquare();
+        }
+      });
+      ro.observe(this.screenGame);
+      const appCont = this.screenGame.querySelector('.app-container');
+      if (appCont) ro.observe(appCont);
+    }
   }
 
   public showScreen(screen: AppScreen) {
@@ -983,6 +1009,9 @@ export class SudokuUI {
 
     if (screen === 'game') {
       yandexBridge.hideStickyBanner().catch(() => {});
+      requestAnimationFrame(() => {
+        this.fitBoardSquare();
+      });
     } else {
       if (!yandexBridge.hasNoAds()) {
         yandexBridge.showStickyBanner().catch(() => {});
@@ -6595,6 +6624,62 @@ export class SudokuUI {
       this.showToast(isEn ? '🎨 Grid skin temporarily unlocked for this game!' : '🎨 Стиль ячеек временно разблокирован на текущую игру!');
       this.updateBoardSkinButtons();
     });
+  }
+
+  // ==========================================
+  // RESPONSIVE SQUARE BOARD RESIZING
+  // ==========================================
+  public fitBoardSquare() {
+    if (this.currentScreen !== 'game') return;
+    const boardWrapper = document.querySelector('.board-wrapper') as HTMLElement | null;
+    const appContainer = this.screenGame.querySelector('.app-container') as HTMLElement | null;
+    if (!boardWrapper || !appContainer) return;
+
+    // Measure all non-board visible sibling elements inside .app-container
+    let otherHeight = 0;
+    const children = Array.from(appContainer.children) as HTMLElement[];
+    for (const child of children) {
+      if (child === boardWrapper || child.classList.contains('hidden')) continue;
+      const comp = window.getComputedStyle(child);
+      if (comp.display === 'none') continue;
+      const mt = parseFloat(comp.marginTop) || 0;
+      const mb = parseFloat(comp.marginBottom) || 0;
+      otherHeight += child.offsetHeight + mt + mb;
+    }
+
+    const containerStyle = window.getComputedStyle(appContainer);
+    const pt = parseFloat(containerStyle.paddingTop) || 0;
+    const pb = parseFloat(containerStyle.paddingBottom) || 0;
+    const pl = parseFloat(containerStyle.paddingLeft) || 0;
+    const pr = parseFloat(containerStyle.paddingRight) || 0;
+    const rowGap = parseFloat(containerStyle.rowGap || containerStyle.gap) || 4;
+
+    const visibleCount = children.filter(
+      (c) => !c.classList.contains('hidden') && window.getComputedStyle(c).display !== 'none'
+    ).length;
+    const totalGaps = Math.max(0, visibleCount - 1) * rowGap;
+
+    const totalHeight = appContainer.clientHeight || this.screenGame.clientHeight;
+    const totalWidth = appContainer.clientWidth || this.screenGame.clientWidth;
+
+    // Available space for the square board
+    const availableHeight = totalHeight - otherHeight - pt - pb - totalGaps - 6;
+    const availableWidth = totalWidth - pl - pr - 6;
+
+    // Strictly square: both dimensions scale together
+    const squareSize = Math.max(160, Math.floor(Math.min(availableWidth, availableHeight, 430)));
+
+    boardWrapper.style.width = `${squareSize}px`;
+    boardWrapper.style.height = `${squareSize}px`;
+    boardWrapper.style.maxWidth = `${squareSize}px`;
+    boardWrapper.style.maxHeight = `${squareSize}px`;
+    boardWrapper.style.setProperty('--board-size', `${squareSize}px`);
+
+    // Proportional font sizes based on square size
+    const cellFontSize = Math.max(14, Math.round(squareSize * 0.056));
+    const noteFontSize = Math.max(8, Math.round(squareSize * 0.024));
+    boardWrapper.style.setProperty('--cell-font-size', `${cellFontSize}px`);
+    boardWrapper.style.setProperty('--note-font-size', `${noteFontSize}px`);
   }
 }
 
