@@ -25,7 +25,10 @@
         <span class="tg-pill-icon">✈️</span>
         <span id="menu-tg-auth-label">Войти через Telegram</span>
       </button>
-      <div id="menu-league-badge" class="league-badge bronze" title="Текущая лига">🥉 Бронза</div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="menu-league-badge" class="league-badge bronze" title="Текущая лига">🥉 Бронза</div>
+        <button id="btn-top-settings" class="top-bar-icon-btn" title="Настройки" aria-label="Настройки">⚙️</button>
+      </div>
     </div>
 
     <div class="menu-hero">
@@ -467,9 +470,6 @@
           <div id="duel-rematch-status" style="font-size: 0.78rem; color: var(--pulse-cyan); margin-top: 4px; font-weight: 600;" class="hidden" data-i18n="live_rematch_waiting">
             ⏳ Ожидаем согласия соперника...
           </div>
-          <button id="btn-duel-spectate" class="btn-secondary btn-block hidden" style="margin-top: 6px; padding: 8px 12px; font-size: 0.85rem; border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" data-i18n="live_btn_spectate">
-            👀 Наблюдать за соперником
-          </button>
         </div>
       </div>
 
@@ -509,7 +509,7 @@
     <div class="modal-card">
       <button id="btn-close-gameover-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
       <div class="modal-icon">💔</div>
-      <h2 class="modal-title" data-i18n="gameover_title">Игра окончена</h2>
+      <h2 id="gameover-title" class="modal-title" data-i18n="gameover_title">Игра окончена</h2>
       <p id="gameover-subtitle" style="color: var(--text-muted); font-size: 0.95rem;" data-i18n="gameover_subtitle">Вы совершили максимум ошибок.</p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -1103,6 +1103,28 @@
         </button>
         <button id="btn-duel-abandon-menu" class="btn-secondary btn-block" data-i18n="duel_abandon_btn_menu">
           🏠 В главное меню
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: EXIT CONFIRMATION                   -->
+  <!-- ========================================== -->
+  <div id="exit-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="border-color: rgba(239, 68, 68, 0.45); max-width: 360px;">
+      <button id="btn-close-exit-confirm-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div class="modal-icon" style="font-size: 2.2rem; margin-bottom: 4px;">🚪</div>
+      <h2 id="exit-confirm-title" class="modal-title" style="color: #f87171; font-size: 1.25rem;">Вы уверены, что хотите выйти?</h2>
+      <p id="exit-confirm-desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.45; margin: 8px 0 16px;">
+        ⚠️ Если вы выйдете сейчас, вам будет засчитано поражение.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+        <button id="btn-exit-cancel" class="btn-primary btn-block" style="padding: 10px; font-weight: 700;">
+          ▶️ Продолжить игру
+        </button>
+        <button id="btn-exit-confirm" class="btn-secondary btn-block" style="padding: 9px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+          🚪 Выйти (Сдаться)
         </button>
       </div>
     </div>

@@ -1730,6 +1730,34 @@ body.screen-is-game {
   background: rgba(14, 165, 233, 0.22);
 }
 
+.top-bar-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.05rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.top-bar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--pulse-cyan);
+  transform: rotate(35deg) scale(1.06);
+}
+
+.top-bar-icon-btn:active {
+  transform: scale(0.94);
+}
+
 /* ========================================== */
 /* PLATFORM ADAPTATION: YANDEX GAMES          */
 /* ========================================== */

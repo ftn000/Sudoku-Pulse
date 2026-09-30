@@ -25,6 +25,8 @@ data
 *.sw?
 *.apk
 *.zip
+*.tar.gz
+deploy.tar.gz
 android/
 
 # Environment and secrets

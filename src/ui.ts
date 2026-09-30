@@ -158,12 +158,10 @@ export class SudokuUI {
 
   // Duel Avatars & Abandon / Pause
   private playerDuelAvatar: HTMLElement | null = null;
-  private liveOpponentPausedOverlay: HTMLElement | null = null;
   private duelAbandonedModal: HTMLElement | null = null;
   private btnDuelContinueSolo: HTMLButtonElement | null = null;
   private btnDuelAbandonMenu: HTMLButtonElement | null = null;
   private opponentAvatarUrl: string | null = null;
-  private isLiveOpponentPaused: boolean = false;
   private liveSpectatorHud: HTMLElement | null = null;
   private isSpectating: boolean = false;
   private hasReceivedRematchOfferSound: boolean = false;
@@ -218,10 +216,19 @@ export class SudokuUI {
   private playAgainBtn!: HTMLButtonElement;
 
   private gameOverModal!: HTMLElement;
+  private gameOverTitle!: HTMLElement;
   private gameOverSubtitle!: HTMLElement;
   private secondChanceBtn!: HTMLButtonElement;
   private restartGameOverBtn!: HTMLButtonElement;
   private btnGameOverMenu!: HTMLButtonElement;
+
+  private exitConfirmModal!: HTMLElement;
+  private exitConfirmTitle!: HTMLElement;
+  private exitConfirmDesc!: HTMLElement;
+  private btnExitCancel!: HTMLButtonElement;
+  private btnExitConfirm!: HTMLButtonElement;
+  private btnTopSettings!: HTMLButtonElement | null;
+  private confettiTimeout?: number;
 
   private statsModal!: HTMLElement;
   private btnCloseStats!: HTMLButtonElement;
@@ -638,7 +645,6 @@ export class SudokuUI {
 
     // Duel Avatars & Abandon / Pause
     this.playerDuelAvatar = document.getElementById('player-duel-avatar');
-    this.liveOpponentPausedOverlay = document.getElementById('live-opponent-paused-overlay');
     this.duelAbandonedModal = document.getElementById('duel-abandoned-modal');
     this.btnDuelContinueSolo = document.getElementById('btn-duel-continue-solo') as HTMLButtonElement;
     this.btnDuelAbandonMenu = document.getElementById('btn-duel-abandon-menu') as HTMLButtonElement;
@@ -703,10 +709,18 @@ export class SudokuUI {
     this.playAgainBtn = document.getElementById('btn-play-again') as HTMLButtonElement;
 
     this.gameOverModal = document.getElementById('gameover-modal')!;
+    this.gameOverTitle = document.getElementById('gameover-title')!;
     this.gameOverSubtitle = document.getElementById('gameover-subtitle')!;
     this.secondChanceBtn = document.getElementById('btn-second-chance') as HTMLButtonElement;
     this.restartGameOverBtn = document.getElementById('btn-restart-gameover') as HTMLButtonElement;
     this.btnGameOverMenu = document.getElementById('btn-gameover-menu') as HTMLButtonElement;
+
+    this.exitConfirmModal = document.getElementById('exit-confirm-modal')!;
+    this.exitConfirmTitle = document.getElementById('exit-confirm-title')!;
+    this.exitConfirmDesc = document.getElementById('exit-confirm-desc')!;
+    this.btnExitCancel = document.getElementById('btn-exit-cancel') as HTMLButtonElement;
+    this.btnExitConfirm = document.getElementById('btn-exit-confirm') as HTMLButtonElement;
+    this.btnTopSettings = document.getElementById('btn-top-settings') as HTMLButtonElement | null;
 
     this.statsModal = document.getElementById('stats-modal')!;
     this.btnCloseStats = document.getElementById('btn-close-stats') as HTMLButtonElement;
@@ -1006,13 +1020,18 @@ export class SudokuUI {
 
   public showScreen(screen: AppScreen) {
     this.currentScreen = screen;
+    this.stopConfetti();
 
     if (screen === 'game') {
+      const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel' || this.game.mode === 'ai_duel');
+      if (this.pauseBtn) this.pauseBtn.classList.toggle('hidden', isDuel);
       yandexBridge.hideStickyBanner().catch(() => {});
       requestAnimationFrame(() => {
         this.fitBoardSquare();
       });
     } else {
+      if (this.pauseBtn) this.pauseBtn.classList.remove('hidden');
+      if (this.exitConfirmModal) this.exitConfirmModal.classList.add('hidden');
       if (!yandexBridge.hasNoAds()) {
         yandexBridge.showStickyBanner().catch(() => {});
       }
@@ -1466,18 +1485,42 @@ export class SudokuUI {
     const btnCloseWinX = document.getElementById('btn-close-win-x');
     if (btnCloseWinX) {
       btnCloseWinX.addEventListener('click', () => {
-        this.winModal.classList.add('hidden');
-        this.updateScreenBackButton();
-        this.triggerInterstitialAd();
+        this.closeWinModal();
       });
     }
 
     const btnCloseGameOverX = document.getElementById('btn-close-gameover-x');
     if (btnCloseGameOverX) {
       btnCloseGameOverX.addEventListener('click', () => {
-        this.gameOverModal.classList.add('hidden');
-        this.updateScreenBackButton();
-        this.triggerInterstitialAd();
+        this.closeGameOverModal();
+      });
+    }
+
+    const btnCloseExitConfirmX = document.getElementById('btn-close-exit-confirm-x');
+    if (btnCloseExitConfirmX) {
+      btnCloseExitConfirmX.addEventListener('click', () => {
+        this.exitConfirmModal.classList.add('hidden');
+        if (this.game.mode !== 'live_duel' && this.game.status === 'paused') {
+          this.game.resumeTimer();
+        }
+      });
+    }
+
+    if (this.btnExitCancel) {
+      this.btnExitCancel.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.exitConfirmModal.classList.add('hidden');
+        if (this.game.mode !== 'live_duel' && this.game.status === 'paused') {
+          this.game.resumeTimer();
+        }
+      });
+    }
+
+    if (this.btnExitConfirm) {
+      this.btnExitConfirm.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.exitConfirmModal.classList.add('hidden');
+        this.confirmForfeitAndExit();
       });
     }
 
@@ -1583,7 +1626,8 @@ export class SudokuUI {
       this.challengeModal,
       this.enterChallengeModal,
       this.liveLobbyModal,
-      this.duelAbandonedModal
+      this.duelAbandonedModal,
+      this.exitConfirmModal
     ].forEach((modal) => {
       if (modal) {
         let pointerDownTarget: EventTarget | null = null;
@@ -1599,13 +1643,30 @@ export class SudokuUI {
         modal.addEventListener('pointerup', (e: PointerEvent) => {
           const dist = Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY);
           if (pointerDownTarget === modal && e.target === modal && dist < 12) {
-            modal.classList.add('hidden');
-            if (modal === this.tgAuthModal) this.stopTgAuthPolling();
-            this.updateScreenBackButton();
+            if (modal === this.winModal) {
+              this.closeWinModal();
+            } else if (modal === this.gameOverModal) {
+              this.closeGameOverModal();
+            } else if (modal === this.exitConfirmModal) {
+              this.exitConfirmModal.classList.add('hidden');
+              if (this.game.mode !== 'live_duel' && this.game.status === 'paused') {
+                this.game.resumeTimer();
+              }
+            } else {
+              modal.classList.add('hidden');
+              if (modal === this.tgAuthModal) this.stopTgAuthPolling();
+              this.updateScreenBackButton();
+            }
           }
           pointerDownTarget = null;
         });
       }
+    });
+
+    this.btnTopSettings?.addEventListener('click', () => {
+      soundManager.playSelect();
+      haptics.light();
+      this.settingsModal.classList.remove('hidden');
     });
 
     // Opponent Disconnect / Abandoned Modal buttons
@@ -1749,14 +1810,7 @@ export class SudokuUI {
     // Game Screen Home Button
     this.btnGameHome.addEventListener('click', () => {
       soundManager.playSelect();
-      this.stopLiveLobbyPolling();
-      this.currentLiveLobbyId = null;
-      this.isLiveDuelActive = false;
-      if (this.game.status === 'completed' || this.game.status === 'gameover' || this.game.checkWin()) {
-        try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
-      }
-      this.showScreen('menu');
-      this.updateDailyInfoOnMenu();
+      this.promptExitGame();
     });
 
     // Language switch buttons
@@ -2894,7 +2948,10 @@ export class SudokuUI {
     if (this.duelWinEloBox) this.duelWinEloBox.classList.add('hidden');
 
     // 1v1 Live Multiplayer Duel Victory Comparison
-    if (this.isLiveDuelActive && this.duelResultBanner) {
+    const isLiveWin = this.isLiveDuelActive && (stats.mode === 'live_duel' || Boolean(this.currentLiveLobbyId));
+    const isAiWin = stats.mode === 'ai_duel' && this.aiBotProgress.filled < this.aiBotProgress.total;
+
+    if (isLiveWin && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       this.duelResultBanner.className = 'duel-result-banner victory';
       if (this.duelResultTitle) {
@@ -2933,12 +2990,10 @@ export class SudokuUI {
         btnRematch.disabled = false;
         btnRematch.style.opacity = '1';
       }
-      const btnSpectate = document.getElementById('btn-duel-spectate');
-      if (btnSpectate) btnSpectate.classList.remove('hidden');
 
       this.isLiveDuelActive = false;
       // Note: Live polling remains active to listen for opponent rematch request!
-    } else if (stats.mode === 'ai_duel' && this.duelResultBanner) {
+    } else if (isAiWin && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       const botName = `🤖 ${this.aiBotProgress.name}`;
       const botScore = this.aiBotProgress.score || Math.floor(stats.score * 0.8);
@@ -2992,8 +3047,6 @@ export class SudokuUI {
         btnRematch.disabled = false;
         btnRematch.style.opacity = '1';
       }
-      const btnSpectate = document.getElementById('btn-duel-spectate');
-      if (btnSpectate) btnSpectate.classList.add('hidden');
     } else if (this.activeChallenge && this.duelResultBanner) {
       this.duelResultBanner.classList.remove('hidden');
       const targetScore = this.activeChallenge.targetScore;
@@ -3037,8 +3090,13 @@ export class SudokuUI {
             : `Рекорд ${challenger}: ${targetScore.toLocaleString(locale)} очков. Попробуйте еще раз!`;
         }
       }
-    } else if (this.duelResultBanner) {
-      this.duelResultBanner.classList.add('hidden');
+    } else {
+      if (this.duelResultBanner) this.duelResultBanner.classList.add('hidden');
+      if (rematchContainer) rematchContainer.classList.add('hidden');
+      if (this.duelWinEloBox) this.duelWinEloBox.classList.add('hidden');
+      if (stats.mode === 'live_duel' || stats.mode === 'ai_duel') {
+        this.modalMode.textContent = modeLabels['classic'];
+      }
     }
 
     if (stats.mode === 'run') {
@@ -3747,8 +3805,73 @@ export class SudokuUI {
     } else if (this.currentScreen === 'perk_select') {
       haptics.setBackButton(() => this.showScreen('mode_select'));
     } else if (this.currentScreen === 'game') {
-      haptics.setBackButton(() => this.showScreen('menu'));
+      haptics.setBackButton(() => this.promptExitGame());
     }
+  }
+
+  public promptExitGame() {
+    if (this.game.status === 'completed' || this.game.status === 'gameover' || this.game.checkWin()) {
+      this.confirmForfeitAndExit();
+      return;
+    }
+    const isEn = i18n.getLanguage() === 'en';
+    const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel');
+
+    if (isDuel) {
+      this.exitConfirmTitle.textContent = isEn ? 'Forfeit and exit?' : 'Сдаться и выйти?';
+      this.exitConfirmDesc.textContent = isEn
+        ? '⚠️ Leaving the match now counts as an automatic forfeit and decreases your ELO rating!'
+        : '⚠️ Если вы покинете матч прямо сейчас, вам будет засчитано автоматическое техническое поражение, а ваш рейтинг ELO снизится!';
+    } else {
+      this.exitConfirmTitle.textContent = isEn ? 'Are you sure you want to leave?' : 'Вы уверены, что хотите выйти?';
+      this.exitConfirmDesc.textContent = isEn
+        ? '⚠️ Current puzzle progress will be lost and recorded as a defeat!'
+        : '⚠️ Текущий прогресс раунда будет потерян, а попытка завершится поражением!';
+    }
+
+    if (this.game.mode !== 'live_duel' && !this.isLiveDuelActive && this.game.status === 'playing') {
+      this.game.pauseTimer();
+    }
+    this.exitConfirmModal.classList.remove('hidden');
+  }
+
+  private confirmForfeitAndExit() {
+    const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel');
+    if (isDuel) {
+      if (this.isLiveDuelActive && this.currentLiveLobbyId) {
+        const myId = SudokuGame.getOrCreatePlayerId();
+        const myRole = this.isLiveHost ? 'host' : 'guest';
+        fetch(`${getApiBaseUrl()}/lobby/action`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lobbyId: this.currentLiveLobbyId,
+            playerId: myId,
+            action: 'abandon',
+            role: myRole,
+          }),
+        }).catch(() => {});
+      }
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.isLiveDuelActive = false;
+      this.stopAiBotDuel();
+
+      // Deduct ELO for forfeit
+      const stats = SudokuGame.getPlayerStats();
+      const playerElo = stats.duelElo || 1000;
+      stats.duelElo = Math.max(100, playerElo - 25);
+      stats.duelLosses = (stats.duelLosses || 0) + 1;
+      SudokuGame.savePlayerStats(stats);
+      this.updateLobbyEloDisplay();
+    } else {
+      const stats = SudokuGame.getPlayerStats();
+      stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+      SudokuGame.savePlayerStats(stats);
+    }
+    try { localStorage.removeItem('sudoku_pulse_saved_game_v3'); } catch {}
+    this.showScreen('menu');
+    this.updateDailyInfoOnMenu();
   }
 
   private getSyncKey(): string {
@@ -4116,26 +4239,76 @@ export class SudokuUI {
     this.shareScoreCard();
   }
 
-  private showGameOverModal() {
+  private formatMistakesCount(count: number, isEn: boolean): string {
+    if (isEn) {
+      return count === 1 ? '1 mistake' : `${count} mistakes`;
+    }
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${count} ошибок`;
+    if (mod10 === 1) return `${count} ошибку`;
+    if (mod10 >= 2 && mod10 <= 4) return `${count} ошибки`;
+    return `${count} ошибок`;
+  }
+
+  private closeWinModal() {
+    this.winModal.classList.add('hidden');
+    this.stopConfetti();
+    this.updateScreenBackButton();
+    this.triggerInterstitialAd();
+  }
+
+  private closeGameOverModal() {
+    this.gameOverModal.classList.add('hidden');
+    this.updateScreenBackButton();
+    this.triggerInterstitialAd();
+    if (this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel') {
+      this.isLiveDuelActive = false;
+      this.isLiveBotDuel = false;
+      this.stopLiveLobbyPolling();
+      this.currentLiveLobbyId = null;
+      this.game.mode = 'classic';
+      if (this.aiDuelHud) this.aiDuelHud.classList.add('hidden');
+      if (this.gameModeBadge) this.gameModeBadge.textContent = '⚡ Классика';
+      if (this.duelResultBanner) this.duelResultBanner.classList.add('hidden');
+      const isEn = i18n.getLanguage() === 'en';
+      this.showToast(isEn ? '🧩 Continuing solo in Classic mode!' : '🧩 Продолжаем дорешивать соло в классическом режиме!');
+    }
+  }
+
+  private showGameOverModal(reason: 'mistakes' | 'opponent_finished' | 'abandon' = 'mistakes') {
     yandexBridge.gameplayStop();
     this.stopAiBotDuel();
     const isEn = i18n.getLanguage() === 'en';
-    if (this.game.mode === 'run') {
-      this.gameOverSubtitle.textContent = isEn
-        ? `Pulse Run ended at Stage ${this.game.runStage}. Your score: ${this.game.score.toLocaleString('en-US')}`
-        : `Забег окончен на Этапе ${this.game.runStage}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
-    } else if (this.game.mode === 'ai_duel') {
-      this.gameOverSubtitle.textContent = isEn
-        ? `You committed ${this.game.maxMistakes} mistakes in duel against ${this.aiBotProgress.name}.`
-        : `Вы совершили ${this.game.maxMistakes} ошибок в дуэли против ${this.aiBotProgress.name}.`;
-    } else {
-      this.gameOverSubtitle.textContent = isEn
-        ? `You made ${this.game.maxMistakes} mistakes.`
-        : `Вы совершили ${this.game.maxMistakes} ошибок.`;
-    }
+    const isDuel = Boolean(this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel' || this.isLiveDuelActive);
+
     const rematchLossContainer = document.getElementById('duel-loss-rematch-container');
-    if (rematchLossContainer) {
-      if (this.currentLiveLobbyId || this.game.mode === 'ai_duel') {
+
+    if (isDuel) {
+      if (this.gameOverTitle) {
+        this.gameOverTitle.textContent = isEn ? 'Defeat in Duel' : 'Поражение в дуэли';
+      }
+      const oppName = this.game.mode === 'ai_duel' ? `🤖 ${this.aiBotProgress.name}` : (this.liveOpponentName || (isEn ? 'Opponent' : 'Противник'));
+
+      if (reason === 'opponent_finished') {
+        this.gameOverSubtitle.textContent = isEn
+          ? `${oppName} solved the puzzle faster than you.`
+          : `Противник (${oppName}) завершил сборку быстрее вас.`;
+      } else if (reason === 'abandon') {
+        this.gameOverSubtitle.textContent = isEn
+          ? 'You forfeited the duel.'
+          : 'Вы досрочно покинули дуэль.';
+      } else {
+        this.gameOverSubtitle.textContent = isEn
+          ? `You made ${this.formatMistakesCount(this.game.maxMistakes, true)} in duel against ${oppName}.`
+          : `Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)} в дуэли против ${oppName}.`;
+      }
+
+      // Hide solo buttons in duel: strictly leave Rematch and Menu
+      this.secondChanceBtn.classList.add('hidden');
+      this.restartGameOverBtn.classList.add('hidden');
+
+      if (rematchLossContainer) {
         rematchLossContainer.classList.remove('hidden');
         const btnLossRematch = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
         if (btnLossRematch) {
@@ -4145,7 +4318,25 @@ export class SudokuUI {
           btnLossRematch.disabled = false;
           btnLossRematch.style.opacity = '1';
         }
+      }
+    } else {
+      if (this.gameOverTitle) {
+        this.gameOverTitle.textContent = isEn ? 'Game Over' : 'Игра окончена';
+      }
+      if (this.game.mode === 'run') {
+        this.gameOverSubtitle.textContent = isEn
+          ? `Pulse Run ended at Stage ${this.game.runStage}. You made ${this.formatMistakesCount(this.game.maxMistakes, true)}. Your score: ${this.game.score.toLocaleString('en-US')}`
+          : `Забег окончен на Этапе ${this.game.runStage}. Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
       } else {
+        this.gameOverSubtitle.textContent = isEn
+          ? `You made ${this.formatMistakesCount(this.game.maxMistakes, true)}.`
+          : `Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)}.`;
+      }
+
+      // Show solo buttons
+      this.secondChanceBtn.classList.remove('hidden');
+      this.restartGameOverBtn.classList.remove('hidden');
+      if (rematchLossContainer) {
         rematchLossContainer.classList.add('hidden');
       }
     }
@@ -4586,99 +4777,13 @@ export class SudokuUI {
   }
 
   public handlePauseToggle() {
+    const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel' || this.game.mode === 'ai_duel');
+    if (isDuel) {
+      const isEn = i18n.getLanguage() === 'en';
+      this.showToast(isEn ? '⏸ Pause is disabled in Duels!' : '⏸ В дуэлях пауза недоступна!');
+      return;
+    }
     this.game.togglePause();
-    if (this.game.status === 'paused') {
-      if (this.game.mode === 'ai_duel' || this.isLiveDuelActive) {
-        soundManager.playDuelPause();
-      }
-      if (this.game.mode === 'ai_duel') {
-        this.pauseAiBotDuel();
-      }
-      if (this.isLiveDuelActive && !this.isLiveBotDuel && this.currentLiveLobbyId) {
-        this.sendLiveDuelPause(true);
-      }
-    } else {
-      if (this.game.mode === 'ai_duel' || this.isLiveDuelActive) {
-        soundManager.playDuelResume();
-      }
-      if (this.game.mode === 'ai_duel') {
-        this.resumeAiBotDuel();
-      }
-      if (this.isLiveDuelActive && !this.isLiveBotDuel && this.currentLiveLobbyId) {
-        this.sendLiveDuelPause(false);
-      }
-    }
-  }
-
-  private sendLiveDuelPause(isPaused: boolean) {
-    if (!this.currentLiveLobbyId) return;
-    const myId = SudokuGame.getOrCreatePlayerId();
-    fetch(`${getApiBaseUrl()}/lobby/action`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lobbyId: this.currentLiveLobbyId,
-        playerId: myId,
-        action: isPaused ? 'pause' : 'resume',
-      }),
-    }).catch(() => {});
-  }
-
-  private pauseAiBotDuel() {
-    if (this.aiBotInterval) {
-      clearInterval(this.aiBotInterval);
-      this.aiBotInterval = undefined;
-    }
-    this.setAiBotEmotion('idle');
-  }
-
-  private resumeAiBotDuel() {
-    if (this.game.mode !== 'ai_duel' || this.game.status !== 'playing') return;
-    if (this.aiBotInterval) return;
-    const profile = (this as any)._currentBotProfile;
-    if (!profile) return;
-    const isEn = i18n.getLanguage() === 'en';
-
-    this.aiBotInterval = window.setInterval(() => {
-      if (this.currentScreen !== 'game' || this.game.status !== 'playing') return;
-
-      if (Math.random() < profile.errorChance) {
-        this.setAiBotEmotion('glitch', 2400);
-        const errorTaunts = isEn ? [
-          'Calculation glitch... Logic rebooting!',
-          'My sensor misfired... Here is your chance!',
-          'Critical stream drift... Correcting!',
-        ] : [
-          'Сбой в вычислениях... Перезагрузка логики!',
-          'Похоже, мой датчик ошибся... Твой шанс!',
-          'Критическая погрешность потока... Исправляю!',
-        ];
-        this.showAiBotTaunt(errorTaunts[Math.floor(Math.random() * errorTaunts.length)], 2500);
-        return;
-      }
-
-      this.aiBotProgress.filled++;
-      this.aiBotProgress.score += Math.floor(180 + Math.random() * 60);
-      this.updateAiDuelHud();
-
-      // Milestone taunts
-      const halfCount = Math.floor(this.aiBotProgress.total * 0.5);
-      const eightyCount = Math.floor(this.aiBotProgress.total * 0.8);
-      if (!this.aiBotProgress.reachedHalf && this.aiBotProgress.filled >= halfCount) {
-        this.aiBotProgress.reachedHalf = true;
-        this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt(isEn ? 'Half the grid is mine! Catch up!' : 'Половина сетки за мной! Догоняй!', 2800);
-      } else if (!this.aiBotProgress.reachedEighty && this.aiBotProgress.filled >= eightyCount) {
-        this.aiBotProgress.reachedEighty = true;
-        this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt(isEn ? 'Home stretch! Victory is near!' : 'Финишная прямая! Победа уже близко!', 2800);
-      }
-
-      if (this.aiBotProgress.filled >= this.aiBotProgress.total) {
-        this.stopAiBotDuel();
-        this.handleAiDuelLoss();
-      }
-    }, profile.stepMs);
   }
 
   private handleOpponentAbandoned() {
@@ -4883,10 +4988,7 @@ export class SudokuUI {
 
     soundManager.playError();
     haptics.error();
-    this.gameOverSubtitle.textContent = isEn
-      ? `${botName} filled the grid first (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Bot score: ${this.aiBotProgress.score.toLocaleString('en-US')}.`
-      : `${botName} первым заполнил сетку (${this.aiBotProgress.total}/${this.aiBotProgress.total})! Счёт бота: ${this.aiBotProgress.score.toLocaleString('ru-RU')}.`;
-    this.gameOverModal.classList.remove('hidden');
+    this.showGameOverModal('opponent_finished');
   }
 
   // ==========================================
@@ -5217,7 +5319,6 @@ export class SudokuUI {
   private startLiveDuelGame(seed: number, difficulty: Difficulty) {
     this.isLiveDuelActive = true;
     this.isLiveBotDuel = false;
-    this.isLiveOpponentPaused = false;
     this.stopAiBotDuel();
     this.game.startNewGame({ difficulty, mode: 'classic', perks: [], seed });
     this.showScreen('game');
@@ -5343,29 +5444,6 @@ export class SudokuUI {
                   ? `⚡ Opponent finished! Time: ${mm}:${ss}`
                   : `⚡ Соперник закончил решение! Время: ${mm}:${ss}`;
               }
-              const btnSpectate = document.getElementById('btn-duel-spectate');
-              if (btnSpectate) btnSpectate.classList.add('hidden');
-            }
-          }
-
-          // Check pause synchronization
-          if (lobby.isPaused) {
-            if (lobby.pausedBy && lobby.pausedBy !== myId) {
-              if (!this.isLiveOpponentPaused) {
-                this.isLiveOpponentPaused = true;
-                soundManager.playDuelPause();
-                this.game.pauseTimer();
-                if (this.liveOpponentPausedOverlay) this.liveOpponentPausedOverlay.classList.remove('hidden');
-              }
-            }
-          } else {
-            if (this.isLiveOpponentPaused) {
-              this.isLiveOpponentPaused = false;
-              soundManager.playDuelResume();
-              if (this.liveOpponentPausedOverlay) this.liveOpponentPausedOverlay.classList.add('hidden');
-              if (this.game.status === 'paused') {
-                this.game.resumeTimer();
-              }
             }
           }
 
@@ -5443,7 +5521,7 @@ export class SudokuUI {
     const btnLossRematch = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
     if (btnLossRematch) { btnLossRematch.disabled = false; btnLossRematch.style.opacity = '1'; }
 
-    this.showGameOverModal();
+    this.showGameOverModal('opponent_finished');
     this.isLiveDuelActive = false;
   }
 
@@ -5720,6 +5798,7 @@ export class SudokuUI {
   }
 
   private startConfetti() {
+    this.stopConfetti();
     if (!this.confettiCtx) return;
     const ctx = this.confettiCtx;
     const particles: Array<{
@@ -5748,8 +5827,12 @@ export class SudokuUI {
       });
     }
 
+    const emitUntil = Date.now() + 3200;
+
     const animate = () => {
       ctx.clearRect(0, 0, this.confettiCanvas.width, this.confettiCanvas.height);
+      const now = Date.now();
+      let activeParticles = 0;
 
       particles.forEach((p) => {
         p.x += p.vx;
@@ -5757,8 +5840,13 @@ export class SudokuUI {
         p.rotation += p.vRot;
 
         if (p.y > this.confettiCanvas.height) {
-          p.y = -10;
-          p.x = Math.random() * this.confettiCanvas.width;
+          if (now < emitUntil) {
+            p.y = -10;
+            p.x = Math.random() * this.confettiCanvas.width;
+            activeParticles++;
+          }
+        } else {
+          activeParticles++;
         }
 
         ctx.save();
@@ -5769,15 +5857,28 @@ export class SudokuUI {
         ctx.restore();
       });
 
-      this.confettiAnimationId = requestAnimationFrame(animate);
+      if (activeParticles > 0) {
+        this.confettiAnimationId = requestAnimationFrame(animate);
+      } else {
+        this.stopConfetti();
+      }
     };
 
-    animate();
+    this.confettiAnimationId = requestAnimationFrame(animate);
+
+    this.confettiTimeout = window.setTimeout(() => {
+      this.stopConfetti();
+    }, 5500);
   }
 
   private stopConfetti() {
+    if (this.confettiTimeout) {
+      clearTimeout(this.confettiTimeout);
+      this.confettiTimeout = undefined;
+    }
     if (this.confettiAnimationId) {
       cancelAnimationFrame(this.confettiAnimationId);
+      this.confettiAnimationId = undefined;
     }
     if (this.confettiCtx) {
       this.confettiCtx.clearRect(0, 0, this.confettiCanvas.width, this.confettiCanvas.height);
@@ -6220,7 +6321,6 @@ export class SudokuUI {
   private startLiveBotDuelGame(seed: number, difficulty: Difficulty) {
     this.isLiveDuelActive = true;
     this.isLiveBotDuel = true;
-    this.isLiveOpponentPaused = false;
     this.stopAiBotDuel();
     this.game.startNewGame({ difficulty, mode: 'ai_duel', perks: [], seed });
     this.showScreen('game');
