@@ -20,7 +20,7 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('scroll', updateViewportHeight);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
   updateViewportHeight();
 
   // Initialize Yandex Games SDK
@@ -51,4 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Expose to window for testing / debugging
   (window as any).sudokuGame = game;
   (window as any).sudokuUI = ui;
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}

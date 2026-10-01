@@ -601,6 +601,7 @@ export class SudokuUI {
     this.btnMenuStats = document.getElementById('btn-menu-stats') as HTMLButtonElement;
     this.btnMenuSettings = document.getElementById('btn-menu-settings') as HTMLButtonElement | null;
     this.menuDailyDate = document.getElementById('menu-daily-date')!;
+    this.menuDailyStreak = document.getElementById('menu-daily-streak')!;
     this.btnMenuYandexAuth = (document.getElementById('btn-menu-yandex-auth') || document.getElementById('btn-menu-tg-auth')) as HTMLButtonElement;
     this.menuYandexAuthLabel = (document.getElementById('menu-yandex-auth-label') || document.getElementById('menu-tg-auth-label'))!;
     this.menuLeagueBadge = document.getElementById('menu-league-badge')!;
@@ -906,6 +907,7 @@ export class SudokuUI {
 
     // Auto show daily reward if not yet claimed today
     setTimeout(() => {
+      if (this.currentScreen !== 'menu') return;
       const stats = SudokuGame.getPlayerStats();
       const today = new Date().toISOString().slice(0, 10);
       if (stats.dailyLoginLastClaimDate !== today && localStorage.getItem('sudoku_pulse_tutorial_seen')) {
@@ -915,6 +917,7 @@ export class SudokuUI {
 
     // First launch onboarding tutorial check
     setTimeout(() => {
+      if (this.currentScreen !== 'menu') return;
       if (!localStorage.getItem('sudoku_pulse_tutorial_seen')) {
         this.openTutorial(0);
       }
@@ -950,6 +953,8 @@ export class SudokuUI {
     this.stopConfetti();
 
     if (screen === 'game') {
+      if (this.tutorialModal) this.tutorialModal.classList.add('hidden');
+      if (this.dailyRewardModal) this.dailyRewardModal.classList.add('hidden');
       const isLiveDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel');
       if (this.pauseBtn) this.pauseBtn.classList.toggle('hidden', isLiveDuel);
       yandexBridge.hideStickyBanner().catch(() => {});
@@ -1028,6 +1033,13 @@ export class SudokuUI {
     }
 
     if (screen === 'game') {
+      if (!this.game.board || this.game.board.length !== 9) {
+        this.game.startNewGame({
+          difficulty: this.selectedDifficulty,
+          mode: this.selectedMode,
+          perks: this.game.activePerks,
+        });
+      }
       if (this.game.status !== 'playing' && this.game.status !== 'paused') {
         this.game.status = 'playing';
       }
@@ -2480,7 +2492,9 @@ export class SudokuUI {
     evaluateAllAchievements(stats);
     SudokuGame.savePlayerStats(stats);
     const isEn = lang === 'en';
-    this.menuDailyStreak.textContent = isEn ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
+    if (this.menuDailyStreak) {
+      this.menuDailyStreak.textContent = isEn ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
+    }
 
     const todayStr = SudokuGame.getLocalDateStr();
     const streakDoneToday = stats.lastDailyDate === todayStr;
