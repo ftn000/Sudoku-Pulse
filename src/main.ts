@@ -1,6 +1,5 @@
 import { SudokuGame } from './game';
 import { SudokuUI } from './ui';
-import { haptics } from './haptics';
 import { yandexBridge } from './yandex';
 import './style.css';
 
@@ -23,8 +22,6 @@ if (window.visualViewport) {
 
 document.addEventListener('DOMContentLoaded', () => {
   updateViewportHeight();
-  // Initialize Telegram WebApp bridge
-  haptics.initTelegram();
 
   // Initialize Yandex Games SDK
   yandexBridge.init().catch(() => {});

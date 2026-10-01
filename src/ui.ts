@@ -3,7 +3,7 @@ import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge } from './types
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
-import { haptics, TelegramUser } from './haptics';
+import { haptics } from './haptics';
 import { yandexBridge } from './yandex';
 import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS } from './i18n';
 
@@ -16,13 +16,6 @@ export function getApiBaseUrl(): string {
     window.location.protocol === 'file:'
   );
 
-  const isTelegram = Boolean(
-    (window as any).Telegram?.WebApp?.initData ||
-    window.location.hostname.includes('telegram.org') ||
-    window.location.search.includes('tgWebAppData') ||
-    window.location.hash.includes('tgWebAppData')
-  );
-
   const isYandex = yandexBridge.isYandex() || window.location.hostname.includes('yandex');
 
   const isRemoteOrigin =
@@ -31,7 +24,7 @@ export function getApiBaseUrl(): string {
     window.location.hostname !== 'localhost' &&
     window.location.hostname !== '127.0.0.1';
 
-  if (isNative || isTelegram || isYandex || isRemoteOrigin) {
+  if (isNative || isYandex || isRemoteOrigin) {
     return 'https://109.69.17.170.sslip.io/sudoku/api';
   }
 
@@ -140,8 +133,8 @@ export class SudokuUI {
   private btnMenuSettings?: HTMLButtonElement | null;
   private menuDailyDate!: HTMLElement;
   private menuDailyStreak!: HTMLElement;
-  private btnMenuTgAuth!: HTMLButtonElement;
-  private menuTgAuthLabel!: HTMLElement;
+  private btnMenuYandexAuth!: HTMLButtonElement;
+  private menuYandexAuthLabel!: HTMLElement;
   private menuLeagueBadge!: HTMLElement;
 
   // Mode Category Elements
@@ -275,12 +268,10 @@ export class SudokuUI {
   private settingNotifyBtn?: HTMLButtonElement | null;
   private themeSkinPills: HTMLButtonElement[] = [];
   private boardSkinPills: HTMLButtonElement[] = [];
-  private syncAccountBadge!: HTMLElement;
-  private syncKeyInput!: HTMLInputElement;
-  private btnSyncImport!: HTMLButtonElement;
-  private btnSyncCopyKey!: HTMLButtonElement;
-  private btnSyncCloud!: HTMLButtonElement;
-  private btnSyncTgAuth!: HTMLButtonElement;
+  private syncKeyInput?: HTMLInputElement | null;
+  private btnSyncImport?: HTMLButtonElement | null;
+  private btnSyncCopyKey?: HTMLButtonElement | null;
+  private btnSyncCloud?: HTMLButtonElement | null;
   private notificationsEnabled: boolean = true;
 
   // Settings Audio & Haptics
@@ -337,27 +328,6 @@ export class SudokuUI {
     reachedHalf: false,
     reachedEighty: false,
   };
-
-  // Telegram Auth Modal Elements
-  private tgAuthModal!: HTMLElement;
-  private tgAuthActiveView!: HTMLElement;
-  private tgAuthLoginView!: HTMLElement;
-  private tgAuthUserAvatar!: HTMLElement;
-  private tgAuthUserName!: HTMLElement;
-  private tgAuthUserHandle!: HTMLElement;
-  private btnTgManualSync!: HTMLButtonElement;
-  private btnTgLogout!: HTMLButtonElement;
-  private tgTabs: HTMLButtonElement[] = [];
-  private tgTabPanes: HTMLElement[] = [];
-  private tgAuthQrImg!: HTMLImageElement;
-  private tgQrSpinner!: HTMLElement;
-  private btnTgOpenBotLink!: HTMLAnchorElement;
-  private tgPollStatusText!: HTMLElement;
-  private tgWidgetContainer!: HTMLElement;
-  private tgManualInput!: HTMLInputElement;
-  private btnTgManualLogin!: HTMLButtonElement;
-  private btnCloseTgAuth!: HTMLButtonElement;
-  private tgAuthPollTimer?: number;
 
   // Challenge / Duel Modal Elements
   private challengeModal!: HTMLElement;
@@ -629,9 +599,8 @@ export class SudokuUI {
     this.btnMenuStats = document.getElementById('btn-menu-stats') as HTMLButtonElement;
     this.btnMenuSettings = document.getElementById('btn-menu-settings') as HTMLButtonElement | null;
     this.menuDailyDate = document.getElementById('menu-daily-date')!;
-    this.menuDailyStreak = document.getElementById('menu-daily-streak')!;
-    this.btnMenuTgAuth = document.getElementById('btn-menu-tg-auth') as HTMLButtonElement;
-    this.menuTgAuthLabel = document.getElementById('menu-tg-auth-label')!;
+    this.btnMenuYandexAuth = (document.getElementById('btn-menu-yandex-auth') || document.getElementById('btn-menu-tg-auth')) as HTMLButtonElement;
+    this.menuYandexAuthLabel = (document.getElementById('menu-yandex-auth-label') || document.getElementById('menu-tg-auth-label'))!;
     this.menuLeagueBadge = document.getElementById('menu-league-badge')!;
     this.btnMenuDailyReward = (document.getElementById('btn-menu-daily-reward') as HTMLButtonElement) || null;
     this.menuDailyRewardBadge = document.getElementById('menu-daily-reward-badge');
@@ -758,12 +727,10 @@ export class SudokuUI {
     this.settingNotifyBtn = document.getElementById('setting-notify-btn') as HTMLButtonElement | null;
     this.themeSkinPills = Array.from(document.querySelectorAll('.theme-skin-pill'));
     this.boardSkinPills = Array.from(document.querySelectorAll('.board-skin-pill'));
-    this.syncAccountBadge = document.getElementById('sync-account-badge')!;
-    this.syncKeyInput = document.getElementById('sync-key-input') as HTMLInputElement;
-    this.btnSyncImport = document.getElementById('btn-sync-import') as HTMLButtonElement;
-    this.btnSyncCopyKey = document.getElementById('btn-sync-copy-key') as HTMLButtonElement;
-    this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement;
-    this.btnSyncTgAuth = document.getElementById('btn-sync-tg-auth') as HTMLButtonElement;
+    this.syncKeyInput = document.getElementById('sync-key-input') as HTMLInputElement | null;
+    this.btnSyncImport = document.getElementById('btn-sync-import') as HTMLButtonElement | null;
+    this.btnSyncCopyKey = document.getElementById('btn-sync-copy-key') as HTMLButtonElement | null;
+    this.btnSyncCloud = document.getElementById('btn-sync-cloud') as HTMLButtonElement | null;
 
     // Cyber Shop & Monetization
     this.btnMenuShop = (document.getElementById('btn-menu-shop') as HTMLButtonElement) || null;
@@ -851,26 +818,6 @@ export class SudokuUI {
     this.btnClaimDailyReward = (document.getElementById('btn-claim-daily-reward') as HTMLButtonElement) || null;
     this.btnRescueDailyStreak = (document.getElementById('btn-rescue-daily-streak') as HTMLButtonElement) || null;
 
-    // Telegram Auth Modal
-    this.tgAuthModal = document.getElementById('tg-auth-modal')!;
-    this.tgAuthActiveView = document.getElementById('tg-auth-active-view')!;
-    this.tgAuthLoginView = document.getElementById('tg-auth-login-view')!;
-    this.tgAuthUserAvatar = document.getElementById('tg-auth-user-avatar')!;
-    this.tgAuthUserName = document.getElementById('tg-auth-user-name')!;
-    this.tgAuthUserHandle = document.getElementById('tg-auth-user-handle')!;
-    this.btnTgManualSync = document.getElementById('btn-tg-manual-sync') as HTMLButtonElement;
-    this.btnTgLogout = document.getElementById('btn-tg-logout') as HTMLButtonElement;
-    this.tgTabs = Array.from(document.querySelectorAll('.tg-tab'));
-    this.tgTabPanes = Array.from(document.querySelectorAll('.tg-tab-pane'));
-    this.tgAuthQrImg = document.getElementById('tg-auth-qr-img') as HTMLImageElement;
-    this.tgQrSpinner = document.getElementById('tg-qr-spinner')!;
-    this.btnTgOpenBotLink = document.getElementById('btn-tg-open-bot-link') as HTMLAnchorElement;
-    this.tgPollStatusText = document.getElementById('tg-poll-status-text')!;
-    this.tgWidgetContainer = document.getElementById('tg-widget-container')!;
-    this.tgManualInput = document.getElementById('tg-manual-input') as HTMLInputElement;
-    this.btnTgManualLogin = document.getElementById('btn-tg-manual-login') as HTMLButtonElement;
-    this.btnCloseTgAuth = document.getElementById('btn-close-tg-auth') as HTMLButtonElement;
-
     // Tutorial Modal
     this.btnMenuTutorial = document.getElementById('btn-menu-tutorial') as HTMLButtonElement;
     this.tutorialModal = document.getElementById('tutorial-modal')!;
@@ -894,28 +841,8 @@ export class SudokuUI {
       if (btn) this.numpadButtons.push(btn);
     }
 
-    // Initialize Telegram WebApp SDK
-    haptics.initTelegram();
-
-    // Register Telegram Login Widget Callback
-    (window as any).onTelegramAuth = async (user: any) => {
-      try {
-        const apiBase = `${getApiBaseUrl()}/auth/widget`;
-        const res = await fetch(apiBase, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(user),
-        });
-        const data = await res.json();
-        this.applyTelegramUser(user, data.profile);
-      } catch {
-        this.applyTelegramUser(user);
-      }
-    };
-
     // Load initial settings & player name
-    const tgUser = this.getStoredTelegramUser();
-    const defaultName = tgUser?.username ? `@${tgUser.username}` : tgUser?.first_name || `Pulse#${Math.floor(100 + Math.random() * 899)}`;
+    const defaultName = yandexBridge.getPlayerName() || `Pulse#${Math.floor(100 + Math.random() * 899)}`;
     const savedName = localStorage.getItem('sudoku_player_name') || defaultName;
     this.playerNameInput.value = savedName;
     localStorage.setItem('sudoku_player_name', savedName);
@@ -1131,18 +1058,15 @@ export class SudokuUI {
       });
     }
 
-    if (this.btnMenuTgAuth) {
-      this.btnMenuTgAuth.addEventListener('click', () => {
-        if (yandexBridge.isYandex()) {
-          soundManager.playSelect();
-          yandexBridge.openAuth().then(() => {
-            this.updateTgMenuPill();
-            this.updateYandexSettingsBox();
-            this.loadYandexCloudData();
-          });
-          return;
-        }
-        this.openTgAuthModal();
+    if (this.btnMenuYandexAuth) {
+      this.btnMenuYandexAuth.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.light();
+        yandexBridge.openAuth().then(() => {
+          this.updateYandexAuthPill();
+          this.updateYandexSettingsBox();
+          this.loadYandexCloudData();
+        });
       });
     }
 
@@ -1461,20 +1385,6 @@ export class SudokuUI {
       });
     }
 
-    // Telegram Auth Modal Event Listeners
-    if (this.btnCloseTgAuth) {
-      this.btnCloseTgAuth.addEventListener('click', () => {
-        this.closeTgAuthModal();
-      });
-    }
-
-    const btnCloseTgAuthX = document.getElementById('btn-close-tg-auth-x');
-    if (btnCloseTgAuthX) {
-      btnCloseTgAuthX.addEventListener('click', () => {
-        this.closeTgAuthModal();
-      });
-    }
-
     const btnCloseWinX = document.getElementById('btn-close-win-x');
     if (btnCloseWinX) {
       btnCloseWinX.addEventListener('click', () => {
@@ -1659,7 +1569,6 @@ export class SudokuUI {
       this.statsModal,
       this.achievementsModal,
       this.settingsModal,
-      this.tgAuthModal,
       this.challengeModal,
       this.enterChallengeModal,
       this.liveLobbyModal,
@@ -1691,7 +1600,6 @@ export class SudokuUI {
               }
             } else {
               modal.classList.add('hidden');
-              if (modal === this.tgAuthModal) this.stopTgAuthPolling();
               this.updateScreenBackButton();
             }
           }
@@ -1733,74 +1641,6 @@ export class SudokuUI {
         this.isLiveBotDuel = false;
         this.stopLiveLobbyPolling();
         this.showScreen('menu');
-      });
-    }
-
-    // Telegram Bot CTA link handler with deep-link & Capacitor system browser support
-    if (this.btnTgOpenBotLink) {
-      this.btnTgOpenBotLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetUrl = this.btnTgOpenBotLink.getAttribute('data-bot-url') ||
-                          this.btnTgOpenBotLink.href ||
-                          'https://t.me/sudoku_pulse_auth_bot';
-        const cleanUrl = (targetUrl && targetUrl !== '#' && !targetUrl.endsWith('#'))
-          ? targetUrl
-          : 'https://t.me/sudoku_pulse_auth_bot';
-
-        try {
-          if ((window as any).Capacitor) {
-            window.open(cleanUrl, '_system');
-            return;
-          }
-        } catch {}
-
-        const w = window.open(cleanUrl, '_blank');
-        if (!w) {
-          window.location.href = cleanUrl;
-        }
-      });
-    }
-
-    if (this.btnTgManualSync) {
-      this.btnTgManualSync.addEventListener('click', async () => {
-        soundManager.playSelect();
-        haptics.light();
-        await this.syncWithCloud(true);
-      });
-    }
-
-    if (this.btnTgLogout) {
-      this.btnTgLogout.addEventListener('click', () => {
-        this.logoutTelegram();
-      });
-    }
-
-    this.tgTabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        soundManager.playSelect();
-        haptics.selection();
-        const tabKey = tab.getAttribute('data-tg-tab');
-        this.tgTabs.forEach((t) => t.classList.toggle('active', t === tab));
-        this.tgTabPanes.forEach((pane) => {
-          const isMatch = pane.id === `tg-tab-content-${tabKey}`;
-          pane.classList.toggle('hidden', !isMatch);
-        });
-        if (tabKey === 'widget') {
-          this.mountTelegramWidget();
-        }
-      });
-    });
-
-    if (this.btnTgManualLogin) {
-      this.btnTgManualLogin.addEventListener('click', async () => {
-        soundManager.playSelect();
-        haptics.light();
-        const val = (this.tgManualInput?.value || '').trim();
-        if (!val) {
-          this.showToast(i18n.getLanguage() === 'en' ? '⚠️ Enter @username, Telegram ID or sync key' : '⚠️ Введите @username, Telegram ID или ключ');
-          return;
-        }
-        await this.importSyncKey(val);
       });
     }
 
@@ -2046,11 +1886,11 @@ export class SudokuUI {
 
     // Share score card & Challenge friend buttons
     this.btnDailyShare.addEventListener('click', () => {
-      this.shareResultToTelegram();
+      this.shareScoreCard();
     });
 
     this.btnChallengeShare.addEventListener('click', () => {
-      this.shareChallengeToTelegram();
+      this.shareChallenge();
     });
 
     if (this.btnOpenEnterChallenge) {
@@ -2207,13 +2047,7 @@ export class SudokuUI {
     }
 
     // Cloud Sync & Device Linking
-    if (this.btnSyncTgAuth) {
-      this.btnSyncTgAuth.addEventListener('click', () => {
-        soundManager.playSelect();
-        this.settingsModal.classList.add('hidden');
-        this.openTgAuthModal();
-      });
-    }
+
 
     if (this.btnSyncCopyKey) {
       this.btnSyncCopyKey.addEventListener('click', () => {
@@ -2242,9 +2076,9 @@ export class SudokuUI {
         this.syncWithCloud(false);
         const isEn = i18n.getLanguage() === 'en';
         if (this.notificationsEnabled) {
-          this.showToast(isEn ? '🔔 Daily Pulse morning reminders enabled in Telegram' : '🔔 Утренние напоминания Daily Pulse в Telegram включены');
+          this.showToast(isEn ? '🔔 Daily Pulse morning reminders enabled' : '🔔 Утренние напоминания Daily Pulse включены');
         } else {
-          this.showToast(isEn ? '🔕 Telegram reminders disabled' : '🔕 Напоминания в Telegram отключены');
+          this.showToast(isEn ? '🔕 Reminders disabled' : '🔕 Напоминания отключены');
         }
       });
     }
@@ -3263,14 +3097,8 @@ export class SudokuUI {
       }
     } else {
       const params = new URLSearchParams(window.location.search);
-      const tgApp = (window as any).Telegram?.WebApp;
-      const tgStartParam = tgApp?.initDataUnsafe?.start_param;
       lobbyParam = params.get('lobby') || params.get('room');
-      if (!lobbyParam && tgStartParam) {
-        const match = tgStartParam.match(/(?:lobby|room)?_?([0-9]{4})/i);
-        if (match) lobbyParam = match[1];
-      }
-      rawParam = tgStartParam || params.get('start_param') || params.get('startapp') || params.get('tgWebAppStartParam') || params.get('challenge') || params.get('c');
+      rawParam = params.get('start_param') || params.get('challenge') || params.get('c');
       seedParam = params.get('seed');
       diffParam = params.get('diff');
       modeParam = params.get('mode');
@@ -3612,229 +3440,25 @@ export class SudokuUI {
     this.achievementsModal.classList.remove('hidden');
   }
 
-  private getStoredTelegramUser(): TelegramUser | null {
-    const fromTgApp = haptics.getTelegramUser();
-    if (fromTgApp) return fromTgApp;
-    try {
-      const raw = localStorage.getItem('sudoku_telegram_user');
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return null;
+  private updateYandexAuthPill() {
+    if (!this.btnMenuYandexAuth || !this.menuYandexAuthLabel) return;
+    const isEn = i18n.getLanguage() === 'en';
+    const yName = yandexBridge.getPlayerName();
+    if (yName) {
+      this.menuYandexAuthLabel.textContent = isEn ? `Yandex: ${yName}` : `Яндекс: ${yName}`;
+      this.btnMenuYandexAuth.style.borderColor = '#fc3f1d';
+      this.btnMenuYandexAuth.style.color = '#ff6b4a';
+      this.btnMenuYandexAuth.style.background = 'rgba(252, 63, 29, 0.15)';
+    } else {
+      this.menuYandexAuthLabel.textContent = isEn ? 'Login with Yandex' : 'Войти в Яндекс';
+      this.btnMenuYandexAuth.style.borderColor = 'rgba(252, 63, 29, 0.4)';
+      this.btnMenuYandexAuth.style.color = '#ff6b4a';
+      this.btnMenuYandexAuth.style.background = 'rgba(252, 63, 29, 0.12)';
+    }
   }
 
   private updateTgMenuPill() {
-    if (!this.btnMenuTgAuth || !this.menuTgAuthLabel) return;
-    const isEn = i18n.getLanguage() === 'en';
-
-    if (yandexBridge.isYandex()) {
-      const yName = yandexBridge.getPlayerName();
-      if (yName) {
-        this.menuTgAuthLabel.textContent = isEn ? `Yandex: ${yName}` : `Яндекс: ${yName}`;
-        this.btnMenuTgAuth.style.borderColor = '#fc3f1d';
-        this.btnMenuTgAuth.style.color = '#ff6b4a';
-        this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.15)';
-      } else {
-        this.menuTgAuthLabel.textContent = isEn ? 'Login with Yandex' : 'Войти в Яндекс';
-        this.btnMenuTgAuth.style.borderColor = 'rgba(252, 63, 29, 0.4)';
-        this.btnMenuTgAuth.style.color = '#ff6b4a';
-        this.btnMenuTgAuth.style.background = 'rgba(252, 63, 29, 0.12)';
-      }
-      return;
-    }
-
-    const tgUser = this.getStoredTelegramUser();
-    if (tgUser) {
-      const name = tgUser.username ? `@${tgUser.username}` : (tgUser.first_name || `TG #${tgUser.id}`);
-      this.menuTgAuthLabel.textContent = name;
-      this.btnMenuTgAuth.style.borderColor = '#34d399';
-      this.btnMenuTgAuth.style.color = '#34d399';
-      this.btnMenuTgAuth.style.background = 'rgba(52, 211, 153, 0.12)';
-    } else {
-      this.menuTgAuthLabel.textContent = isEn ? 'Login with Telegram' : 'Войти через Telegram';
-      this.btnMenuTgAuth.style.borderColor = 'rgba(14, 165, 233, 0.3)';
-      this.btnMenuTgAuth.style.color = '#38bdf8';
-      this.btnMenuTgAuth.style.background = 'rgba(14, 165, 233, 0.12)';
-    }
-  }
-
-  private openTgAuthModal() {
-    soundManager.playSelect();
-    haptics.light();
-    this.updateTgAuthModalView();
-    this.tgAuthModal.classList.remove('hidden');
-    haptics.setBackButton(() => this.closeTgAuthModal());
-  }
-
-  private closeTgAuthModal() {
-    this.tgAuthModal.classList.add('hidden');
-    this.stopTgAuthPolling();
-    this.updateScreenBackButton();
-  }
-
-  private stopTgAuthPolling() {
-    if (this.tgAuthPollTimer) {
-      clearInterval(this.tgAuthPollTimer);
-      this.tgAuthPollTimer = undefined;
-    }
-  }
-
-  private updateTgAuthModalView() {
-    const tgUser = this.getStoredTelegramUser();
-    const isEn = i18n.getLanguage() === 'en';
-    if (tgUser) {
-      this.tgAuthActiveView.classList.remove('hidden');
-      this.tgAuthLoginView.classList.add('hidden');
-      this.tgAuthUserName.textContent = tgUser.first_name || (tgUser.username ? `@${tgUser.username}` : (isEn ? 'Player' : 'Игрок'));
-      this.tgAuthUserHandle.textContent = tgUser.username ? `@${tgUser.username}` : `Telegram ID: ${tgUser.id}`;
-      if (tgUser.photo_url) {
-        this.tgAuthUserAvatar.innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar" />`;
-      } else {
-        this.tgAuthUserAvatar.textContent = '✈️';
-      }
-    } else {
-      this.tgAuthActiveView.classList.add('hidden');
-      this.tgAuthLoginView.classList.remove('hidden');
-      this.initTgAuthSession();
-    }
-  }
-
-  private async initTgAuthSession() {
-    this.stopTgAuthPolling();
-    const isEn = i18n.getLanguage() === 'en';
-    if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'flex';
-    if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'none';
-    if (this.tgPollStatusText) this.tgPollStatusText.textContent = isEn ? 'Waiting for confirmation in Telegram...' : 'Ожидание подтверждения в Telegram...';
-
-    const fallbackBotUrl = 'https://t.me/sudoku_pulse_auth_bot';
-    if (this.btnTgOpenBotLink) {
-      this.btnTgOpenBotLink.href = fallbackBotUrl;
-      this.btnTgOpenBotLink.setAttribute('data-bot-url', fallbackBotUrl);
-    }
-
-    try {
-      const apiBase = `${getApiBaseUrl()}/auth/init`;
-      const res = await fetch(apiBase);
-      if (!res.ok) throw new Error('Failed to init auth');
-      const data = await res.json();
-      if (data.success && data.token) {
-        const botUrl = data.botUrl || fallbackBotUrl;
-        if (this.btnTgOpenBotLink) {
-          this.btnTgOpenBotLink.href = botUrl;
-          this.btnTgOpenBotLink.setAttribute('data-bot-url', botUrl);
-        }
-        if (this.tgAuthQrImg && data.qrUrl) {
-          this.tgAuthQrImg.src = data.qrUrl;
-          this.tgAuthQrImg.onload = () => {
-            if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
-            if (this.tgAuthQrImg) this.tgAuthQrImg.style.display = 'block';
-          };
-        }
-        this.startTgAuthPolling(data.token);
-      }
-    } catch {
-      if (this.tgPollStatusText) this.tgPollStatusText.textContent = isEn ? 'Offline mode (use Bot button or manual entry)' : 'Офлайн режим (используйте кнопку бота или ручной ввод)';
-      if (this.tgQrSpinner) this.tgQrSpinner.style.display = 'none';
-      if (this.btnTgOpenBotLink) {
-        this.btnTgOpenBotLink.href = fallbackBotUrl;
-        this.btnTgOpenBotLink.setAttribute('data-bot-url', fallbackBotUrl);
-      }
-    }
-  }
-
-  private startTgAuthPolling(token: string) {
-    this.tgAuthPollTimer = window.setInterval(async () => {
-      try {
-        const apiBase = `${getApiBaseUrl()}/auth/poll`;
-        const res = await fetch(`${apiBase}?token=${encodeURIComponent(token)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success && data.status === 'authorized' && data.telegramUser) {
-          this.stopTgAuthPolling();
-          this.applyTelegramUser(data.telegramUser, data.profile);
-        }
-      } catch {}
-    }, 2000);
-  }
-
-  private applyTelegramUser(user: TelegramUser, profile?: any) {
-    localStorage.setItem('sudoku_telegram_user', JSON.stringify(user));
-    localStorage.setItem('sudoku_cloud_sync_key', `tg_${user.id}`);
-    const playerName = user.username ? `@${user.username}` : (user.first_name || `TG #${user.id}`);
-    localStorage.setItem('sudoku_player_name', playerName);
-
-    if (this.playerNameInput) {
-      this.playerNameInput.value = playerName;
-    }
-    if (this.syncKeyInput) {
-      this.syncKeyInput.value = user.username ? `@${user.username}` : `tg_${user.id}`;
-    }
-
-    if (profile?.stats) {
-      SudokuGame.mergePlayerStats(profile.stats);
-    }
-
-    // Submit rename to leaderboard so player records reflect new username immediately
-    try {
-      const playerId = SudokuGame.getOrCreatePlayerId();
-      const apiBase = `${getApiBaseUrl()}/leaderboard`;
-      fetch(apiBase, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'rename',
-          playerId,
-          name: playerName,
-        }),
-      }).catch(() => {});
-    } catch {}
-
-    soundManager.playCorrect(3);
-    haptics.success();
-    this.updateTgMenuPill();
-    this.updateSyncBadge();
-    this.updateDailyInfoOnMenu();
-    this.updateTgAuthModalView();
-    const isEn = i18n.getLanguage() === 'en';
-    this.showToast(isEn ? `🎉 Successfully logged in via Telegram (${playerName})!` : `🎉 Успешный вход через Telegram (${playerName})!`);
-
-    // Auto-close QR / auth modal after 1.2s
-    setTimeout(() => {
-      if (this.tgAuthModal && !this.tgAuthModal.classList.contains('hidden')) {
-        this.closeTgAuthModal();
-      }
-    }, 1200);
-  }
-
-  private logoutTelegram() {
-    soundManager.playSelect();
-    haptics.light();
-    this.stopTgAuthPolling();
-    localStorage.removeItem('sudoku_telegram_user');
-    localStorage.removeItem('sudoku_cloud_sync_key');
-    const defaultName = `Pulse#${Math.floor(100 + Math.random() * 899)}`;
-    localStorage.setItem('sudoku_player_name', defaultName);
-    if (this.playerNameInput) {
-      this.playerNameInput.value = defaultName;
-    }
-    this.updateTgMenuPill();
-    this.updateSyncBadge();
-    this.updateTgAuthModalView();
-    const isEn = i18n.getLanguage() === 'en';
-    this.showToast(isEn ? '🚪 You logged out of Telegram' : '🚪 Вы вышли из аккаунта Telegram');
-  }
-
-  private mountTelegramWidget() {
-    if (!this.tgWidgetContainer) return;
-    this.tgWidgetContainer.innerHTML = '';
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'sudoku_pulse_auth_bot');
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-radius', '10');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    this.tgWidgetContainer.appendChild(script);
+    this.updateYandexAuthPill();
   }
 
   private updateScreenBackButton() {
@@ -3946,10 +3570,6 @@ export class SudokuUI {
   }
 
   private getSyncKey(): string {
-    const tgUser = this.getStoredTelegramUser();
-    if (tgUser?.id) {
-      return tgUser.username ? `@${tgUser.username}` : `tg_${tgUser.id}`;
-    }
     const KEY = 'sudoku_cloud_sync_key';
     let key = localStorage.getItem(KEY);
     if (!key) {
@@ -3961,35 +3581,18 @@ export class SudokuUI {
   }
 
   private updateSyncBadge() {
-    if (!this.syncAccountBadge) return;
-    const tgUser = this.getStoredTelegramUser();
-    if (tgUser) {
-      const handle = tgUser.username ? `@${tgUser.username}` : tgUser.first_name || `TG #${tgUser.id}`;
-      this.syncAccountBadge.textContent = `✈️ Telegram: ${handle}`;
-      this.syncAccountBadge.style.color = '#38bdf8';
-    } else {
-      const key = this.getSyncKey();
-      if (key.startsWith('@') || key.startsWith('tg_')) {
-        this.syncAccountBadge.textContent = `✈️ Telegram: ${key}`;
-        this.syncAccountBadge.style.color = '#38bdf8';
-      } else {
-        this.syncAccountBadge.textContent = `🔑 ${key}`;
-        this.syncAccountBadge.style.color = '#34d399';
-      }
-    }
-    if (this.syncKeyInput) {
-      this.syncKeyInput.value = this.getSyncKey();
-    }
-    this.updateTgMenuPill();
+    this.updateYandexSettingsBox();
+    this.updateYandexAuthPill();
   }
 
   private async syncWithCloud(showToastNotification: boolean = false) {
     try {
+      await this.saveYandexCloudData();
+
       const key = this.getSyncKey();
       const stats = SudokuGame.getPlayerStats();
-      const playerName = localStorage.getItem('sudoku_player_name') || 'Игрок';
+      const playerName = yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || 'Игрок';
       const theme = localStorage.getItem('sudoku_theme') || 'dark';
-      const tgUser = this.getStoredTelegramUser();
 
       const apiBase = `${getApiBaseUrl()}/sync`;
       const res = await fetch(apiBase, {
@@ -4000,26 +3603,21 @@ export class SudokuUI {
           stats,
           playerName,
           theme,
-          telegramUser: tgUser,
           notificationsEnabled: this.notificationsEnabled,
         }),
       });
 
-      if (!res.ok) throw new Error('Sync failed');
-      const data = await res.json();
-      if (data.profile?.stats) {
-        SudokuGame.mergePlayerStats(data.profile.stats);
-        this.updateDailyInfoOnMenu();
-      }
-      if (data.profile && typeof data.profile.notificationsEnabled === 'boolean') {
-        this.notificationsEnabled = data.profile.notificationsEnabled;
-        localStorage.setItem('sudoku_notifications_enabled', this.notificationsEnabled.toString());
-        this.updateNotifyButton(this.notificationsEnabled);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile?.stats) {
+          SudokuGame.mergePlayerStats(data.profile.stats);
+          this.updateDailyInfoOnMenu();
+        }
       }
 
       if (showToastNotification) {
         const isEn = i18n.getLanguage() === 'en';
-        this.showToast(isEn ? '☁️ Progress successfully synchronized with Telegram Cloud!' : '☁️ Прогресс успешно синхронизирован с Telegram Cloud!');
+        this.showToast(isEn ? '☁️ Progress successfully synchronized with Yandex Cloud!' : '☁️ Прогресс успешно синхронизирован с Яндекс Облаком!');
       }
     } catch {
       if (showToastNotification) {
@@ -4029,51 +3627,11 @@ export class SudokuUI {
     }
   }
 
-  private async importSyncKey(inputKey: string) {
-    const isEn = i18n.getLanguage() === 'en';
-    try {
-      const key = inputKey.trim();
-      const apiBase = `${getApiBaseUrl()}/sync`;
-      const res = await fetch(`${apiBase}?key=${encodeURIComponent(key)}`);
-      if (!res.ok) {
-        this.showToast(isEn ? '❌ Profile with this Telegram/key not found in cloud' : '❌ Профиль с таким Telegram/ключом не найден в облаке');
-        return;
-      }
-      const data = await res.json();
-      if (data.profile) {
-        if (data.profile.stats) {
-          SudokuGame.mergePlayerStats(data.profile.stats);
-        }
-        if (data.profile.playerName) {
-          localStorage.setItem('sudoku_player_name', data.profile.playerName);
-          if (this.playerNameInput) this.playerNameInput.value = data.profile.playerName;
-        }
-        if (data.profile.theme) {
-          this.setTheme(data.profile.theme);
-        }
-        if (data.profile.telegramUser) {
-          localStorage.setItem('sudoku_telegram_user', JSON.stringify(data.profile.telegramUser));
-        }
-        if (typeof data.profile.notificationsEnabled === 'boolean') {
-          this.notificationsEnabled = data.profile.notificationsEnabled;
-          localStorage.setItem('sudoku_notifications_enabled', this.notificationsEnabled.toString());
-          this.updateNotifyButton(this.notificationsEnabled);
-        }
-        const effectiveKey = data.profile.key || key;
-        localStorage.setItem('sudoku_cloud_sync_key', effectiveKey);
-        if (this.syncKeyInput) this.syncKeyInput.value = effectiveKey;
-        this.updateSyncBadge();
-        this.updateDailyInfoOnMenu();
-        this.updateTgAuthModalView();
-        this.showToast(isEn ? '🎉 Profile and progress connected successfully!' : '🎉 Профиль и прогресс успешно подключены!');
-      }
-    } catch {
-      this.showToast(isEn ? '❌ Device linking error' : '❌ Ошибка при связывании устройств');
-    }
+  private async importSyncKey(_inputKey: string) {
+    // No-op for Yandex-only cloud
   }
 
   private updateYandexSettingsBox() {
-    if (!yandexBridge.isYandex()) return;
     const box = document.getElementById('section-yandex-profile');
     if (box) box.classList.remove('hidden');
 
@@ -4228,23 +3786,12 @@ export class SudokuUI {
 
     const title = isEn ? 'Sudoku Pulse — Victory!' : '⚡ Sudoku Pulse — Победа!';
     const text = isEn
-      ? `⚡ Sudoku Pulse — Victory!\n🎮 Mode: ${modeName} (${diffName})\n⏱️ Time: ${timeStr} | 💎 Score: ${this.game.score.toLocaleString('en-US')}\n🔥 Max Combo: x${this.game.maxComboAchieved} | ❤️ Mistakes: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩\nPlay Sudoku Pulse now!`
-      : `⚡ Sudoku Pulse — Победа!\n🎮 Режим: ${modeName} (${diffName})\n⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}\n🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩\nСыграй в ритме Sudoku Pulse:`;
+      ? `⚡ Sudoku Pulse — Victory!\n🎮 Mode: ${modeName} (${diffName})\n⏱️ Time: ${timeStr} | 💎 Score: ${this.game.score.toLocaleString('en-US')}\n🔥 Max Combo: x${this.game.maxComboAchieved} | ❤️ Mistakes: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩`
+      : `⚡ Sudoku Pulse — Победа!\n🎮 Режим: ${modeName} (${diffName})\n⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}\n🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩`;
 
-    const shareUrl = window.location.origin + window.location.pathname;
-
-    const tgApp = (window as any).Telegram?.WebApp;
-    if (tgApp?.openTelegramLink) {
-      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`;
-      tgApp.openTelegramLink(tgShareUrl);
-      this.showToast(isEn ? '📋 Result copied! Opening Telegram...' : '📋 Результат скопирован! Открываем Telegram...');
-      await this.copyTextToClipboard(`${text}\n${shareUrl}`);
-      return;
-    }
-
-    const shared = await this.tryNativeShare({ title, text, url: shareUrl });
+    const shared = await this.tryNativeShare({ title, text });
     if (!shared) {
-      await this.copyTextToClipboard(`${text}\n${shareUrl}`);
+      await this.copyTextToClipboard(text);
       this.showToast(isEn ? '📋 Result card copied to clipboard!' : '📋 Карточка счёта скопирована в буфер!');
     }
   }
@@ -4256,8 +3803,7 @@ export class SudokuUI {
     const mode = this.game.mode;
     const score = this.game.score;
     const time = this.game.timerSeconds;
-    const tgUser = this.getStoredTelegramUser();
-    const myName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '');
+    const myName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '');
 
     const mins = Math.floor(time / 60);
     const secs = time % 60;
@@ -4271,43 +3817,17 @@ export class SudokuUI {
     const diffName = diffLabels[diff] || (isEn ? 'Medium' : 'Средний');
 
     const challengeCode = `c_${seed}_${diff}_${mode}_${score}_${time}_${encodeURIComponent(myName)}`;
-    const tgApp = (window as any).Telegram?.WebApp;
-
-    let challengeLink = '';
-    if (tgApp) {
-      challengeLink = `https://t.me/sudoku_pulse_auth_bot/app?startapp=${challengeCode}`;
-    } else {
-      const origin = window.location.origin;
-      const pathname = window.location.pathname;
-      challengeLink = `${origin}${pathname}?c=${challengeCode}`;
-    }
 
     const title = isEn ? 'Sudoku Pulse — Friend Challenge!' : '⚔️ Sudoku Pulse — Вызов другу!';
     const text = isEn
       ? `⚔️ Challenging you in Sudoku Pulse!\n🎯 My score: ${score.toLocaleString('en-US')} pts in ${timeStr} on "${diffName}".\nCan you beat my record on the exact same grid?\n🔑 Challenge Code: ${challengeCode}`
       : `⚔️ Бросаю вызов в Sudoku Pulse!\n🎯 Мой рекорд: ${score.toLocaleString('ru-RU')} очков за ${timeStr} на сложности "${diffName}".\nСможешь побить мой рекорд на той же сетке? 🚀\n🔑 Код дуэли: ${challengeCode}`;
 
-    if (tgApp?.openTelegramLink) {
-      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(challengeLink)}&text=${encodeURIComponent(text)}`;
-      tgApp.openTelegramLink(tgShareUrl);
-      this.showToast(isEn ? '🔗 Challenge link copied! Opening Telegram...' : '🔗 Ссылка на вызов скопирована! Открываем Telegram...');
-      await this.copyTextToClipboard(`${text}\n${challengeLink}`);
-      return;
-    }
-
-    const shared = await this.tryNativeShare({ title, text, url: challengeLink });
+    const shared = await this.tryNativeShare({ title, text });
     if (!shared) {
-      await this.copyTextToClipboard(`${text}\n${challengeLink}`);
-      this.showToast(isEn ? '⚔️ Challenge code and link copied!' : '⚔️ Код дуэли и ссылка скопированы в буфер!');
+      await this.copyTextToClipboard(challengeCode);
+      this.showToast(isEn ? '⚔️ Challenge code copied to clipboard!' : '⚔️ Код дуэли скопирован в буфер!');
     }
-  }
-
-  private shareChallengeToTelegram() {
-    this.shareChallenge();
-  }
-
-  private shareResultToTelegram() {
-    this.shareScoreCard();
   }
 
   private formatMistakesCount(count: number, isEn: boolean): string {
@@ -4571,11 +4091,6 @@ export class SudokuUI {
 
     if (this.statSeasonTimer) {
       this.statSeasonTimer.textContent = `⏳ ${isEn ? 'Season' : 'Сезон'}: ${getSeasonRemainingText()}`;
-    }
-
-    if (this.tgAuthUserAvatar) {
-      this.tgAuthUserAvatar.classList.remove('avatar-frame-bronze', 'avatar-frame-silver', 'avatar-frame-gold', 'avatar-frame-platinum', 'avatar-frame-grandmaster');
-      this.tgAuthUserAvatar.classList.add(league.frameClass);
     }
   }
 
@@ -5103,11 +4618,9 @@ export class SudokuUI {
 
   private async startQuickMatch() {
     soundManager.playSelect();
-    haptics.light();
     const isEn = i18n.getLanguage() === 'en';
     const playerId = SudokuGame.getOrCreatePlayerId();
-    const tgUser = this.getStoredTelegramUser();
-    const playerName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
 
     try {
       if (this.btnLiveQuickMatch) this.btnLiveQuickMatch.disabled = true;
@@ -5205,8 +4718,7 @@ export class SudokuUI {
   private async createLiveRoom() {
     const isEn = i18n.getLanguage() === 'en';
     const hostId = SudokuGame.getOrCreatePlayerId();
-    const tgUser = this.getStoredTelegramUser();
-    const hostName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Host' : 'Игрок 1')).replace(/[@_\s]/g, '') || (isEn ? 'Host' : 'Игрок 1');
+    const hostName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Host' : 'Игрок 1')).replace(/[@_\s]/g, '') || (isEn ? 'Host' : 'Игрок 1');
 
     try {
       if (this.btnCreateLiveRoom) this.btnCreateLiveRoom.disabled = true;
@@ -5269,8 +4781,7 @@ export class SudokuUI {
     }
 
     const guestId = SudokuGame.getOrCreatePlayerId();
-    const tgUser = this.getStoredTelegramUser();
-    const guestName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Challenger' : 'Игрок 2')).replace(/[@_\s]/g, '') || (isEn ? 'Challenger' : 'Игрок 2');
+    const guestName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Challenger' : 'Игрок 2')).replace(/[@_\s]/g, '') || (isEn ? 'Challenger' : 'Игрок 2');
 
     try {
       if (this.btnJoinLiveRoom) this.btnJoinLiveRoom.disabled = true;
@@ -5323,26 +4834,14 @@ export class SudokuUI {
   private async shareLiveRoomLink() {
     const isEn = i18n.getLanguage() === 'en';
     if (!this.currentLiveLobbyCode) return;
-    const origin = window.location.origin;
-    const pathname = window.location.pathname;
-    const link = `${origin}${pathname}?lobby=${this.currentLiveLobbyCode}`;
     const text = isEn
-      ? `⚔️ Join my 1v1 Sudoku Pulse live duel!\nRoom code: ${this.currentLiveLobbyCode}\n${link}`
-      : `⚔️ Заходи на живую 1v1 дуэль в Sudoku Pulse!\nКод комнаты: ${this.currentLiveLobbyCode}\n${link}`;
+      ? `⚔️ Join my 1v1 Sudoku Pulse live duel!\nRoom code: ${this.currentLiveLobbyCode}`
+      : `⚔️ Заходи на живую 1v1 дуэль в Sudoku Pulse!\nКод комнаты: ${this.currentLiveLobbyCode}`;
 
-    const tgApp = (window as any).Telegram?.WebApp;
-    if (tgApp?.openTelegramLink) {
-      const tgShareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
-      tgApp.openTelegramLink(tgShareUrl);
-      this.showToast(isEn ? '🔗 Room link copied! Opening Telegram...' : '🔗 Ссылка на комнату скопирована! Открываем Telegram...');
-      await this.copyTextToClipboard(`${text}`);
-      return;
-    }
-
-    const shared = await this.tryNativeShare({ title: 'Sudoku Pulse 1v1', text, url: link });
+    const shared = await this.tryNativeShare({ title: 'Sudoku Pulse 1v1', text });
     if (!shared) {
-      await this.copyTextToClipboard(`${text}`);
-      this.showToast(isEn ? '📋 Room link copied to clipboard!' : '📋 Ссылка на комнату скопирована в буфер!');
+      await this.copyTextToClipboard(this.currentLiveLobbyCode);
+      this.showToast(isEn ? '📋 Room code copied to clipboard!' : '📋 Код комнаты скопирован в буфер!');
     }
   }
 
@@ -6382,8 +5881,7 @@ export class SudokuUI {
     const toastMsg = t('live_ai_matched_toast', isEn ? '🤖 AI challenger matched: ' : '🤖 К дуэли подключился AI-соперник: ');
     this.showToast(`${toastMsg}${botName} (${botElo} ELO)`);
 
-    const tgUser = this.getStoredTelegramUser();
-    const playerName = (localStorage.getItem('sudoku_player_name') || tgUser?.username || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
     const seed = Date.now();
 
     this.startLiveCountdown(playerName, `${botName} [AI]`, seed, botDiff);

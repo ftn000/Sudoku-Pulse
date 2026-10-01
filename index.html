@@ -9,7 +9,6 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#06b6d4">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Yandex Games SDK v2 -->
   <script src="https://yandex.ru/games/sdk/v2"></script>
   <link rel="stylesheet" href="/src/style.css">
@@ -21,9 +20,9 @@
   <!-- ========================================== -->
   <div id="screen-menu" class="screen">
     <div class="menu-top-bar">
-      <button id="btn-menu-tg-auth" class="tg-menu-auth-pill" title="Профиль и облачная синхронизация">
-        <span class="tg-pill-icon">✈️</span>
-        <span id="menu-tg-auth-label">Войти через Telegram</span>
+      <button id="btn-menu-yandex-auth" class="yandex-menu-auth-pill" title="Профиль Яндекс" aria-label="Профиль Яндекс">
+        <span class="yandex-pill-icon">🔴</span>
+        <span id="menu-yandex-auth-label" data-i18n="menu_yandex_login">Войти в Яндекс</span>
       </button>
       <div style="display: flex; align-items: center; gap: 8px;">
         <div id="menu-league-badge" class="league-badge bronze" title="Текущая лига">🥉 Бронза</div>
@@ -707,29 +706,8 @@
         </button>
       </div>
 
-      <div class="section-title yandex-hidden" style="margin-top: 14px; margin-bottom: 6px;" data-i18n="sync_cloud_title">✈️ Облачная синхронизация (Telegram & Cloud)</div>
-      <div class="sync-box yandex-hidden" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="color: var(--text-muted);" data-i18n="sync_account_label">Аккаунт:</span>
-          <span id="sync-account-badge" style="font-weight: 700; color: var(--pulse-cyan);" data-i18n="guest">Гость</span>
-        </div>
-
-        <button id="btn-sync-tg-auth" class="btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 0.82rem; padding: 8px 12px; width: 100%;" data-i18n="sync_btn_tg">
-          ✈️ Войти через Telegram (Бот / Mini App)
-        </button>
-
-        <div style="display: flex; gap: 6px;">
-          <input id="sync-key-input" type="text" placeholder="TG @username или Ключ..." style="flex: 1; background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none;">
-          <button id="btn-sync-import" class="diff-pill" style="padding: 6px 10px; font-size: 0.8rem;" data-i18n="sync_btn_link">Связать</button>
-        </div>
-        <div style="display: flex; gap: 6px; margin-top: 2px;">
-          <button id="btn-sync-copy-key" class="btn-secondary" style="flex: 1; padding: 7px 10px; font-size: 0.78rem;" data-i18n="sync_btn_my_key">📋 Мой ключ</button>
-          <button id="btn-sync-cloud" class="btn-primary" style="flex: 1; padding: 7px 10px; font-size: 0.78rem;" data-i18n="sync_btn_sync_now">🔄 Синхронизировать</button>
-        </div>
-      </div>
-
-      <!-- Yandex Cloud Profile Box (Shown on Yandex Games) -->
-      <div id="section-yandex-profile" class="yandex-profile-box hidden" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left; margin-top: 10px;">
+      <!-- Yandex Cloud Profile Box -->
+      <div id="section-yandex-profile" class="yandex-profile-box" style="background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; text-align: left; margin-top: 10px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="color: var(--text-muted);" data-i18n="settings_yandex_profile">Профиль Яндекса:</span>
           <span id="yandex-account-badge" style="font-weight: 700; color: #f87171;" data-i18n="guest">Гость</span>
@@ -740,103 +718,7 @@
         </button>
       </div>
 
-      <div class="section-title yandex-hidden" style="margin-top: 14px; margin-bottom: 6px;" data-i18n="settings_apk_title">📱 Приложение для Android (Офлайн)</div>
-      <a href="./SudokuPulse.apk" download="SudokuPulse.apk" class="btn-primary yandex-hidden" style="display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; padding: 10px 14px; font-size: 0.85rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border-radius: var(--radius); margin-bottom: 12px;">
-        <span>📥</span>
-        <span data-i18n="download_apk_btn">Скачать Android APK</span>
-      </a>
-
       <button id="btn-close-settings" class="btn-primary" data-i18n="btn_done">Готово</button>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- MODAL: TELEGRAM WEB AUTH & CLOUD SYNC      -->
-  <!-- ========================================== -->
-  <div id="tg-auth-modal" class="modal-overlay hidden">
-    <div class="modal-card tg-auth-modal-card">
-      <div class="tg-auth-header">
-        <div class="tg-auth-icon">✈️</div>
-        <div style="flex: 1; padding-right: 32px;">
-          <h2 class="modal-title" style="margin-bottom: 2px;" data-i18n="tg_auth_title">Вход через Telegram</h2>
-          <p style="color: var(--text-muted); font-size: 0.8rem;" data-i18n="tg_auth_subtitle">Синхронизация рекордов и прогресса</p>
-        </div>
-        <button id="btn-close-tg-auth-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
-      </div>
-
-      <!-- State 1: Active authorized profile view -->
-      <div id="tg-auth-active-view" class="tg-auth-active-view hidden">
-        <div class="tg-profile-card">
-          <div class="tg-avatar-badge" id="tg-auth-user-avatar">👤</div>
-          <div class="tg-user-details">
-            <div class="tg-user-name" id="tg-auth-user-name">Игрок</div>
-            <div class="tg-user-handle" id="tg-auth-user-handle">@username</div>
-          </div>
-          <span class="tg-status-badge" data-i18n="tg_connected">✅ Подключён</span>
-        </div>
-
-        <div class="tg-auth-sync-actions">
-          <button id="btn-tg-manual-sync" class="btn-primary" style="flex: 1;" data-i18n="sync_btn_sync_now">
-            🔄 Синхронизировать
-          </button>
-          <button id="btn-tg-logout" class="btn-secondary" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;" data-i18n="tg_logout">
-            🚪 Выйти
-          </button>
-        </div>
-      </div>
-
-      <!-- State 2: Login options tabs -->
-      <div id="tg-auth-login-view" class="tg-auth-login-view">
-        <div class="tg-tab-bar">
-          <button class="tg-tab active" data-tg-tab="bot" data-i18n="tg_tab_bot">⚡ Бот & QR</button>
-          <button class="tg-tab" data-tg-tab="widget" data-i18n="tg_tab_widget">🌐 Виджет</button>
-          <button class="tg-tab" data-tg-tab="manual" data-i18n="tg_tab_manual">✏️ Ключ / Ник</button>
-        </div>
-
-        <!-- Tab 1: Bot Deep-Link & QR -->
-        <div id="tg-tab-content-bot" class="tg-tab-pane">
-          <p class="tg-step-desc" data-i18n="tg_bot_qr_desc">Нажмите кнопку для открытия бота или наведите камеру смартфона на QR-код:</p>
-          
-          <div class="tg-qr-wrapper">
-            <img id="tg-auth-qr-img" class="tg-qr-image" src="" alt="QR Code" style="display:none;" />
-            <div id="tg-qr-spinner" class="tg-qr-placeholder">
-              <div class="tg-spinner"></div>
-              <span data-i18n="tg_qr_generating">Генерация защищённого QR-кода...</span>
-            </div>
-          </div>
-
-          <a id="btn-tg-open-bot-link" href="https://t.me/sudoku_pulse_auth_bot" target="_blank" data-bot-url="https://t.me/sudoku_pulse_auth_bot" class="btn-primary btn-tg-cta">
-            <span data-i18n="tg_open_bot_btn">🚀 Открыть @sudoku_pulse_auth_bot</span>
-          </a>
-
-          <div class="tg-poll-status">
-            <span class="pulse-dot"></span>
-            <span id="tg-poll-status-text" data-i18n="tg_waiting_auth">Ожидание подтверждения в Telegram...</span>
-          </div>
-        </div>
-
-        <!-- Tab 2: Telegram Login Widget -->
-        <div id="tg-tab-content-widget" class="tg-tab-pane hidden">
-          <p class="tg-step-desc" data-i18n="tg_widget_desc">Авторизация в один клик через официальный виджет Telegram:</p>
-          <div id="tg-widget-container" style="display: flex; justify-content: center; align-items: center; min-height: 90px;">
-            <!-- Telegram widget script rendered here -->
-          </div>
-          <p style="font-size: 0.75rem; color: var(--text-muted); text-align: center;" data-i18n="tg_widget_safe">Безопасный вход через Telegram Login Widget</p>
-        </div>
-
-        <!-- Tab 3: Manual Input -->
-        <div id="tg-tab-content-manual" class="tg-tab-pane hidden">
-          <p class="tg-step-desc" data-i18n="tg_manual_desc">Введите ваш ник в Telegram (@username), Telegram ID или секретный ключ синхронизации:</p>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
-            <input id="tg-manual-input" type="text" placeholder="@username, tg_123456 или PULSE-XXXX" style="background: var(--btn-bg); border: 1px solid var(--surface-border); color: var(--text-main); padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; outline: none; width: 100%;">
-            <button id="btn-tg-manual-login" class="btn-primary" style="padding: 10px;" data-i18n="tg_manual_btn">
-              🔍 Найти и подключить профиль
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <button id="btn-close-tg-auth" class="btn-primary" style="margin-top: 8px;" data-i18n="btn_close">Закрыть</button>
     </div>
   </div>
 

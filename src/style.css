@@ -1682,7 +1682,7 @@ body.screen-is-game {
 }
 
 /* ========================================== */
-/* TELEGRAM AUTH & TMA INTEGRATION STYLES     */
+/* PROFILE & MENU STYLES                      */
 /* ========================================== */
 #screen-menu {
   position: relative;
@@ -1734,13 +1734,14 @@ body.screen-is-game {
   filter: brightness(1.15);
 }
 
+.yandex-menu-auth-pill,
 .tg-menu-auth-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-  color: #38bdf8;
+  background: rgba(252, 63, 29, 0.12);
+  border: 1px solid rgba(252, 63, 29, 0.35);
+  color: #ff6b4a;
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 0.8rem;
@@ -1751,8 +1752,10 @@ body.screen-is-game {
   flex-shrink: 0;
 }
 
+.yandex-menu-auth-pill:hover,
 .tg-menu-auth-pill:hover {
-  background: rgba(14, 165, 233, 0.22);
+  background: rgba(252, 63, 29, 0.22);
+  border-color: #fc3f1d;
 }
 
 .top-bar-icon-btn {
@@ -1791,38 +1794,6 @@ body.platform-yandex .yandex-hidden {
   display: none !important;
 }
 
-body.platform-yandex .tg-menu-auth-pill {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #f87171;
-}
-
-body.platform-yandex .tg-menu-auth-pill:hover {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: #ef4444;
-}
-
-.tg-auth-modal-card {
-  max-width: 420px;
-  width: 100%;
-  max-height: calc(100dvh - 32px);
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tg-auth-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-align: left;
-  position: relative;
-}
-
 .modal-close-icon-btn {
   position: absolute;
   right: 14px;
@@ -1846,214 +1817,6 @@ body.platform-yandex .tg-menu-auth-pill:hover {
   background: rgba(255, 255, 255, 0.16);
   color: var(--text-main);
   transform: scale(1.05);
-}
-
-.tg-auth-header .modal-close-icon-btn {
-  right: 0;
-  top: 0;
-}
-
-.tg-auth-icon {
-  font-size: 1.8rem;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.tg-profile-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--surface-border);
-  border-radius: var(--radius);
-  padding: 12px;
-  margin: 6px 0;
-}
-
-.tg-avatar-badge {
-  font-size: 1.6rem;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.tg-avatar-badge img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.tg-user-details {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  text-align: left;
-  overflow: hidden;
-}
-
-.tg-user-name {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text-main);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-.tg-user-handle {
-  font-size: 0.8rem;
-  color: #38bdf8;
-}
-
-.tg-status-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(52, 211, 153, 0.18);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  white-space: nowrap;
-}
-
-.tg-auth-sync-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.tg-tab-bar {
-  display: flex;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--surface-border);
-  padding: 3px;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
-
-.tg-tab {
-  flex: 1;
-  padding: 7px 4px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.tg-tab.active {
-  background: var(--btn-bg);
-  color: var(--text-main);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.tg-tab-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.tg-step-desc {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  text-align: left;
-  line-height: 1.4;
-}
-
-.tg-qr-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px;
-  background: #ffffff;
-  border-radius: 12px;
-  margin: 6px auto;
-  width: 170px;
-  height: 170px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
-}
-
-.tg-qr-image {
-  width: 154px;
-  height: 154px;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.tg-qr-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #64748b;
-  font-size: 0.72rem;
-  text-align: center;
-}
-
-.tg-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid rgba(14, 165, 233, 0.2);
-  border-top-color: #0284c7;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn-tg-cta {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
-  color: white !important;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.88rem;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.btn-tg-cta:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.1);
-}
-
-.tg-poll-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: rgba(14, 165, 233, 0.08);
-  border: 1px solid rgba(14, 165, 233, 0.2);
-  border-radius: 8px;
-  font-size: 0.78rem;
-  color: #38bdf8;
 }
 
 .pulse-dot {
@@ -2869,20 +2632,10 @@ body.platform-yandex .tg-menu-auth-pill:hover {
     padding: 8px;
     align-items: flex-start;
   }
-  .modal-card, .tg-auth-modal-card {
+  .modal-card {
     padding: 16px 14px;
     gap: 10px;
     margin: 8px auto;
-  }
-  .tg-qr-wrapper {
-    width: 140px;
-    height: 140px;
-    padding: 6px;
-    margin: 4px auto;
-  }
-  .tg-qr-image {
-    width: 128px;
-    height: 128px;
   }
   #screen-menu {
     min-height: 0;

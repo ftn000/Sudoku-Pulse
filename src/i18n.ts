@@ -22,8 +22,8 @@ const RU: TranslationDict = {
   menu_settings: 'Настройки',
   menu_rules: 'Правила игры',
   menu_leaderboard: 'Зал Славы',
-  menu_tg_login: 'Войти через Telegram',
   menu_yandex_login: 'Войти в Яндекс',
+  menu_profile: 'Профиль',
 
   // Mode Selection
   mode_select_title: 'Выберите режим',
@@ -233,36 +233,11 @@ const RU: TranslationDict = {
 
   // Settings & Sync
   settings_title: '⚙️ Настройки',
-  sync_cloud_title: '✈️ Облачная синхронизация (Telegram & Cloud)',
-  sync_account_label: 'Аккаунт:',
   guest: 'Гость',
-  sync_btn_tg: '✈️ Войти через Telegram (Бот / Mini App)',
-  sync_btn_link: 'Связать',
-  sync_btn_my_key: '📋 Мой ключ',
-  sync_btn_sync_now: '🔄 Синхронизировать',
   settings_yandex_profile: 'Профиль Яндекса:',
   settings_yandex_desc: 'Синхронизация рекордов и трофеев с вашим аккаунтом Яндекс Игр',
   settings_yandex_login: '🔴 Войти через Яндекс Паспорт',
-  settings_apk_title: '📱 Приложение для Android (Офлайн)',
-  download_apk_btn: 'Скачать Android APK',
   btn_done: 'Готово',
-
-  // Telegram modal
-  tg_auth_title: 'Вход через Telegram',
-  tg_auth_subtitle: 'Синхронизация рекордов и прогресса',
-  tg_connected: '✅ Подключён',
-  tg_logout: '🚪 Выйти',
-  tg_tab_bot: '⚡ Бот & QR',
-  tg_tab_widget: '🌐 Виджет',
-  tg_tab_manual: '✏️ Ключ / Ник',
-  tg_bot_qr_desc: 'Нажмите кнопку для открытия бота или наведите камеру смартфона на QR-код:',
-  tg_qr_generating: 'Генерация защищённого QR-кода...',
-  tg_open_bot_btn: '🚀 Открыть @sudoku_pulse_auth_bot',
-  tg_waiting_auth: 'Ожидание подтверждения в Telegram...',
-  tg_widget_desc: 'Авторизация в один клик через официальный виджет Telegram:',
-  tg_widget_safe: 'Безопасный вход через Telegram Login Widget',
-  tg_manual_desc: 'Введите ваш ник в Telegram (@username), Telegram ID или секретный ключ синхронизации:',
-  tg_manual_btn: '🔍 Найти и подключить профиль',
 
   // Challenge modal
   challenge_modal_title: 'Дуэльный вызов!',
@@ -339,8 +314,8 @@ const EN: TranslationDict = {
   menu_settings: 'Settings',
   menu_rules: 'How to Play',
   menu_leaderboard: 'Hall of Fame',
-  menu_tg_login: 'Login with Telegram',
   menu_yandex_login: 'Login with Yandex',
+  menu_profile: 'Profile',
 
   // Mode Selection
   mode_select_title: 'Select Game Mode',
@@ -550,36 +525,11 @@ const EN: TranslationDict = {
   ach_subtitle: '0 of 10 trophies unlocked',
 
   // Settings & Sync
-  sync_cloud_title: '✈️ Cloud Sync (Telegram & Cloud)',
-  sync_account_label: 'Account:',
   guest: 'Guest',
-  sync_btn_tg: '✈️ Login with Telegram (Bot / Mini App)',
-  sync_btn_link: 'Link',
-  sync_btn_my_key: '📋 My Key',
-  sync_btn_sync_now: '🔄 Sync Now',
   settings_yandex_profile: 'Yandex Profile:',
   settings_yandex_desc: 'Sync high scores and achievements with your Yandex Games account',
   settings_yandex_login: '🔴 Login with Yandex ID',
-  settings_apk_title: '📱 Android App (Offline APK)',
-  download_apk_btn: 'Download Android APK',
   btn_done: 'Done',
-
-  // Telegram modal
-  tg_auth_title: 'Login with Telegram',
-  tg_auth_subtitle: 'Sync high scores and progress',
-  tg_connected: '✅ Connected',
-  tg_logout: '🚪 Logout',
-  tg_tab_bot: '⚡ Bot & QR',
-  tg_tab_widget: '🌐 Widget',
-  tg_tab_manual: '✏️ Key / Nick',
-  tg_bot_qr_desc: 'Tap the button to open the bot or scan the QR code with your phone:',
-  tg_qr_generating: 'Generating secure QR code...',
-  tg_open_bot_btn: '🚀 Open @sudoku_pulse_auth_bot',
-  tg_waiting_auth: 'Waiting for confirmation in Telegram...',
-  tg_widget_desc: 'One-click login via official Telegram Widget:',
-  tg_widget_safe: 'Secure login via Telegram Login Widget',
-  tg_manual_desc: 'Enter your Telegram username (@username), Telegram ID or sync secret key:',
-  tg_manual_btn: '🔍 Find & Connect Profile',
 
   // Challenge modal
   challenge_modal_title: 'Duel Challenge!',
@@ -806,14 +756,6 @@ class I18nManager {
     if (yLang && typeof yLang === 'string') {
       const lower = yLang.toLowerCase();
       this.currentLang = (lower.startsWith('ru') || lower.startsWith('be') || lower.startsWith('kk') || lower.startsWith('uk') || lower.startsWith('uz')) ? 'ru' : 'en';
-      return this.currentLang;
-    }
-
-    // Check Telegram WebApp user language
-    const tgLang = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.language_code : null;
-    if (tgLang && typeof tgLang === 'string') {
-      const lower = tgLang.toLowerCase();
-      this.currentLang = (lower.startsWith('ru') || lower.startsWith('be') || lower.startsWith('kk') || lower.startsWith('uk')) ? 'ru' : 'en';
       return this.currentLang;
     }
 
