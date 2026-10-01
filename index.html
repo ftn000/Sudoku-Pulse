@@ -57,14 +57,14 @@
         </span>
       </button>
 
-      <button id="btn-menu-daily" class="btn-menu-card">
+      <div id="menu-streak-card" class="menu-streak-card">
         <span class="btn-icon">📅</span>
         <span class="btn-text">
-          <strong data-i18n="menu_daily">Daily Pulse</strong>
-          <small id="menu-daily-date" data-i18n="menu_daily_tag">Ежедневный вызов мира</small>
+          <strong data-i18n="menu_streak_title">Дней в Pulse</strong>
+          <small id="menu-daily-date" data-i18n="menu_streak_desc">Сыграйте партию сегодня для серии</small>
         </span>
-        <span class="badge-streak" id="menu-daily-streak">🔥 0</span>
-      </button>
+        <span class="badge-streak" id="menu-daily-streak">🔥 0 дн.</span>
+      </div>
 
       <button id="btn-menu-achievements" class="btn-menu-card">
         <span class="btn-icon">🏅</span>
@@ -107,9 +107,6 @@
         </button>
         <button id="btn-menu-tutorial" class="btn-menu-secondary">
           <span>🎓</span> <span data-i18n="menu_tutorial">Обучение</span>
-        </button>
-        <button id="btn-menu-settings" class="btn-menu-secondary">
-          <span>⚙️</span> <span data-i18n="menu_settings">Настройки</span>
         </button>
       </div>
     </div>
@@ -296,9 +293,19 @@
         <div class="ai-duel-hud-top">
           <div class="ai-duel-player">
             <div class="ai-duel-info-row">
-              <div class="ai-bot-avatar-wrap">
+              <div class="ai-bot-avatar-wrap player-avatar-interactive" id="player-duel-avatar-wrap" title="Эмодзи">
                 <div id="player-duel-avatar" class="duel-mini-avatar player-avatar" title="You"></div>
                 <span class="ai-duel-name" id="player-duel-name" data-i18n="ai_duel_you">Вы</span>
+                <span class="avatar-reaction-hint">💬</span>
+                
+                <!-- Floating Reaction Popover (Over errors row) -->
+                <div id="live-duel-reaction-popover" class="live-duel-reactions-popover hidden">
+                  <button class="live-reaction-btn" data-reaction="⚡" title="Импульс">⚡</button>
+                  <button class="live-reaction-btn" data-reaction="🔥" title="Огонь">🔥</button>
+                  <button class="live-reaction-btn" data-reaction="😎" title="Круто">😎</button>
+                  <button class="live-reaction-btn" data-reaction="😱" title="Шок">😱</button>
+                  <button class="live-reaction-btn" data-reaction="🤖" title="Бот">🤖</button>
+                </div>
               </div>
               <span id="player-duel-count" class="ai-duel-count">0/0</span>
             </div>
@@ -337,16 +344,6 @@
 
         <!-- Floating Opponent Reaction Emote -->
         <div id="live-opponent-reaction-bubble" class="live-reaction-bubble hidden"></div>
-
-        <!-- 1v1 Live Quick Reactions (Human Duel) -->
-        <div id="live-duel-reaction-bar" class="live-duel-reactions hidden">
-          <span class="live-reactions-label" data-i18n="live_reaction_taunt">Эмодзи:</span>
-          <button class="live-reaction-btn" data-reaction="⚡" title="Импульс">⚡</button>
-          <button class="live-reaction-btn" data-reaction="🔥" title="Огонь">🔥</button>
-          <button class="live-reaction-btn" data-reaction="😎" title="Круто">😎</button>
-          <button class="live-reaction-btn" data-reaction="😱" title="Шок">😱</button>
-          <button class="live-reaction-btn" data-reaction="🤖" title="Бот">🤖</button>
-        </div>
       </div>
 
       <!-- Live Spectator Mode HUD -->
@@ -1112,19 +1109,19 @@
   <!-- MODAL: EXIT CONFIRMATION                   -->
   <!-- ========================================== -->
   <div id="exit-confirm-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="border-color: rgba(239, 68, 68, 0.45); max-width: 360px;">
+    <div class="modal-card" style="border-color: rgba(56, 189, 248, 0.45); max-width: 360px;">
       <button id="btn-close-exit-confirm-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
-      <div class="modal-icon" style="font-size: 2.2rem; margin-bottom: 4px;">🚪</div>
-      <h2 id="exit-confirm-title" class="modal-title" style="color: #f87171; font-size: 1.25rem;">Вы уверены, что хотите выйти?</h2>
+      <div class="modal-icon" id="exit-confirm-icon" style="font-size: 2.2rem; margin-bottom: 4px;">💾</div>
+      <h2 id="exit-confirm-title" class="modal-title" style="color: #38bdf8; font-size: 1.25rem;">Пауза и выход</h2>
       <p id="exit-confirm-desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.45; margin: 8px 0 16px;">
-        ⚠️ Если вы выйдете сейчас, вам будет засчитано поражение.
+        Хотите сохранить прогресс текущей партии и продолжить позже или выйти без сохранения?
       </p>
       <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
         <button id="btn-exit-cancel" class="btn-primary btn-block" style="padding: 10px; font-weight: 700;">
-          ▶️ Продолжить игру
+          💾 Сохранить и выйти
         </button>
         <button id="btn-exit-confirm" class="btn-secondary btn-block" style="padding: 9px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
-          🚪 Выйти (Сдаться)
+          🗑️ Выйти без сохранения
         </button>
       </div>
     </div>
