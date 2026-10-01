@@ -419,15 +419,13 @@ export class SudokuGame {
   }
 
   public fillAllCandidates() {
-    const fogActive = this.isFogActive();
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         const cell = this.board[r][c];
         if (cell.value === 0) {
-          if (fogActive && cell.isInFog) continue;
           cell.notes.clear();
           for (let n = 1; n <= 9; n++) {
-            if (this.isValidPlacement(r, c, n, fogActive)) {
+            if (this.isValidPlacement(r, c, n)) {
               cell.notes.add(n);
             }
           }
@@ -448,19 +446,19 @@ export class SudokuGame {
     this.notify();
   }
 
-  public isValidPlacement(row: number, col: number, num: number, respectFog: boolean = false): boolean {
+  public isValidPlacement(row: number, col: number, num: number): boolean {
     for (let i = 0; i < 9; i++) {
       const rowCell = this.board[row][i];
-      if (i !== col && rowCell.value === num && !rowCell.isError && (!respectFog || !rowCell.isInFog)) return false;
+      if (i !== col && rowCell.value === num && !rowCell.isError) return false;
       const colCell = this.board[i][col];
-      if (i !== row && colCell.value === num && !colCell.isError && (!respectFog || !colCell.isInFog)) return false;
+      if (i !== row && colCell.value === num && !colCell.isError) return false;
     }
     const startR = Math.floor(row / 3) * 3;
     const startC = Math.floor(col / 3) * 3;
     for (let r = startR; r < startR + 3; r++) {
       for (let c = startC; c < startC + 3; c++) {
         const boxCell = this.board[r][c];
-        if ((r !== row || c !== col) && boxCell.value === num && !boxCell.isError && (!respectFog || !boxCell.isInFog)) return false;
+        if ((r !== row || c !== col) && boxCell.value === num && !boxCell.isError) return false;
       }
     }
     return true;
@@ -851,7 +849,11 @@ export class SudokuGame {
 
     this.updateErrorStates();
     this.updateFogVisibility();
-    this.notify();
+    if (this.isAutoNotesActive) {
+      this.fillAllCandidates();
+    } else {
+      this.notify();
+    }
   }
 
   public undo() {
@@ -883,7 +885,11 @@ export class SudokuGame {
     this.selectedCell = { row: action.row, col: action.col };
     this.updateErrorStates();
     this.updateFogVisibility();
-    this.notify();
+    if (this.isAutoNotesActive) {
+      this.fillAllCandidates();
+    } else {
+      this.notify();
+    }
   }
 
   public giveHint(): string | null {

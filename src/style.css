@@ -1045,9 +1045,9 @@ body.screen-is-game {
 }
 
 .cell.in-fog .notes-grid {
-  opacity: 0.85 !important;
-  position: relative;
-  z-index: 2;
+  opacity: 0 !important;
+  display: none !important;
+  pointer-events: none;
 }
 
 .cell.in-fog::after {
@@ -1062,10 +1062,6 @@ body.screen-is-game {
   background: radial-gradient(circle, rgba(12, 18, 34, 0.93) 0%, rgba(4, 6, 14, 0.99) 100%);
   pointer-events: none;
   z-index: 1;
-}
-
-.cell.in-fog:has(.notes-grid)::after {
-  content: '';
 }
 
 .cell.in-torch {

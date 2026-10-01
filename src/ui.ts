@@ -2865,7 +2865,7 @@ export class SudokuUI {
           }
 
           cellDiv.appendChild(digitSpan);
-        } else if (cellData.value === 0 && cellData.notes.size > 0) {
+        } else if (cellData.value === 0 && cellData.notes.size > 0 && !cellData.isInFog) {
           const notesGrid = document.createElement('div');
           notesGrid.className = 'notes-grid';
           for (let n = 1; n <= 9; n++) {
