@@ -18,6 +18,8 @@ data
 !.vscode/extensions.json
 .idea
 .DS_Store
+.vs/
+**/.vs/**
 *.suo
 *.ntvs*
 *.njsproj
