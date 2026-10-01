@@ -950,8 +950,8 @@ export class SudokuUI {
     this.stopConfetti();
 
     if (screen === 'game') {
-      const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel' || this.game.mode === 'ai_duel');
-      if (this.pauseBtn) this.pauseBtn.classList.toggle('hidden', isDuel);
+      const isLiveDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel');
+      if (this.pauseBtn) this.pauseBtn.classList.toggle('hidden', isLiveDuel);
       yandexBridge.hideStickyBanner().catch(() => {});
       requestAnimationFrame(() => {
         this.fitBoardSquare();
@@ -4363,10 +4363,10 @@ export class SudokuUI {
   }
 
   public handlePauseToggle() {
-    const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel' || this.game.mode === 'ai_duel');
-    if (isDuel) {
+    const isLiveDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel');
+    if (isLiveDuel) {
       const isEn = i18n.getLanguage() === 'en';
-      this.showToast(isEn ? '⏸ Pause is disabled in Duels!' : '⏸ В дуэлях пауза недоступна!');
+      this.showToast(isEn ? '⏸ Pause is disabled in Live Duels!' : '⏸ В онлайн-дуэлях пауза недоступна!');
       return;
     }
     this.game.togglePause();
