@@ -443,6 +443,8 @@ export class SudokuUI {
   private confettiCanvas!: HTMLCanvasElement;
   private confettiCtx!: CanvasRenderingContext2D | null;
   private confettiAnimationId?: number;
+  private isFittingBoard = false;
+  private lastFittedSquareSize = 0;
 
   constructor(game: SudokuGame) {
     this.game = game;
@@ -940,8 +942,6 @@ export class SudokuUI {
         }
       });
       ro.observe(this.screenGame);
-      const appCont = this.screenGame.querySelector('.app-container');
-      if (appCont) ro.observe(appCont);
     }
   }
 
@@ -1028,9 +1028,13 @@ export class SudokuUI {
     }
 
     if (screen === 'game') {
+      if (this.game.status !== 'playing' && this.game.status !== 'paused') {
+        this.game.status = 'playing';
+      }
       yandexBridge.gameplayStart();
       this.startTimer();
       this.render();
+      this.fitBoardSquare();
       // Ensure board and digits are centered into view immediately on mobile
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
@@ -1775,6 +1779,19 @@ export class SudokuUI {
         const appliedMsg = isEn ? '🎨 Grid skin applied!' : '🎨 Применён скин сетки!';
         this.showToast(appliedMsg);
       });
+    });
+
+    // Board Cell Selection (delegated on boardElement for bulletproof responsiveness)
+    this.boardElement.addEventListener('pointerdown', (e) => {
+      const target = (e.target as HTMLElement).closest('.cell') as HTMLElement | null;
+      if (!target) return;
+      const r = parseInt(target.dataset.row || '-1', 10);
+      const c = parseInt(target.dataset.col || '-1', 10);
+      if (r >= 0 && c >= 0) {
+        soundManager.playSelect();
+        haptics.selection();
+        this.game.selectCell(r, c);
+      }
     });
 
     // Pause / Resume
@@ -6299,12 +6316,24 @@ export class SudokuUI {
   // RESPONSIVE SQUARE BOARD RESIZING
   // ==========================================
   public fitBoardSquare() {
+    if (this.currentScreen !== 'game' || this.isFittingBoard) return;
+    this.isFittingBoard = true;
+    requestAnimationFrame(() => {
+      this.isFittingBoard = false;
+      this.calculateAndApplyBoardSquare();
+    });
+  }
+
+  private calculateAndApplyBoardSquare() {
     if (this.currentScreen !== 'game') return;
     const boardWrapper = document.querySelector('.board-wrapper') as HTMLElement | null;
     const appContainer = this.screenGame.querySelector('.app-container') as HTMLElement | null;
     if (!boardWrapper || !appContainer) return;
 
-    // Measure all non-board visible sibling elements inside .app-container
+    // Use screenGame viewport dimensions for stable measurement
+    const totalHeight = this.screenGame.clientHeight || window.innerHeight;
+    const totalWidth = this.screenGame.clientWidth || window.innerWidth;
+
     let otherHeight = 0;
     const children = Array.from(appContainer.children) as HTMLElement[];
     for (const child of children) {
@@ -6321,22 +6350,22 @@ export class SudokuUI {
     const pb = parseFloat(containerStyle.paddingBottom) || 0;
     const pl = parseFloat(containerStyle.paddingLeft) || 0;
     const pr = parseFloat(containerStyle.paddingRight) || 0;
-    const rowGap = parseFloat(containerStyle.rowGap || containerStyle.gap) || 4;
+    const rowGap = parseFloat(containerStyle.rowGap || containerStyle.gap) || 6;
 
     const visibleCount = children.filter(
       (c) => !c.classList.contains('hidden') && window.getComputedStyle(c).display !== 'none'
     ).length;
     const totalGaps = Math.max(0, visibleCount - 1) * rowGap;
 
-    const totalHeight = appContainer.clientHeight || this.screenGame.clientHeight;
-    const totalWidth = appContainer.clientWidth || this.screenGame.clientWidth;
-
     // Available space for the square board
-    const availableHeight = totalHeight - otherHeight - pt - pb - totalGaps - 6;
-    const availableWidth = totalWidth - pl - pr - 6;
+    const availableHeight = totalHeight - otherHeight - pt - pb - totalGaps - 8;
+    const availableWidth = Math.min(totalWidth - pl - pr - 8, 440);
 
     // Strictly square: both dimensions scale together
     const squareSize = Math.max(160, Math.floor(Math.min(availableWidth, availableHeight, 430)));
+
+    if (this.lastFittedSquareSize === squareSize) return;
+    this.lastFittedSquareSize = squareSize;
 
     boardWrapper.style.width = `${squareSize}px`;
     boardWrapper.style.height = `${squareSize}px`;
