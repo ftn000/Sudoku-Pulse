@@ -124,6 +124,9 @@ export interface PlayerStats {
   duelWins?: number;
   duelLosses?: number;
   duelMatches?: number;
+  duelSeasonId?: string;
+  seasonDuelWins?: number;
+  seasonDuelLosses?: number;
   dailyLoginDay?: number;
   dailyLoginLastClaimDate?: string | null;
   bonusHints?: number;

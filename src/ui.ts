@@ -388,6 +388,9 @@ export class SudokuUI {
   private liveCountdownNumber?: HTMLElement;
   private liveCdHostName?: HTMLElement;
   private liveCdGuestName?: HTMLElement;
+  private liveCdWinElo?: HTMLElement;
+  private liveCdLossElo?: HTMLElement;
+  private liveCdStakesLabel?: HTMLElement;
 
   private currentLiveLobbyId: string | null = null;
   private currentLiveLobbyCode: string | null = null;
@@ -805,6 +808,9 @@ export class SudokuUI {
     this.liveCountdownNumber = document.getElementById('live-countdown-number') || undefined;
     this.liveCdHostName = document.getElementById('live-cd-host-name') || undefined;
     this.liveCdGuestName = document.getElementById('live-cd-guest-name') || undefined;
+    this.liveCdWinElo = document.getElementById('live-cd-win-elo') || undefined;
+    this.liveCdLossElo = document.getElementById('live-cd-loss-elo') || undefined;
+    this.liveCdStakesLabel = document.getElementById('live-cd-stakes-label') || undefined;
 
     this.duelEloVal = document.getElementById('duel-elo-val');
     this.duelRankBadge = document.getElementById('duel-rank-badge');
@@ -2887,7 +2893,9 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       playerStats.duelElo = newElo;
       playerStats.duelWins = (playerStats.duelWins || 0) + 1;
+      playerStats.seasonDuelWins = (playerStats.seasonDuelWins || 0) + 1;
       playerStats.duelMatches = (playerStats.duelMatches || 0) + 1;
+      playerStats.duelSeasonId = getCurrentSeasonId();
       SudokuGame.savePlayerStats(playerStats);
       this.updateLobbyEloDisplay();
       if (!this.isLiveBotDuel) {
@@ -2937,6 +2945,8 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       playerStats.duelElo = newElo;
       playerStats.duelWins = (playerStats.duelWins || 0) + 1;
+      playerStats.seasonDuelWins = (playerStats.seasonDuelWins || 0) + 1;
+      playerStats.duelSeasonId = getCurrentSeasonId();
       SudokuGame.savePlayerStats(playerStats);
       this.updateLobbyEloDisplay();
 
@@ -3295,6 +3305,7 @@ export class SudokuUI {
           duelLosses: losses,
           mode: 'pvp_duel',
           timeSeconds: 0,
+          seasonId: getCurrentSeasonId(),
         }),
       });
       this.syncWithCloud(false).catch(() => {});
@@ -3401,19 +3412,24 @@ export class SudokuUI {
       entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.timeSeconds || 0) - (b.timeSeconds || 0)));
     }
 
+    // Filter out test accounts
+    const TEST_PVP_NAMES = new Set(['cybervalkyrie', 'shadowpulse', 'gridmaster_99', 'neonsamurai', 'quantumbyte']);
+    entries = entries.filter((e) => !TEST_PVP_NAMES.has(String(e.name || '').toLowerCase().trim()));
+
     // Deduplicate entries so each player appears only once with their single best record in this view
-    const seen = new Set<string>();
+    const seenIds = new Set<string>();
+    const seenNames = new Set<string>();
     const deduped: typeof entries = [];
     for (const e of entries) {
-      const key = (e.playerId && String(e.playerId).trim()) || (e.name ? String(e.name).toLowerCase().trim() : '');
-      if (!key) {
-        deduped.push(e);
+      const idKey = e.playerId ? String(e.playerId).trim() : '';
+      const nameKey = e.name ? String(e.name).toLowerCase().trim() : '';
+
+      if ((idKey && seenIds.has(idKey)) || (nameKey && seenNames.has(nameKey))) {
         continue;
       }
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduped.push(e);
-      }
+      if (idKey) seenIds.add(idKey);
+      if (nameKey) seenNames.add(nameKey);
+      deduped.push(e);
     }
     entries = deduped;
 
@@ -3742,7 +3758,9 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       stats.duelElo = newElo;
       stats.duelLosses = (stats.duelLosses || 0) + 1;
+      stats.seasonDuelLosses = (stats.seasonDuelLosses || 0) + 1;
       stats.duelMatches = (stats.duelMatches || 0) + 1;
+      stats.duelSeasonId = getCurrentSeasonId();
       SudokuGame.savePlayerStats(stats);
       this.updateLobbyEloDisplay();
 
@@ -4130,7 +4148,9 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       stats.duelElo = newElo;
       stats.duelLosses = (stats.duelLosses || 0) + 1;
+      stats.seasonDuelLosses = (stats.seasonDuelLosses || 0) + 1;
       stats.duelMatches = (stats.duelMatches || 0) + 1;
+      stats.duelSeasonId = getCurrentSeasonId();
       SudokuGame.savePlayerStats(stats);
       this.updateLobbyEloDisplay();
       if (this.isLiveDuelActive && !this.isLiveBotDuel) {
@@ -4315,10 +4335,16 @@ export class SudokuUI {
 
     if (!lastSeason) {
       localStorage.setItem('sudoku_last_season_id', currentSeason);
+      if (!stats.duelSeasonId) {
+        stats.duelSeasonId = currentSeason;
+        stats.seasonDuelWins = stats.duelWins || 0;
+        stats.seasonDuelLosses = stats.duelLosses || 0;
+        SudokuGame.savePlayerStats(stats);
+      }
       return;
     }
 
-    if (lastSeason !== currentSeason) {
+    if (lastSeason !== currentSeason || (stats.duelSeasonId && stats.duelSeasonId !== currentSeason)) {
       const finalLeague = getLeagueForScore(stats.totalScore);
       const trophy: SeasonTrophy = {
         seasonId: lastSeason,
@@ -4347,10 +4373,47 @@ export class SudokuUI {
       };
       this.addSeasonBadge(badge);
 
+      // Duel season results & ELO reset
+      const finalElo = stats.duelElo || 1000;
+      const rankName = this.getDuelRankName(finalElo);
+      const duelWins = stats.seasonDuelWins ?? stats.duelWins ?? 0;
+      const duelLosses = stats.seasonDuelLosses ?? stats.duelLosses ?? 0;
+
+      if (finalElo !== 1000 || duelWins > 0 || duelLosses > 0) {
+        const duelBadgeTier: 'gold' | 'silver' | 'bronze' | 'champion' | 'veteran' =
+          finalElo >= 1700 ? 'champion' :
+          finalElo >= 1400 ? 'gold' :
+          finalElo >= 1100 ? 'silver' :
+          finalElo >= 900 ? 'bronze' : 'veteran';
+
+        const duelBadge: SeasonBadge = {
+          id: 'duel_badge_' + lastSeason,
+          seasonId: lastSeason,
+          title: `⚔️ ${rankName} (${finalElo} ELO, ${duelWins}W-${duelLosses}L) • ${lastSeason}`,
+          icon: '⚔️',
+          tier: duelBadgeTier,
+          dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+        };
+        this.addSeasonBadge(duelBadge);
+      }
+
+      // Reset ELO and season duel stats for the new season
+      stats.duelElo = 1000;
+      stats.seasonDuelWins = 0;
+      stats.seasonDuelLosses = 0;
+      stats.duelSeasonId = currentSeason;
+      SudokuGame.savePlayerStats(stats);
+      this.updateLobbyEloDisplay();
+      this.submitDuelScoreToLeaderboard(1000, 0, 0);
+
       localStorage.setItem('sudoku_last_season_id', currentSeason);
 
       setTimeout(() => {
-        this.showToast(isEn ? `🏆 Season results for ${lastSeason}! You earned trophy: ${finalLeague.icon} ${finalLeague.name}` : `🏆 Итоги сезона ${lastSeason}! Вам присвоен трофей: ${finalLeague.icon} ${finalLeague.name}`);
+        this.showToast(
+          isEn
+            ? `🏆 Season ${lastSeason} results! Trophy: ${finalLeague.icon} ${finalLeague.name}. ELO reset to 1000.`
+            : `🏆 Итоги сезона ${lastSeason}! Трофей: ${finalLeague.icon} ${finalLeague.name}. Рейтинг ELO сброшен до 1000.`
+        );
         soundManager.playVictory();
         haptics.victory();
       }, 1200);
@@ -4578,8 +4641,10 @@ export class SudokuUI {
     const newElo = Math.max(100, playerElo + delta);
 
     stats.duelWins = (stats.duelWins || 0) + 1;
+    stats.seasonDuelWins = (stats.seasonDuelWins || 0) + 1;
     stats.duelMatches = (stats.duelMatches || 0) + 1;
     stats.duelElo = newElo;
+    stats.duelSeasonId = getCurrentSeasonId();
     SudokuGame.savePlayerStats(stats);
     this.updateDailyInfoOnMenu();
     this.updateLobbyEloDisplay();
@@ -5072,6 +5137,24 @@ export class SudokuUI {
 
     if (this.liveCdHostName) this.liveCdHostName.textContent = hostName;
     if (this.liveCdGuestName) this.liveCdGuestName.textContent = guestName;
+
+    // Display match ELO stakes (+X / -Y)
+    const playerStats = SudokuGame.getPlayerStats();
+    const playerElo = playerStats.duelElo || 1000;
+    const oppElo = this.currentOpponentElo || 1000;
+    const winDelta = this.calculateEloDelta(playerElo, oppElo, true);
+    const lossDelta = this.calculateEloDelta(playerElo, oppElo, false);
+    const isEn = i18n.getLanguage() === 'en';
+
+    if (this.liveCdStakesLabel) {
+      this.liveCdStakesLabel.textContent = isEn ? '⚡ Match stakes:' : '⚡ За эту игру:';
+    }
+    if (this.liveCdWinElo) {
+      this.liveCdWinElo.textContent = `+${winDelta}`;
+    }
+    if (this.liveCdLossElo) {
+      this.liveCdLossElo.textContent = `${lossDelta} ELO`;
+    }
 
     let count = 3;
     if (this.liveCountdownNumber) this.liveCountdownNumber.textContent = count.toString();

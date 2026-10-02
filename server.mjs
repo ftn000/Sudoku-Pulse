@@ -40,20 +40,9 @@ const DEFAULT_LEADERBOARD = [
   { name: 'Valkyrie_X', score: 9800, timeSeconds: 164, mode: 'classic', combo: 8, date: '2026-09-24' },
   { name: 'MatrixRunner', score: 8400, timeSeconds: 240, mode: 'fog', combo: 7, date: '2026-09-24' },
   { name: 'SynthWave88', score: 6900, timeSeconds: 195, mode: 'daily', combo: 6, date: '2026-09-24' },
-  { name: 'CyberValkyrie', score: 1540, duelElo: 1540, duelWins: 32, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'ShadowPulse', score: 1380, duelElo: 1380, duelWins: 24, duelLosses: 10, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'GridMaster_99', score: 1250, duelElo: 1250, duelWins: 19, duelLosses: 11, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'NeonSamurai', score: 1160, duelElo: 1160, duelWins: 14, duelLosses: 9, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'QuantumByte', score: 1090, duelElo: 1090, duelWins: 11, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
 ];
 
-const DEFAULT_PVP_DUELISTS = [
-  { name: 'CyberValkyrie', score: 1540, duelElo: 1540, duelWins: 32, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'ShadowPulse', score: 1380, duelElo: 1380, duelWins: 24, duelLosses: 10, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'GridMaster_99', score: 1250, duelElo: 1250, duelWins: 19, duelLosses: 11, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'NeonSamurai', score: 1160, duelElo: 1160, duelWins: 14, duelLosses: 9, mode: 'pvp_duel', date: '2026-10-01' },
-  { name: 'QuantumByte', score: 1090, duelElo: 1090, duelWins: 11, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
-];
+const TEST_PVP_NAMES = new Set(['cybervalkyrie', 'shadowpulse', 'gridmaster_99', 'neonsamurai', 'quantumbyte']);
 
 function ensureDb() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -70,12 +59,14 @@ function readLeaderboard() {
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
     const list = JSON.parse(raw);
     const arr = Array.isArray(list) ? list : DEFAULT_LEADERBOARD;
-    const hasPvp = arr.some((e) => e.mode === 'pvp_duel');
-    if (!hasPvp) {
-      arr.push(...DEFAULT_PVP_DUELISTS);
-      try { saveLeaderboard(arr); } catch {}
+    const cleaned = arr.filter((e) => {
+      const name = String(e.name || '').toLowerCase().trim();
+      return !TEST_PVP_NAMES.has(name);
+    });
+    if (cleaned.length !== arr.length) {
+      try { saveLeaderboard(cleaned); } catch {}
     }
-    return arr;
+    return cleaned;
   } catch {
     return DEFAULT_LEADERBOARD;
   }
@@ -213,18 +204,19 @@ function cleanupOldLobbies() {
 setInterval(cleanupOldLobbies, 60 * 1000);
 
 function deduplicateLeaderboardEntries(entries) {
-  const seen = new Set();
+  const seenIds = new Set();
+  const seenNames = new Set();
   const deduped = [];
   for (const entry of entries) {
-    const key = (entry.playerId && String(entry.playerId).trim()) || (entry.name ? String(entry.name).toLowerCase().trim() : '');
-    if (!key) {
-      deduped.push(entry);
+    const idKey = entry.playerId ? String(entry.playerId).trim() : '';
+    const nameKey = entry.name ? String(entry.name).toLowerCase().trim() : '';
+
+    if ((idKey && seenIds.has(idKey)) || (nameKey && seenNames.has(nameKey))) {
       continue;
     }
-    if (!seen.has(key)) {
-      seen.add(key);
-      deduped.push(entry);
-    }
+    if (idKey) seenIds.add(idKey);
+    if (nameKey) seenNames.add(nameKey);
+    deduped.push(entry);
   }
   return deduped;
 }
@@ -257,22 +249,25 @@ const server = http.createServer((req, res) => {
       // Merge profiles with duel stats into pvp_duel entries
       const profiles = readProfiles();
       const pvpEntriesFromProfiles = [];
-      const seenPvpKeys = new Set();
+      const seenPvpIds = new Set();
+      const seenPvpNames = new Set();
       for (const e of allEntries) {
         if (e.mode === 'pvp_duel') {
-          const k = (e.playerId && String(e.playerId).trim()) || (e.name ? String(e.name).toLowerCase().trim() : '');
-          if (k) seenPvpKeys.add(k);
+          if (e.playerId) seenPvpIds.add(String(e.playerId).trim());
+          if (e.name) seenPvpNames.add(String(e.name).toLowerCase().trim());
         }
       }
       for (const [key, p] of Object.entries(profiles)) {
         if (!p || !p.stats) continue;
-        const pId = p.key || key;
-        const pName = p.playerName || (p.telegramUser?.username ? `@${p.telegramUser.username}` : '');
-        const pKey = pId || (pName ? pName.toLowerCase() : '');
-        if (!pKey || seenPvpKeys.has(pKey)) continue;
+        const pId = String(p.key || key || '').trim();
+        const pName = String(p.playerName || (p.telegramUser?.username ? `@${p.telegramUser.username}` : '')).trim();
+        const normName = pName.toLowerCase();
+        if ((pId && seenPvpIds.has(pId)) || (normName && seenPvpNames.has(normName))) continue;
+        if (TEST_PVP_NAMES.has(normName)) continue;
         const s = p.stats;
         if ((s.duelWins && s.duelWins > 0) || (s.duelLosses && s.duelLosses > 0) || (s.duelElo && s.duelElo !== 1000)) {
-          seenPvpKeys.add(pKey);
+          if (pId) seenPvpIds.add(pId);
+          if (normName) seenPvpNames.add(normName);
           pvpEntriesFromProfiles.push({
             playerId: pId,
             name: pName || 'Игрок',
@@ -281,6 +276,7 @@ const server = http.createServer((req, res) => {
             duelWins: s.duelWins || 0,
             duelLosses: s.duelLosses || 0,
             mode: 'pvp_duel',
+            seasonId: s.duelSeasonId || currentSeason,
             date: p.updatedAt ? p.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
           });
         }
@@ -318,7 +314,7 @@ const server = http.createServer((req, res) => {
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({
-        entries: sorted.slice(0, 300),
+        entries: deduplicated.slice(0, 300),
         leaderboard: deduplicated.slice(0, 30),
         totalPlayers: deduplicated.length,
         myRank: myRankInfo,
@@ -372,8 +368,8 @@ const server = http.createServer((req, res) => {
           if (score > 0) {
             const list = readLeaderboard();
             const existingIdx = playerId
-              ? list.findIndex((e) => e.playerId === playerId && (e.mode || 'classic') === mode)
-              : list.findIndex((e) => !e.playerId && e.name.toLowerCase() === name.toLowerCase() && (e.mode || 'classic') === mode);
+              ? list.findIndex((e) => (e.playerId === playerId || e.name.toLowerCase() === name.toLowerCase()) && (e.mode || 'classic') === mode && (!e.seasonId || e.seasonId === seasonId))
+              : list.findIndex((e) => e.name.toLowerCase() === name.toLowerCase() && (e.mode || 'classic') === mode && (!e.seasonId || e.seasonId === seasonId));
 
             const newEntry = {
               playerId,
@@ -416,7 +412,7 @@ const server = http.createServer((req, res) => {
 
             res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({
-              entries: sorted.slice(0, 300),
+              entries: deduplicated.slice(0, 300),
               leaderboard: deduplicated.slice(0, 30),
               totalPlayers: deduplicated.length,
               myRank: myRankInfo,
@@ -1174,6 +1170,19 @@ const server = http.createServer((req, res) => {
           const incomingStats = payload.stats || {};
           const existingStats = existing.stats || {};
 
+          const currentSeason = getIsoSeasonId();
+          let duelSeasonId = incomingStats.duelSeasonId || existingStats.duelSeasonId || currentSeason;
+          let duelElo = incomingStats.duelElo !== undefined ? Number(incomingStats.duelElo) : (existingStats.duelElo !== undefined ? Number(existingStats.duelElo) : 1000);
+          let seasonDuelWins = incomingStats.seasonDuelWins !== undefined ? Number(incomingStats.seasonDuelWins) : (existingStats.seasonDuelWins || 0);
+          let seasonDuelLosses = incomingStats.seasonDuelLosses !== undefined ? Number(incomingStats.seasonDuelLosses) : (existingStats.seasonDuelLosses || 0);
+
+          if (duelSeasonId !== currentSeason) {
+            duelElo = 1000;
+            seasonDuelWins = 0;
+            seasonDuelLosses = 0;
+            duelSeasonId = currentSeason;
+          }
+
           // Safe merge stats (take higher values)
           const mergedStats = {
             gamesPlayed: Math.max(existingStats.gamesPlayed || 0, incomingStats.gamesPlayed || 0),
@@ -1188,7 +1197,10 @@ const server = http.createServer((req, res) => {
             flawlessWins: Math.max(existingStats.flawlessWins || 0, incomingStats.flawlessWins || 0),
             darkSectorWins: Math.max(existingStats.darkSectorWins || 0, incomingStats.darkSectorWins || 0),
             expertDarkSectorWins: Math.max(existingStats.expertDarkSectorWins || 0, incomingStats.expertDarkSectorWins || 0),
-            duelElo: incomingStats.duelElo !== undefined ? Number(incomingStats.duelElo) : (existingStats.duelElo !== undefined ? Number(existingStats.duelElo) : 1000),
+            duelElo,
+            duelSeasonId,
+            seasonDuelWins,
+            seasonDuelLosses,
             duelWins: Math.max(existingStats.duelWins || 0, incomingStats.duelWins || 0),
             duelLosses: Math.max(existingStats.duelLosses || 0, incomingStats.duelLosses || 0),
             duelMatches: Math.max(existingStats.duelMatches || 0, incomingStats.duelMatches || 0),
