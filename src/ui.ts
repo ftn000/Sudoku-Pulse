@@ -391,6 +391,9 @@ export class SudokuUI {
   private liveCdWinElo?: HTMLElement;
   private liveCdLossElo?: HTMLElement;
   private liveCdStakesLabel?: HTMLElement;
+  private profilePastSeasonsList?: HTMLElement;
+  private profilePastSeasonsCount?: HTMLElement;
+  private victoryEffectPills: HTMLButtonElement[] = [];
 
   private currentLiveLobbyId: string | null = null;
   private currentLiveLobbyCode: string | null = null;
@@ -818,6 +821,10 @@ export class SudokuUI {
     this.duelLossesVal = document.getElementById('duel-losses-val');
     this.duelWinEloBox = document.getElementById('duel-win-elo-box');
     this.duelLossEloBox = document.getElementById('duel-loss-elo-box');
+
+    this.profilePastSeasonsList = document.getElementById('profile-past-seasons-list') || undefined;
+    this.profilePastSeasonsCount = document.getElementById('profile-past-seasons-count') || undefined;
+    this.victoryEffectPills = Array.from(document.querySelectorAll('.victory-effect-pill'));
 
     this.duelResultBanner = document.getElementById('duel-result-banner')!;
     this.duelResultTitle = document.getElementById('duel-result-title')!;
@@ -1771,9 +1778,44 @@ export class SudokuUI {
     this.themeSkinPills.forEach((pill) => {
       pill.addEventListener('click', () => {
         const skin = pill.getAttribute('data-skin') || 'dark';
+        if (!this.isThemeUnlocked(skin)) {
+          soundManager.playError();
+          haptics.error();
+          const isEn = i18n.getLanguage() === 'en';
+          const req = skin === 'grandmaster' ? '1700 ELO (Grandmaster)' : '1400 ELO (Sector Master)';
+          const reqRu = skin === 'grandmaster' ? '1700 ELO («Грандмастер»)' : '1400 ELO («Сектор-мастер»)';
+          this.showToast(isEn ? `🔒 Reach ${req} in 1v1 duels to unlock this theme!` : `🔒 Достигните ${reqRu} в 1v1 дуэлях, чтобы открыть эту тему!`);
+          return;
+        }
         soundManager.playSelect();
         haptics.selection();
         this.setTheme(skin);
+      });
+    });
+
+    this.victoryEffectPills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const effect = (pill.getAttribute('data-victory-effect') || 'classic') as 'classic' | 'plasma' | 'supernova';
+        const stats = SudokuGame.getPlayerStats();
+        const elo = stats.duelElo || 1000;
+        const isEn = i18n.getLanguage() === 'en';
+        if (effect === 'supernova' && elo < 1700 && !this.isThemeUnlocked('grandmaster')) {
+          soundManager.playError();
+          haptics.error();
+          this.showToast(isEn ? '🔒 Requires 1700 ELO (Grandmaster)' : '🔒 Требуется 1700 ELO («Грандмастер»)');
+          return;
+        }
+        if (effect === 'plasma' && elo < 1400 && !this.isThemeUnlocked('crimson_sector')) {
+          soundManager.playError();
+          haptics.error();
+          this.showToast(isEn ? '🔒 Requires 1400 ELO (Sector Master)' : '🔒 Требуется 1400 ELO («Сектор-мастер»)');
+          return;
+        }
+        soundManager.playSelect();
+        haptics.selection();
+        localStorage.setItem('sudoku_victory_effect', effect);
+        this.updateVictoryEffectButtons();
+        this.startConfetti();
       });
     });
 
@@ -2423,6 +2465,20 @@ export class SudokuUI {
     });
   }
 
+  private isThemeUnlocked(skin: string): boolean {
+    if (skin === 'crimson_sector') {
+      const stats = SudokuGame.getPlayerStats();
+      const elo = stats.duelElo || 1000;
+      return elo >= 1400 || (stats.seasonBadges || []).some((b) => b.title.includes('Sector Master') || b.title.includes('Сектор-мастер'));
+    }
+    if (skin === 'grandmaster') {
+      const stats = SudokuGame.getPlayerStats();
+      const elo = stats.duelElo || 1000;
+      return elo >= 1700 || (stats.seasonBadges || []).some((b) => b.title.includes('Grandmaster') || b.title.includes('Грандмастер'));
+    }
+    return true;
+  }
+
   private setTheme(theme: string) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('sudoku_theme', theme);
@@ -2430,10 +2486,11 @@ export class SudokuUI {
   }
 
   private toggleTheme() {
-    const skins = ['dark', 'synthwave', 'matrix', 'oled', 'light'];
+    const allSkins = ['dark', 'synthwave', 'matrix', 'oled', 'light', 'crimson_sector', 'grandmaster'];
+    const unlockedSkins = allSkins.filter((s) => this.isThemeUnlocked(s));
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const idx = skins.indexOf(current);
-    const next = skins[(idx + 1) % skins.length];
+    const idx = unlockedSkins.indexOf(current);
+    const next = unlockedSkins[(idx + 1) % unlockedSkins.length];
     this.setTheme(next);
   }
 
@@ -2445,6 +2502,8 @@ export class SudokuUI {
       matrix: { icon: '🟢', ru: 'Матрица', en: 'Matrix' },
       oled: { icon: '🌑', ru: 'ОЛЕД (Черная)', en: 'OLED Black' },
       light: { icon: '☀️', ru: 'Светлая', en: 'Light Neon' },
+      crimson_sector: { icon: '🩸', ru: 'Сектор-Мастер', en: 'Crimson Sector' },
+      grandmaster: { icon: '👑', ru: 'Грандмастер', en: 'Celestial Gold' },
     };
     const pillLabels: Record<string, { ru: string; en: string }> = {
       dark: { ru: '⚡ Кибер', en: '⚡ Cyber' },
@@ -2452,6 +2511,8 @@ export class SudokuUI {
       matrix: { ru: '🟢 Матрица', en: '🟢 Matrix' },
       oled: { ru: '🌑 ОЛЕД', en: '🌑 OLED' },
       light: { ru: '☀️ Светлая', en: '☀️ Light' },
+      crimson_sector: { ru: '🩸 Сектор', en: '🩸 Sector' },
+      grandmaster: { ru: '👑 Грандмастер', en: '👑 Grandmaster' },
     };
 
     const info = labels[theme] || labels.dark;
@@ -2461,10 +2522,48 @@ export class SudokuUI {
 
     this.themeSkinPills.forEach((pill) => {
       const skinKey = pill.getAttribute('data-skin') || 'dark';
+      const isUnlocked = this.isThemeUnlocked(skinKey);
       pill.classList.toggle('active', skinKey === theme);
+      pill.style.opacity = isUnlocked ? '1' : '0.55';
       const pLabel = pillLabels[skinKey];
       if (pLabel) {
-        pill.textContent = isEn ? pLabel.en : pLabel.ru;
+        const text = isEn ? pLabel.en : pLabel.ru;
+        pill.textContent = isUnlocked ? text : `🔒 ${text}`;
+      }
+    });
+
+    this.updateVictoryEffectButtons();
+  }
+
+  private getVictoryEffect(): 'classic' | 'plasma' | 'supernova' {
+    const saved = localStorage.getItem('sudoku_victory_effect');
+    if (saved === 'plasma' || saved === 'supernova' || saved === 'classic') return saved;
+    const stats = SudokuGame.getPlayerStats();
+    const elo = stats.duelElo || 1000;
+    if (elo >= 1700) return 'supernova';
+    if (elo >= 1400) return 'plasma';
+    return 'classic';
+  }
+
+  private updateVictoryEffectButtons() {
+    const current = this.getVictoryEffect();
+    const stats = SudokuGame.getPlayerStats();
+    const elo = stats.duelElo || 1000;
+    const isEn = i18n.getLanguage() === 'en';
+
+    this.victoryEffectPills.forEach((pill) => {
+      const effect = pill.getAttribute('data-victory-effect');
+      pill.classList.toggle('active', effect === current);
+      const isLocked =
+        (effect === 'supernova' && elo < 1700 && !this.isThemeUnlocked('grandmaster')) ||
+        (effect === 'plasma' && elo < 1400 && !this.isThemeUnlocked('crimson_sector'));
+      pill.style.opacity = isLocked ? '0.55' : '1';
+      if (effect === 'plasma') {
+        pill.textContent = isLocked ? (isEn ? '🔒 Plasma (1400 ELO)' : '🔒 Плазма (1400 ELO)') : (isEn ? '🩸 Plasma Storm' : '🩸 Плазма');
+      } else if (effect === 'supernova') {
+        pill.textContent = isLocked ? (isEn ? '🔒 Supernova (1700 ELO)' : '🔒 Сверхновая (1700 ELO)') : (isEn ? '👑 Supernova' : '👑 Сверхновая');
+      } else if (effect === 'classic') {
+        pill.textContent = isEn ? '🎉 Cyber Fireworks' : '🎉 Кибер-салют';
       }
     });
   }
@@ -2903,8 +3002,7 @@ export class SudokuUI {
       }
 
       if (this.duelWinEloBox) {
-        this.duelWinEloBox.textContent = `+${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
-        this.duelWinEloBox.classList.remove('hidden');
+        this.animateEloTransition(this.duelWinEloBox, playerElo, newElo, delta, true);
       }
 
       if (rematchContainer) rematchContainer.classList.remove('hidden');
@@ -2951,8 +3049,7 @@ export class SudokuUI {
       this.updateLobbyEloDisplay();
 
       if (this.duelWinEloBox) {
-        this.duelWinEloBox.textContent = `+${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
-        this.duelWinEloBox.classList.remove('hidden');
+        this.animateEloTransition(this.duelWinEloBox, playerElo, newElo, delta, true);
       }
 
       if (this.duelResultTitle) {
@@ -4158,8 +4255,7 @@ export class SudokuUI {
       }
 
       if (this.duelLossEloBox) {
-        this.duelLossEloBox.textContent = `${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
-        this.duelLossEloBox.classList.remove('hidden');
+        this.animateEloTransition(this.duelLossEloBox, playerElo, newElo, delta, false);
       }
     } else {
       if (this.duelLossEloBox) this.duelLossEloBox.classList.add('hidden');
@@ -4192,6 +4288,7 @@ export class SudokuUI {
     this.renderPlayerSeasonMedals();
     this.renderSeasonArchive();
     this.renderDuelHistory();
+    this.renderProfilePastSeasons();
     this.switchStatsTab('lb');
     this.statsModal.classList.remove('hidden');
     this.fetchAndRenderLeaderboard();
@@ -4543,6 +4640,90 @@ export class SudokuUI {
     this.seasonArchiveList.innerHTML = currentCard + pastCards;
   }
 
+  private async renderProfilePastSeasons() {
+    if (!this.profilePastSeasonsList) return;
+    const isEn = i18n.getLanguage() === 'en';
+    const myPlayerId = SudokuGame.getOrCreatePlayerId();
+    const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || '').trim();
+
+    try {
+      const apiBase = `${getApiBaseUrl()}/player-seasons`;
+      const url = `${apiBase}?playerId=${encodeURIComponent(myPlayerId)}&name=${encodeURIComponent(myPlayerName)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.history) && data.history.length > 0) {
+          const items = data.history;
+          if (this.profilePastSeasonsCount) {
+            this.profilePastSeasonsCount.textContent = `${items.length} ${isEn ? 'seasons' : 'сезонов'}`;
+          }
+          this.profilePastSeasonsList.innerHTML = items.map((s: any) => {
+            const medal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`;
+            const rankColor = s.rank === 1 ? '#fbbf24' : s.rank === 2 ? '#94a3b8' : s.rank === 3 ? '#b45309' : 'var(--pulse-cyan)';
+            const activeTag = s.isCurrent
+              ? `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--pulse-cyan); font-weight:700;">${isEn ? 'Active' : 'В игре'}</span>`
+              : `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(34,197,94,0.15); color:#34d399; font-weight:700;">${isEn ? 'Ended' : 'Завершен'}</span>`;
+
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:6px 10px; font-size:0.8rem;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.1rem;">${medal}</span>
+                  <div>
+                    <div style="font-weight:700; color:var(--text-main); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
+                      ${isEn ? 'Season' : 'Сезон'} ${s.seasonId} ${activeTag}
+                    </div>
+                    <div style="font-size:0.73rem; color:var(--text-muted);">${s.duelElo || 1000} ELO • ${s.duelWins || 0}W - ${s.duelLosses || 0}L</div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-weight:800; font-size:0.85rem; color:${rankColor};">${isEn ? `Rank #${s.rank}` : `${s.rank} место`}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback: check local season trophies/archive
+    const archive = this.getSeasonArchive();
+    const stats = SudokuGame.getPlayerStats();
+    const currentSeason = getCurrentSeasonId();
+
+    if (archive.length === 0 && !stats.duelWins) {
+      if (this.profilePastSeasonsCount) this.profilePastSeasonsCount.textContent = `0 ${isEn ? 'seasons' : 'сезонов'}`;
+      this.profilePastSeasonsList.innerHTML = `
+        <div style="text-align:center; color:var(--text-muted); font-size:0.78rem; padding:8px;">
+          ${isEn ? `Season ${currentSeason} is active. Results and places will be recorded upon season end!` : `Сезон ${currentSeason} активен. Занятые места закрепятся по окончании сезона!`}
+        </div>
+      `;
+      return;
+    }
+
+    if (this.profilePastSeasonsCount) {
+      this.profilePastSeasonsCount.textContent = `${archive.length} ${isEn ? 'seasons' : 'сезонов'}`;
+    }
+
+    this.profilePastSeasonsList.innerHTML = archive.map((t, idx) => {
+      const medal = idx === 0 ? '🏆' : '🏅';
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:6px 10px; font-size:0.8rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.1rem;">${t.icon || medal}</span>
+            <div>
+              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t.seasonName || t.seasonId}</div>
+              <div style="font-size:0.73rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points} pts</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-weight:800; font-size:0.82rem; color:var(--pulse-cyan);">${t.leagueName}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   private showAiBotTaunt(text: string, durationMs: number = 3000) {
     if (!this.aiBotTaunt || !this.aiBotTauntText) return;
     if (this.game.mode !== 'ai_duel') return;
@@ -4657,10 +4838,9 @@ export class SudokuUI {
     setTimeout(() => soundManager.playVictory(), 320);
     haptics.victory();
 
-    const isEn = i18n.getLanguage() === 'en';
     const eloEl = document.getElementById('duel-abandon-elo');
     if (eloEl) {
-      eloEl.textContent = `+${delta} ELO (${isEn ? 'Rating' : 'Рейтинг'}: ${newElo})`;
+      this.animateEloTransition(eloEl, playerElo, newElo, delta, true);
     }
 
     if (this.duelAbandonedModal) {
@@ -5553,6 +5733,8 @@ export class SudokuUI {
 
     if (tabName === 'lb') {
       this.fetchAndRenderLeaderboard();
+    } else if (tabName === 'profile') {
+      this.renderProfilePastSeasons();
     } else if (tabName === 'seasons') {
       this.renderSeasonArchive();
     } else if (tabName === 'duels') {
@@ -5684,7 +5866,13 @@ export class SudokuUI {
       vRot: number;
     }> = [];
 
-    const colors = ['#6366f1', '#38bdf8', '#34d399', '#f43f5e', '#fbbf24', '#a855f7'];
+    const effect = this.getVictoryEffect();
+    let colors = ['#6366f1', '#38bdf8', '#34d399', '#f43f5e', '#fbbf24', '#a855f7'];
+    if (effect === 'plasma') {
+      colors = ['#f43f5e', '#fb7185', '#fda4af', '#e11d48', '#ff0055', '#ffffff'];
+    } else if (effect === 'supernova') {
+      colors = ['#fbbf24', '#f59e0b', '#fef08a', '#ffffff', '#ffd700', '#fde047'];
+    }
 
     for (let i = 0; i < 120; i++) {
       particles.push({
@@ -5725,7 +5913,31 @@ export class SudokuUI {
         ctx.translate(p.x, p.y);
         ctx.rotate((p.rotation * Math.PI) / 180);
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+
+        if (effect === 'plasma') {
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.45, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (effect === 'supernova') {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#fbbf24';
+          const r = p.size * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(0, -r);
+          ctx.lineTo(r * 0.3, -r * 0.3);
+          ctx.lineTo(r, 0);
+          ctx.lineTo(r * 0.3, r * 0.3);
+          ctx.lineTo(0, r);
+          ctx.lineTo(-r * 0.3, r * 0.3);
+          ctx.lineTo(-r, 0);
+          ctx.lineTo(-r * 0.3, -r * 0.3);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        }
         ctx.restore();
       });
 
@@ -5787,6 +5999,8 @@ export class SudokuUI {
       else if (theme === 'synthwave') rgb = '244, 114, 182';
       else if (theme === 'matrix') rgb = '74, 222, 128';
       else if (theme === 'light') rgb = '99, 102, 241';
+      else if (theme === 'crimson_sector') rgb = '244, 63, 94';
+      else if (theme === 'grandmaster') rgb = '251, 191, 36';
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -6136,6 +6350,59 @@ export class SudokuUI {
     const rawDelta = Math.round(k * (actual - expected));
     if (won) return Math.max(5, rawDelta);
     return Math.min(-5, rawDelta);
+  }
+
+  private animateEloTransition(
+    element: HTMLElement,
+    startElo: number,
+    targetElo: number,
+    delta: number,
+    isWin: boolean
+  ) {
+    element.classList.remove('hidden');
+    const deltaSign = delta > 0 ? `+${delta}` : `${delta}`;
+    const deltaColor = isWin ? '#34d399' : '#f87171';
+    const duration = 1200;
+    const startTime = performance.now();
+    let lastTickVal = startElo;
+
+    const update = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // easeOutCubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentVal = Math.round(startElo + (targetElo - startElo) * eased);
+      const currentRank = this.getDuelRankName(currentVal);
+
+      if (Math.abs(currentVal - lastTickVal) >= 2) {
+        lastTickVal = currentVal;
+        soundManager.playSelect();
+        haptics.selection();
+      }
+
+      element.innerHTML = `
+        <div style="display:inline-flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+          <span style="display:inline-block; padding:2px 8px; border-radius:8px; font-weight:800; font-size:0.85rem; background:${deltaColor}22; color:${deltaColor}; border:1px solid ${deltaColor}55;">${deltaSign} ELO</span>
+          <span style="font-size:1.15rem; font-weight:900; color:var(--text-main); font-family:monospace; min-width:48px;">${currentVal}</span>
+          <span style="font-size:0.8rem; color:var(--pulse-cyan); font-weight:700; padding:2px 6px; background:rgba(56,189,248,0.12); border-radius:6px;">${currentRank}</span>
+        </div>
+      `;
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        element.innerHTML = `
+          <div style="display:inline-flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+            <span style="display:inline-block; padding:2px 8px; border-radius:8px; font-weight:800; font-size:0.85rem; background:${deltaColor}22; color:${deltaColor}; border:1px solid ${deltaColor}55;">${deltaSign} ELO</span>
+            <span style="font-size:1.15rem; font-weight:900; color:${deltaColor}; font-family:monospace; min-width:48px;">${targetElo}</span>
+            <span style="font-size:0.8rem; color:var(--pulse-cyan); font-weight:700; padding:2px 6px; background:rgba(56,189,248,0.12); border-radius:6px;">${this.getDuelRankName(targetElo)}</span>
+          </div>
+        `;
+        haptics.light();
+      }
+    };
+
+    requestAnimationFrame(update);
   }
 
   private updateLobbyEloDisplay() {

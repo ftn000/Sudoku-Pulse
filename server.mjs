@@ -225,6 +225,60 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
 
+  // Past seasons history API
+  if (pathname.endsWith('/api/player-seasons')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const playerId = String(parsedUrl.searchParams.get('playerId') || '').trim();
+    const playerName = String(parsedUrl.searchParams.get('name') || '').toLowerCase().trim();
+    const allEntries = readLeaderboard();
+    const currentSeason = getIsoSeasonId();
+
+    const seasonsMap = new Map();
+    for (const e of allEntries) {
+      const sId = e.seasonId || (e.date ? getIsoSeasonId(new Date(e.date)) : currentSeason);
+      if (!seasonsMap.has(sId)) seasonsMap.set(sId, []);
+      seasonsMap.get(sId).push(e);
+    }
+
+    const history = [];
+    for (const [sId, sEntries] of seasonsMap.entries()) {
+      const sorted = sEntries.slice().sort((a, b) => (b.duelElo || b.score || 0) - (a.duelElo || a.score || 0));
+      const deduped = deduplicateLeaderboardEntries(sorted);
+      const myIdx = deduped.findIndex(e =>
+        (playerId && e.playerId === playerId) ||
+        (playerName && e.name && e.name.toLowerCase() === playerName)
+      );
+      if (myIdx !== -1) {
+        const item = deduped[myIdx];
+        history.push({
+          seasonId: sId,
+          rank: myIdx + 1,
+          totalInSeason: deduped.length,
+          score: item.score,
+          duelElo: item.duelElo || item.score,
+          duelWins: item.duelWins || 0,
+          duelLosses: item.duelLosses || 0,
+          isCurrent: sId === currentSeason,
+        });
+      }
+    }
+
+    history.sort((a, b) => b.seasonId.localeCompare(a.seasonId));
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ success: true, history, currentSeason }));
+    return;
+  }
+
   // CORS headers for API
   if (pathname.endsWith('/api/leaderboard')) {
     res.setHeader('Access-Control-Allow-Origin', '*');

@@ -583,6 +583,16 @@
           <div class="modal-stat-row"><span data-i18n="profile_daily_streak">Серия Daily Pulse:</span><span id="stat-streak" style="color:#34d399;">🔥 0 дней</span></div>
           <div class="modal-stat-row"><span data-i18n="profile_run_record">Рекорд Забега (Run):</span><span id="stat-run-stage" style="color:#a855f7;">Этап 0</span></div>
         </div>
+
+        <div style="margin-top: 12px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--accent);">⏳ <span data-i18n="profile_past_seasons_title">Прошлые сезоны:</span></span>
+            <span id="profile-past-seasons-count" style="font-size: 0.75rem; color: var(--text-muted);">0 сезонов</span>
+          </div>
+          <div id="profile-past-seasons-list" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px;">
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.78rem; padding: 8px;">Нет прошлых сезонов</div>
+          </div>
+        </div>
       </div>
 
       <!-- PANE 3: Награды сезонов -->
@@ -687,6 +697,15 @@
           <button class="diff-pill theme-skin-pill" data-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
           <button class="diff-pill theme-skin-pill" data-skin="oled" style="flex:1; font-size: 0.78rem;">🌑 OLED</button>
           <button class="diff-pill theme-skin-pill" data-skin="light" style="flex:1; font-size: 0.78rem;">☀️ Светлая</button>
+          <button class="diff-pill theme-skin-pill" data-skin="crimson_sector" style="flex:1; font-size: 0.78rem;">🩸 Сектор</button>
+          <button class="diff-pill theme-skin-pill" data-skin="grandmaster" style="flex:1; font-size: 0.78rem;">👑 Грандмастер</button>
+        </div>
+
+        <div class="section-title" data-i18n="setting_victory_effect" style="margin-top: 10px; margin-bottom: 4px;">✨ Эффект победы (Салют)</div>
+        <div class="victory-effect-list" id="victory-effect-selector" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
+          <button class="diff-pill victory-effect-pill active" data-victory-effect="classic" style="flex:1; font-size: 0.78rem;">🎉 Кибер-салют</button>
+          <button class="diff-pill victory-effect-pill" data-victory-effect="plasma" style="flex:1; font-size: 0.78rem;">🩸 Плазма (1400 ELO)</button>
+          <button class="diff-pill victory-effect-pill" data-victory-effect="supernova" style="flex:1; font-size: 0.78rem;">👑 Сверхновая (1700 ELO)</button>
         </div>
 
         <div class="section-title" data-i18n="setting_grid_skin" style="margin-top: 10px; margin-bottom: 4px;">🎨 Скин ячеек сетки (Лиги)</div>
