@@ -1352,13 +1352,22 @@ export class SudokuUI {
     if (this.btnTutorialNext) {
       this.btnTutorialNext.addEventListener('click', () => {
         soundManager.playSelect();
-        if (this.currentTutorialStep < 4) {
+        if (this.currentTutorialStep < 3) {
           this.renderTutorialStep(this.currentTutorialStep + 1);
         } else {
           this.closeTutorial();
         }
       });
     }
+
+    const tutTabBtns = document.querySelectorAll<HTMLButtonElement>('.tut-tab-btn');
+    tutTabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        soundManager.playSelect();
+        const step = parseInt(btn.getAttribute('data-step') || '0', 10);
+        this.renderTutorialStep(step);
+      });
+    });
 
     // Prevent browser context menu and text selection callouts on board and UI (Yandex req 1.6.1.8 & 1.6.2.7)
     document.addEventListener('contextmenu', (e) => {
@@ -6054,17 +6063,27 @@ export class SudokuUI {
   }
 
   public renderTutorialStep(stepIndex: number = this.currentTutorialStep) {
-    this.currentTutorialStep = Math.max(0, Math.min(4, stepIndex));
+    this.currentTutorialStep = Math.max(0, Math.min(3, stepIndex));
     const isEn = i18n.getLanguage() === 'en';
+
+    // Update Tab Bar Active State and multilingual titles
+    const tabBtns = document.querySelectorAll<HTMLButtonElement>('.tut-tab-btn');
+    const tabTitles = isEn
+      ? ['🧩 Rules', '🧬 Perks', '⚡ Modes', '🎮 Controls']
+      : ['🧩 Правила', '🧬 Перки', '⚡ Режимы', '🎮 Управление'];
+    tabBtns.forEach((btn, idx) => {
+      if (tabTitles[idx]) btn.textContent = tabTitles[idx];
+      btn.classList.toggle('active', idx === this.currentTutorialStep);
+    });
 
     if (this.tutorialStepBadge) {
       this.tutorialStepBadge.textContent = isEn
-        ? `STEP ${this.currentTutorialStep + 1} OF 5`
-        : `ШАГ ${this.currentTutorialStep + 1} ИЗ 5`;
+        ? `SECTION ${this.currentTutorialStep + 1} OF 4`
+        : `РАЗДЕЛ ${this.currentTutorialStep + 1} ИЗ 4`;
     }
 
     if (this.tutorialDots) {
-      this.tutorialDots.innerHTML = [0, 1, 2, 3, 4]
+      this.tutorialDots.innerHTML = [0, 1, 2, 3]
         .map((i) => `<span class="dot ${i === this.currentTutorialStep ? 'active' : ''}"></span>`)
         .join('');
     }
@@ -6075,7 +6094,7 @@ export class SudokuUI {
     }
 
     if (this.btnTutorialNext) {
-      if (this.currentTutorialStep === 4) {
+      if (this.currentTutorialStep === 3) {
         this.btnTutorialNext.textContent = isEn ? "Let's Play! 🚀" : 'Погнали! 🚀';
       } else {
         this.btnTutorialNext.textContent = isEn ? 'Next ▶' : 'Далее ▶';
@@ -6084,30 +6103,227 @@ export class SudokuUI {
 
     switch (this.currentTutorialStep) {
       case 0: {
-        this.tutorialTitle.textContent = isEn ? '🧩 Classic Sudoku Rules' : '🧩 Классические правила Судоку';
+        this.tutorialTitle.textContent = isEn ? '🧩 Sudoku Rules for Beginners' : '🧩 Правила Судоку для новичков';
         this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-            <div style="display:grid;grid-template-columns:repeat(3, 38px);grid-template-rows:repeat(3, 38px);gap:4px;padding:6px;background:rgba(0,243,255,0.08);border:1px solid #00f3ff;border-radius:10px;">
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.05);border-radius:6px;">5</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">3</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#ff0055;background:rgba(255,0,85,0.15);border:1px dashed #ff0055;border-radius:6px;">?</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">6</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.05);border-radius:6px;">7</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">2</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">1</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">9</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.05);border-radius:6px;">8</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
+            <div style="display:grid;grid-template-columns:repeat(3, 40px);grid-template-rows:repeat(3, 40px);gap:4px;padding:6px;background:rgba(0,243,255,0.08);border:2px solid var(--pulse-cyan);border-radius:10px;">
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">5</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">3</div>
+              <div id="tut-rule-target" style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#ff0055;background:rgba(255,0,85,0.18);border:1px dashed #ff0055;border-radius:6px;font-size:1.15rem;transition:all 0.3s ease;">?</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">6</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">7</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">2</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">1</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">9</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">8</div>
             </div>
-            <span style="font-size:12px;color:rgba(255,255,255,0.7);">${isEn ? '1 to 9 without repeats in row, column, block' : '1 до 9 без повторений в строке, столбце и блоке'}</span>
+            <div style="font-size:12px;font-weight:700;color:var(--text-muted);">
+              ${isEn ? 'Which digit completes this 3×3 sector?' : 'Какая цифра дополнит этот сектор 3×3?'}
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button id="tut-rule-opt-3" class="btn-secondary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">3</button>
+              <button id="tut-rule-opt-4" class="btn-primary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">4</button>
+              <button id="tut-rule-opt-7" class="btn-secondary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">7</button>
+            </div>
+            <div id="tut-rule-feedback" class="tut-feedback-box">
+              <span style="color:#00f3ff;">${isEn ? '💡 Tap an option to test your deduction!' : '💡 Нажмите на цифру выше, чтобы проверить логику!'}</span>
+            </div>
           </div>
         `;
-        this.tutorialDescription.textContent = isEn
-          ? 'Fill the 9×9 grid with digits 1 through 9. Each row, column, and 3×3 sector must contain each number exactly once. Tap an empty cell, then select a digit on the keypad below.'
-          : 'Заполните сетку 9×9 цифрами от 1 до 9. В каждой строке, столбце и блоке 3×3 каждая цифра должна встречаться ровно один раз без повторений. Нажмите на пустую клетку и выберите цифру на панели снизу.';
+
+        this.tutorialDescription.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div><strong>${isEn ? 'Pure Logic, Zero Math:' : 'Чистая логика без математики:'}</strong> ${isEn ? 'In Sudoku, you never add or calculate numbers — only eliminate candidates.' : 'В судоку не нужно ничего считать или складывать — игра строится только на внимании и исключении лишнего.'}</div>
+            <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
+              <div>• <strong>${isEn ? 'Rows (horizontal):' : 'Строки (горизонталь):'}</strong> ${isEn ? 'Digits 1 to 9 with no repeats.' : 'Цифры от 1 до 9 без повторений.'}</div>
+              <div>• <strong>${isEn ? 'Columns (vertical):' : 'Столбцы (вертикаль):'}</strong> ${isEn ? 'Digits 1 to 9 with no repeats.' : 'Цифры от 1 до 9 без повторений.'}</div>
+              <div>• <strong>${isEn ? '3×3 Blocks (bold lines):' : 'Квадраты 3×3 (жирные рамки):'}</strong> ${isEn ? 'Each block must contain 1 to 9 once.' : 'Каждый квадрат 3×3 содержит 1–9 ровно по одному разу.'}</div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">
+              <strong>💡 ${isEn ? 'Elimination Method:' : 'Метод исключения:'}</strong> ${isEn ? 'Notice how 1, 2, 3, 5, 6, 7, 8, 9 already exist in the block above. That means the "?" cell MUST be 4!' : 'Посмотрите на блок выше: 1, 2, 3, 5, 6, 7, 8, 9 уже стоят. Значит, на месте «?» обязана быть 4!'}
+            </div>
+          </div>
+        `;
+
+        const opt3 = document.getElementById('tut-rule-opt-3') as HTMLButtonElement;
+        const opt4 = document.getElementById('tut-rule-opt-4') as HTMLButtonElement;
+        const opt7 = document.getElementById('tut-rule-opt-7') as HTMLButtonElement;
+        const target = document.getElementById('tut-rule-target');
+        const feedback = document.getElementById('tut-rule-feedback');
+
+        if (opt3 && opt4 && opt7 && target && feedback) {
+          opt3.onclick = () => {
+            soundManager.playError();
+            haptics.error();
+            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${isEn ? 'Digit 3 is already in row 1 and this block! Duplicates are forbidden.' : 'Цифра 3 уже есть в первой строке и в этом блоке! Повторять нельзя.'}</span>`;
+          };
+          opt7.onclick = () => {
+            soundManager.playError();
+            haptics.error();
+            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${isEn ? 'Digit 7 is already in the middle row of this block!' : 'Цифра 7 уже стоит во второй строке этого блока!'}</span>`;
+          };
+          opt4.onclick = () => {
+            soundManager.playCorrect(1);
+            haptics.victory();
+            target.textContent = '4';
+            target.style.background = 'rgba(16, 185, 129, 0.25)';
+            target.style.borderColor = '#10b981';
+            target.style.color = '#10b981';
+            feedback.innerHTML = `<span style="color:#10b981;">🎉 ${isEn ? 'Bingo! 1 to 9 cannot repeat, so 4 is the only possibility!' : 'Бинго! 1–9 не повторяются, поэтому здесь может стоять только 4!'}</span>`;
+          };
+        }
         break;
       }
       case 1: {
-        this.tutorialTitle.textContent = isEn ? '⚡ Pulse & Fever Multipliers' : '⚡ Механика Пульса и Fever';
+        this.tutorialTitle.textContent = isEn ? '🧬 Roguelite Perks & Cyber Builds' : '🧬 Перки и Кибер-Билды';
+        this.tutorialVisualBox.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:8px;">
+            <div class="tut-perk-chips">
+              <button id="tut-chip-shield" class="tut-perk-chip active">🛡️ ${isEn ? 'Shield' : 'Щит'}</button>
+              <button id="tut-chip-scanner" class="tut-perk-chip">🧠 ${isEn ? 'Scanner' : 'Сканер'}</button>
+              <button id="tut-chip-emp" class="tut-perk-chip">💥 ${isEn ? 'EMP' : 'ЭМИ'}</button>
+              <button id="tut-chip-heart" class="tut-perk-chip">❤️ ${isEn ? 'Heart' : 'Сердце'}</button>
+            </div>
+            <div id="tut-perk-display" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <!-- Dynamic sub-showcase -->
+            </div>
+            <div id="tut-perk-status" class="tut-feedback-box">
+              <!-- Dynamic feedback -->
+            </div>
+          </div>
+        `;
+
+        this.tutorialDescription.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div><strong>${isEn ? 'What is a Perk?' : 'Что такое Перки?'}</strong> ${isEn ? 'Perks are passive cyber-superpowers. They bend the rules in your favor, protecting you from mistakes and automating hard deductions!' : 'Перки — это ваши кибер-способности и пассивные усиления. Они меняют правила игры в вашу пользу, прощая ошибки и автоматизируя сложные расчёты!'}</div>
+            <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
+              <div>• <strong>${isEn ? 'How to get them:' : 'Где их брать:'}</strong> ${isEn ? 'In "Pulse Run", clearing each stage gives a draft of 3 random perks. Pick one for the whole run.' : 'В режиме забега «Pulse Run» после каждого этапа открывается драфт из 3 случайных перков. Вы выбираете один до конца забега.'}</div>
+              <div>• <strong>${isEn ? 'Level Upgrades (I ➔ II ➔ III):' : 'Прокачка уровней (I ➔ II ➔ III):'}</strong> ${isEn ? 'Picking a perk again upgrades it (e.g. Shield I absorbs 1 error ➔ Shield II absorbs 2 errors per stage).' : 'Повторный выбор перка усиливает его (например, Щит I блокирует 1 ошибку ➔ Щит II блокирует 2 ошибки на каждом этапе!).'}</div>
+              <div>• <strong>${isEn ? 'Top Synergies:' : 'Популярные билды:'}</strong> ${isEn ? '🛡️ Defense (Shield + Heart); ⚡ Score (Combo + Overcharge); 🧠 Tactical (Scanner + EMP).' : '🛡️ «Неуязвимость» (Щит + Сердце); ⚡ «Сверхзвук» (Комбо + Оверчардж); 🧠 «Аналитик» (Сканер + ЭМИ).'}</div>
+            </div>
+          </div>
+        `;
+
+        const perkDisplay = document.getElementById('tut-perk-display');
+        const perkStatus = document.getElementById('tut-perk-status');
+        const chips = {
+          shield: document.getElementById('tut-chip-shield') as HTMLButtonElement,
+          scanner: document.getElementById('tut-chip-scanner') as HTMLButtonElement,
+          emp: document.getElementById('tut-chip-emp') as HTMLButtonElement,
+          heart: document.getElementById('tut-chip-heart') as HTMLButtonElement,
+        };
+
+        const updatePerkDemo = (type: 'shield' | 'scanner' | 'emp' | 'heart') => {
+          Object.keys(chips).forEach((k) => {
+            const btn = chips[k as keyof typeof chips];
+            if (btn) btn.classList.toggle('active', k === type);
+          });
+
+          if (!perkDisplay || !perkStatus) return;
+
+          if (type === 'shield') {
+            perkDisplay.innerHTML = `
+              <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
+                <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(6,182,212,0.15);border:2px solid var(--pulse-cyan);display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:900;color:#00f3ff;box-shadow:0 0 12px rgba(6,182,212,0.4);">🛡️</div>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '❌ Make Wrong Move' : '❌ Нажать неверную цифру'}</button>
+              </div>
+            `;
+            perkStatus.innerHTML = `<span style="color:var(--pulse-cyan);">${isEn ? '🛡️ Neon Shield is active (1/1 charge). Try triggering a mistake!' : '🛡️ Неоновый щит заряжен (1/1). Нажмите кнопку, чтобы проверить защиту!'}</span>`;
+
+            const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
+            const demoCell = document.getElementById('tut-demo-cell');
+            if (actBtn && demoCell) {
+              actBtn.onclick = () => {
+                soundManager.playShieldDeflect();
+                haptics.success();
+                demoCell.style.boxShadow = '0 0 24px #00f3ff';
+                demoCell.textContent = '✨';
+                perkStatus.innerHTML = `<span style="color:#00f3ff;">🛡️ ${isEn ? 'SHIELD ABSORBED MISTAKE! Zero lives lost, combo preserved! (Upgrades to 2 blocks on Lvl II)' : 'ЩИТ ПОГЛОТИЛ ОШИБКУ! Жизни целы, комбо сохранено! (На Ур. II блокирует 2 ошибки)'}</span>`;
+                actBtn.textContent = isEn ? '🔄 Reset Shield' : '🔄 Перезарядить щит';
+                actBtn.onclick = () => updatePerkDemo('shield');
+              };
+            }
+          } else if (type === 'scanner') {
+            perkDisplay.innerHTML = `
+              <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
+                <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted);">?</div>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '🧠 Activate Neuro-Scanner' : '🧠 Запустить Нейро-сканер'}</button>
+              </div>
+            `;
+            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${isEn ? 'Empty cell with unknown candidates. Activate scanner to auto-fill!' : 'Пустая клетка. Запустите сканер, чтобы просчитать варианты!'}</span>`;
+
+            const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
+            const demoCell = document.getElementById('tut-demo-cell');
+            if (actBtn && demoCell) {
+              actBtn.onclick = () => {
+                soundManager.playBotBeep();
+                haptics.selection();
+                demoCell.style.background = 'rgba(6,182,212,0.15)';
+                demoCell.style.border = '1px solid var(--pulse-cyan)';
+                demoCell.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,11px);gap:2px;font-size:9px;font-weight:800;color:#00f3ff;"><span>1</span><span>·</span><span>·</span><span>·</span><span>5</span><span>·</span><span>·</span><span>·</span><span>9</span></div>`;
+                perkStatus.innerHTML = `<span style="color:#00f3ff;">🧠 ${isEn ? 'CANDIDATES POPULATED! No manual notes needed — system solves candidates instantly!' : 'ЗАМЕТКИ РАССТАВЛЕНЫ! Система сама нашла кандидатов [1, 5, 9] без ручного ввода!'}</span>`;
+                actBtn.textContent = isEn ? '🔄 Reset' : '🔄 Сбросить';
+                actBtn.onclick = () => updatePerkDemo('scanner');
+              };
+            }
+          } else if (type === 'emp') {
+            perkDisplay.innerHTML = `
+              <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
+                <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(255,0,85,0.1);border:1px dashed #ff0055;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#ff0055;">⚡</div>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '💥 Deploy EMP Pulse' : '💥 Запустить импульс ЭМИ'}</button>
+              </div>
+            `;
+            perkStatus.innerHTML = `<span style="color:#ffaa00;">${isEn ? 'Complex locked cell. Fire EMP to crack it automatically!' : 'Заблокированная сложная ячейка. Запустите ЭМИ для взлома!'}</span>`;
+
+            const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
+            const demoCell = document.getElementById('tut-demo-cell');
+            if (actBtn && demoCell) {
+              actBtn.onclick = () => {
+                soundManager.playFeverStart();
+                haptics.fever();
+                demoCell.style.background = 'rgba(255,230,0,0.2)';
+                demoCell.style.border = '2px solid #ffe600';
+                demoCell.style.boxShadow = '0 0 16px #ffe600';
+                demoCell.innerHTML = `<span style="font-weight:900;color:#ffe600;font-size:1.3rem;">8</span>`;
+                perkStatus.innerHTML = `<span style="color:#ffe600;">💥 ${isEn ? 'EMP CRACKED CELL! Auto-solves +1 hard cell at every stage start (+2 on Lvl II)!' : 'ЭМИ РАСШИФРОВАЛ КЛЕТКУ! На старте каждого раунда ячейка раскрывается бесплатно!'}</span>`;
+                actBtn.textContent = isEn ? '🔄 Test Again' : '🔄 Повторить';
+                actBtn.onclick = () => updatePerkDemo('emp');
+              };
+            }
+          } else if (type === 'heart') {
+            perkDisplay.innerHTML = `
+              <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
+                <div id="tut-demo-cell" style="font-size:1.4rem;display:flex;gap:3px;">❤️❤️❤️</div>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '❤️ Equip Heart Perk' : '❤️ Взять Квантовое сердце'}</button>
+              </div>
+            `;
+            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${isEn ? 'Standard life pool: 3 hearts.' : 'Стандартный запас: 3 сердца.'}</span>`;
+
+            const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
+            const demoCell = document.getElementById('tut-demo-cell');
+            if (actBtn && demoCell) {
+              actBtn.onclick = () => {
+                soundManager.playCorrect(2);
+                haptics.victory();
+                demoCell.innerHTML = `❤️❤️❤️❤️❤️ <span style="font-size:0.8rem;color:#ff0055;font-weight:900;">(+2)</span>`;
+                perkStatus.innerHTML = `<span style="color:#ff0055;">❤️ ${isEn ? '5 LIVES NOW! Huge buffer for high difficulty runs!' : 'ТЕПЕРЬ 5 ЖИЗНЕЙ! Мощная страховка для сложных этапов!'}</span>`;
+                actBtn.textContent = isEn ? '🔄 Reset' : '🔄 Сбросить';
+                actBtn.onclick = () => updatePerkDemo('heart');
+              };
+            }
+          }
+        };
+
+        if (chips.shield) chips.shield.onclick = () => { soundManager.playSelect(); updatePerkDemo('shield'); };
+        if (chips.scanner) chips.scanner.onclick = () => { soundManager.playSelect(); updatePerkDemo('scanner'); };
+        if (chips.emp) chips.emp.onclick = () => { soundManager.playSelect(); updatePerkDemo('emp'); };
+        if (chips.heart) chips.heart.onclick = () => { soundManager.playSelect(); updatePerkDemo('heart'); };
+
+        updatePerkDemo('shield');
+        break;
+      }
+      case 2: {
+        this.tutorialTitle.textContent = isEn ? '⚡ Game Modes & Fever Drive' : '⚡ Режимы игры и Драйв Пульса';
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
             <div style="display:flex;align-items:center;justify-content:space-between;width:88%;font-size:12px;font-weight:800;">
@@ -6122,12 +6338,20 @@ export class SudokuUI {
               <button id="tut-btn-2" class="btn-secondary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;opacity:0.4;" disabled>5</button>
               <button id="tut-btn-3" class="btn-secondary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;opacity:0.4;" disabled>9</button>
             </div>
-            <span id="tut-feedback" style="font-size:11px;color:rgba(255,255,255,0.75);">${isEn ? 'Tap [ 1 ] ➔ [ 5 ] ➔ [ 9 ] to ignite Fever!' : 'Нажмите [ 1 ] ➔ [ 5 ] ➔ [ 9 ], чтобы разжечь Fever!'}</span>
+            <div id="tut-feedback" class="tut-feedback-box">
+              <span style="color:#00f3ff;">${isEn ? 'Tap [ 1 ] ➔ [ 5 ] ➔ [ 9 ] to ignite Fever!' : 'Нажмите [ 1 ] ➔ [ 5 ] ➔ [ 9 ], чтобы разжечь Fever!'}</span>
+            </div>
           </div>
         `;
-        this.tutorialDescription.textContent = isEn
-          ? 'Every correct entry charges your Pulse meter. Consecutive swift moves trigger FEVER Mode, boosting score gains up to x20! Beware: mistakes reset your combo chain and drain your pulse.'
-          : 'Каждый правильный ход заряжает шкалу Пульса. Серия быстрых ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо и расходуют драгоценный пульс.';
+
+        this.tutorialDescription.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:0.83rem;">
+            <div><strong>⚡ ${isEn ? 'Pulse & Fever Multipliers:' : 'Пульс и режим FEVER:'}</strong> ${isEn ? 'Consecutive swift moves trigger FEVER Mode with up to x20 combo multipliers! Mistakes drain your pulse.' : 'Серия быстрых верных ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо.'}</div>
+            <div><strong>🌑 ${isEn ? 'Dark Sector (Eclipse Zone):' : 'Тёмный сектор (Зона затмения):'}</strong> ${isEn ? 'Grid shrouded in darkness. Tapping reveals a 3s radar echo. Blind deduction earns huge bonus rating!' : 'Поле окутано тьмой! Нажатия и сканер дают 3 секунды света («эхо-след»). Разгадка вслепую приносит рекордный рейтинг.'}</div>
+            <div><strong>🚀 ${isEn ? 'Pulse Run (Roguelite):' : 'Pulse Run (Забег):'}</strong> ${isEn ? 'Conquer consecutive stages and draft perks to build unstoppable combos.' : 'Проходите серию этапов и драфтите перки для создания непобедимого билда.'}</div>
+            <div><strong>🤖 ${isEn ? '1v1 Cyber Duels:' : 'Кибер-дуэли 1v1:'}</strong> ${isEn ? 'Real-time speed battle vs AI bots (4 IQ tiers) or live players with ELO rating.' : 'Битва на скорость на одинаковом поле против ИИ-бота или друга онлайн с ELO-рейтингом.'}</div>
+          </div>
+        `;
 
         const tutBtn1 = document.getElementById('tut-btn-1') as HTMLButtonElement;
         const tutBtn2 = document.getElementById('tut-btn-2') as HTMLButtonElement;
@@ -6149,7 +6373,7 @@ export class SudokuUI {
             tutBtn2.disabled = false;
             tutBtn2.className = 'btn-primary';
             tutBtn2.style.opacity = '1';
-            tutFeedback.textContent = isEn ? '⚡ Good! Next tap [ 5 ]!' : '⚡ Отлично! Теперь жмите [ 5 ]!';
+            tutFeedback.innerHTML = `<span style="color:#00f3ff;">⚡ ${isEn ? 'Good! Next tap [ 5 ]!' : 'Отлично! Теперь жмите [ 5 ]!'}</span>`;
           };
 
           tutBtn2.onclick = () => {
@@ -6164,7 +6388,7 @@ export class SudokuUI {
             tutBtn3.disabled = false;
             tutBtn3.className = 'btn-primary';
             tutBtn3.style.opacity = '1';
-            tutFeedback.textContent = isEn ? '🔥 Tempo rising! Final tap [ 9 ]!' : '🔥 Темп нарастает! Финальный [ 9 ]!';
+            tutFeedback.innerHTML = `<span style="color:#ffaa00;">🔥 ${isEn ? 'Tempo rising! Final tap [ 9 ]!' : 'Темп нарастает! Финальный [ 9 ]!'}</span>`;
           };
 
           tutBtn3.onclick = () => {
@@ -6175,158 +6399,66 @@ export class SudokuUI {
             tutFill.style.width = '100%';
             tutFill.style.background = 'linear-gradient(90deg, #ff0055, #ffe600)';
             tutFill.style.boxShadow = '0 0 12px #ff0055';
-            tutMult.textContent = isEn ? '🔥 FEVER x4.0!' : '🔥 FEVER x4.0!';
+            tutMult.textContent = '🔥 FEVER x4.0!';
             tutMult.style.color = '#ff0055';
-            tutFeedback.textContent = isEn
-              ? '🚀 FEVER ACTIVATED! Multipliers up to x20!'
-              : '🚀 FEVER АКТИВИРОВАН! Множитель комбо взлетел до x20!';
+            tutFeedback.innerHTML = `<span style="color:#ff0055;">🚀 ${isEn ? 'FEVER ACTIVATED! Multipliers boost up to x20!' : 'FEVER АКТИВИРОВАН! Множитель комбо взлетел до x20!'}</span>`;
           };
         }
-        break;
-      }
-      case 2: {
-        this.tutorialTitle.textContent = isEn ? '🌑 Dark Sector: Eclipse Zone' : '🌑 Тёмный сектор: Зона затмения';
-        this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-            <div style="display:grid;grid-template-columns:repeat(3, 38px);grid-template-rows:repeat(3, 38px);gap:4px;padding:6px;background:#0d1117;border:1px solid #ffaa00;border-radius:10px;">
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#ffaa00;background:rgba(255,170,0,0.15);border:1px solid #ffaa00;border-radius:6px;font-weight:900;">4</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#00f3ff;background:rgba(0,243,255,0.2);border:1px solid #00f3ff;border-radius:6px;font-weight:900;">7</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-              <div style="display:flex;align-items:center;justify-content:center;color:#555;background:#151515;border-radius:6px;font-size:16px;">🌑</div>
-            </div>
-            <span style="font-size:12px;color:rgba(255,255,255,0.7);">${isEn ? '📡 Radar pulse illuminates neighboring cells' : '📡 Радарный импульс подсвечивает соседние клетки'}</span>
-          </div>
-        `;
-        this.tutorialDescription.textContent = isEn
-          ? 'In Dark Sector mode, numbers are shrouded in deep darkness. Fill cells or deploy the 📡 Radar Scanner to temporarily unveil surrounding cells (3s echo). Blind deduction earns huge bonus rating!'
-          : 'В режиме Тёмного Сектора поле окутано тьмой. Заполнение клеток и использование 📡 Сканера временно освещают соседние клетки (эхо 3 сек). Дедукция вслепую приносит колоссальный бонусный рейтинг!';
         break;
       }
       case 3: {
-        this.tutorialTitle.textContent = isEn ? '🤖 AI Duel & Roguelite Perks' : '🤖 Дуэль с ИИ и Перки';
+        this.tutorialTitle.textContent = isEn ? '🎮 Controls, Notes & Hints' : '🎮 Управление, Заметки и Подсказки';
         this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
-            <div style="display:flex;gap:10px;justify-content:center;align-items:center;width:90%;">
-              <div style="background:rgba(0,243,255,0.12);border:1px solid #00f3ff;padding:5px 8px;border-radius:8px;text-align:center;flex:1;">
-                <div style="font-size:10px;color:#00f3ff;font-weight:700;">YOU</div>
-                <div id="tut-duel-player" style="font-size:14px;font-weight:900;color:#fff;">⚡ 0/2</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div id="tut-notes-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,0.06);border:2px solid var(--pulse-cyan);display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:#00f3ff;">
+                5
               </div>
-              <div style="font-size:14px;font-weight:900;color:#ffaa00;">VS</div>
-              <div style="background:rgba(255,0,85,0.12);border:1px solid #ff0055;padding:5px 8px;border-radius:8px;text-align:center;flex:1;">
-                <div style="font-size:10px;color:#ff0055;font-weight:700;">CYBER BOT</div>
-                <div id="tut-duel-bot" style="font-size:14px;font-weight:900;color:#fff;">🤖 0/2</div>
-              </div>
+              <button id="tut-btn-toggle-notes" class="btn-primary" style="padding:8px 12px;font-size:0.8rem;border-radius:8px;">
+                📝 ${isEn ? 'Mode: Regular (tap to toggle Notes)' : 'Режим: Обычный (нажмите для Заметок)'}
+              </button>
             </div>
-            <div id="tut-duel-action-box" style="margin:2px 0;">
-              <button id="tut-btn-duel-start" class="btn-primary" style="padding:6px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '⚔️ Start Mini-Duel' : '⚔️ Проверить реакцию'}</button>
+            <div id="tut-notes-status" class="tut-feedback-box">
+              <span style="color:#00f3ff;">${isEn ? 'Regular mode enters the final number into the cell.' : 'Обычный ввод ставит итоговую цифру в ячейку.'}</span>
             </div>
-            <span id="tut-duel-status" style="font-size:11px;color:rgba(255,255,255,0.7);">${isEn ? 'Test your solving speed against PulseBot!' : 'Проверьте скорость против PulseBot!'}</span>
           </div>
         `;
-        this.tutorialDescription.textContent = isEn
-          ? 'Compete speed-for-speed against PulseBot in real-time Duels! In Pulse Run, conquer consecutive stages and pick game-changing perks: Aegis Shields, Overcharge, EMP Pulses, and Freeze.'
-          : 'Соревнуйтесь на скорость против PulseBot в реальном времени! В режиме забега Pulse Run проходите этапы и выбирайте кибер-перки: силовые щиты, EMP-импульсы, Хроно-буст и Overcharge.';
 
-        const btnDuelStart = document.getElementById('tut-btn-duel-start') as HTMLButtonElement;
-        const duelActionBox = document.getElementById('tut-duel-action-box');
-        const duelPlayer = document.getElementById('tut-duel-player');
-        const duelBot = document.getElementById('tut-duel-bot');
-        const duelStatus = document.getElementById('tut-duel-status');
+        this.tutorialDescription.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div><strong>📝 ${isEn ? 'Pencil Notes — Key to Sudoku Mastery:' : 'Заметки (Карандаш) — Главный инструмент мастера:'}</strong> ${isEn ? 'Never guess blindly! If a cell could be either 2 or 7, toggle Notes (key N or 📝) and mark both. Later, one will be eliminated naturally!' : 'Никогда не гадайте наугад! Если в клетку подходят две цифры (например, 2 или 7), включите режим Заметок (кнопка 📝 или клавиша N) и отметьте обе. Логика сама исключит ложную цифру позже!'}</div>
+            <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
+              <div>• <strong>✨ ${isEn ? 'Auto-Notes:' : 'Автозаметки:'}</strong> ${isEn ? 'Instantly calculates and populates candidate digits for all empty cells.' : 'Мгновенно просчитывает и расставляет кандидатов по всей доске одним нажатием.'}</div>
+              <div>• <strong>💡 ${isEn ? 'Smart Hint (H):' : 'Подсказка (клавиша H):'}</strong> ${isEn ? 'Stuck? Hit Hint to reveal the cell and learn deduction logic.' : 'Зашли в тупик? Нажмите подсказку — она откроет ячейку и объяснит ход мысли.'}</div>
+              <div>• <strong>⌫ ${isEn ? 'Erase / Undo:' : 'Стереть / Undo:'}</strong> ${isEn ? 'Easily fix misclicks and undo moves.' : 'Исправляйте опечатки и отменяйте неверные ходы.'}</div>
+              <div>• <strong>⌨️ ${isEn ? 'Hotkeys (PC):' : 'Горячие клавиши (ПК):'}</strong> ${isEn ? '1–9 to place, Space/N for notes, Backspace to clear, Arrows to navigate.' : '1–9 для ввода, Пробел/N — заметки, Backspace — стереть, Стрелки — выбор клетки.'}</div>
+            </div>
+          </div>
+        `;
 
-        if (btnDuelStart && duelActionBox && duelPlayer && duelBot && duelStatus) {
-          btnDuelStart.onclick = () => {
+        const btnToggleNotes = document.getElementById('tut-btn-toggle-notes') as HTMLButtonElement;
+        const notesDemoCell = document.getElementById('tut-notes-demo-cell');
+        const notesStatus = document.getElementById('tut-notes-status');
+        let isNotesActive = false;
+
+        if (btnToggleNotes && notesDemoCell && notesStatus) {
+          btnToggleNotes.onclick = () => {
+            isNotesActive = !isNotesActive;
             soundManager.playSelect();
-            let battleOver = false;
-
-            duelStatus.textContent = isEn ? '⚡ Quickly tap [ 4 ] then [ 8 ]!' : '⚡ Быстрее нажимайте [ 4 ] затем [ 8 ]!';
-            duelActionBox.innerHTML = `
-              <div style="display:flex;gap:12px;">
-                <button id="tut-duel-4" class="btn-primary" style="width:40px;height:40px;font-size:1.1rem;font-weight:900;border-radius:8px;padding:0;">4</button>
-                <button id="tut-duel-8" class="btn-secondary" style="width:40px;height:40px;font-size:1.1rem;font-weight:900;border-radius:8px;padding:0;opacity:0.4;" disabled>8</button>
-              </div>
-            `;
-
-            const btn4 = document.getElementById('tut-duel-4') as HTMLButtonElement;
-            const btn8 = document.getElementById('tut-duel-8') as HTMLButtonElement;
-
-            const botTimer = setTimeout(() => {
-              if (battleOver) return;
-              if (duelBot) duelBot.textContent = '🤖 1/2';
-              soundManager.playBotBeep();
-
-              setTimeout(() => {
-                if (battleOver) return;
-                battleOver = true;
-                if (duelBot) duelBot.textContent = '🤖 2/2';
-                soundManager.playError();
-                haptics.error();
-                duelStatus.textContent = isEn ? '🤖 PulseBot finished first! Speed up!' : '🤖 Бот опередил! Тренируйте скорость!';
-              }, 2000);
-            }, 1800);
-
-            if (btn4 && btn8) {
-              btn4.onclick = () => {
-                if (battleOver) return;
-                duelPlayer.textContent = '⚡ 1/2';
-                soundManager.playCorrect(1);
-                haptics.selection();
-                btn4.disabled = true;
-                btn4.className = 'btn-secondary';
-                btn4.textContent = '✓';
-                btn4.style.opacity = '0.7';
-                btn8.disabled = false;
-                btn8.className = 'btn-primary';
-                btn8.style.opacity = '1';
-              };
-
-              btn8.onclick = () => {
-                if (battleOver) return;
-                battleOver = true;
-                clearTimeout(botTimer);
-                duelPlayer.textContent = '⚡ 2/2';
-                soundManager.playVictory();
-                haptics.victory();
-                btn8.disabled = true;
-                btn8.textContent = '🏆';
-                duelStatus.textContent = isEn
-                  ? '🤖 PulseBot: "Whoa, human! Impressive speed. Challenge accepted!"'
-                  : '🤖 PulseBot: "Ого, человек! Впечатляющая скорость. Принимаю вызов!"';
-              };
+            haptics.selection();
+            if (isNotesActive) {
+              btnToggleNotes.className = 'btn-secondary';
+              btnToggleNotes.innerHTML = `📝 ${isEn ? 'Mode: NOTES (Active)' : 'Режим: ЗАМЕТКИ (Активен)'}`;
+              notesDemoCell.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,11px);gap:2px;font-size:9px;font-weight:800;color:#00f3ff;"><span>·</span><span>2</span><span>·</span><span>·</span><span>·</span><span>·</span><span>7</span><span>·</span><span>·</span></div>`;
+              notesStatus.innerHTML = `<span style="color:#00f3ff;">${isEn ? '📝 Notes mark potential candidates [2, 7] with zero risk of making a mistake!' : '📝 В режиме заметок вы отмечаете кандидатов [2, 7] без риска ошибиться!'}</span>`;
+            } else {
+              btnToggleNotes.className = 'btn-primary';
+              btnToggleNotes.innerHTML = `📝 ${isEn ? 'Mode: Regular (tap for Notes)' : 'Режим: Обычный (нажмите для Заметок)'}`;
+              notesDemoCell.innerHTML = `5`;
+              notesStatus.innerHTML = `<span style="color:#00f3ff;">${isEn ? 'Regular mode enters the final number into the cell.' : 'Обычный ввод ставит итоговую цифру в ячейку.'}</span>`;
             }
           };
         }
-        break;
-      }
-      case 4: {
-        this.tutorialTitle.textContent = isEn ? '🎮 Controls, Notes & Hints' : '🎮 Управление, Заметки и Подсказки';
-        this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;padding:4px;">
-            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
-              <div style="font-size:18px;">📝</div>
-              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Notes (N)' : 'Заметки (N)'}</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
-              <div style="font-size:18px;">💡</div>
-              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Hint (H)' : 'Подсказка (H)'}</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
-              <div style="font-size:18px;">✨</div>
-              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Auto-Notes' : 'Автозаметки'}</div>
-            </div>
-            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;text-align:center;">
-              <div style="font-size:18px;">⌫</div>
-              <div style="font-size:11px;font-weight:700;margin-top:2px;">${isEn ? 'Erase / Undo' : 'Стереть / Undo'}</div>
-            </div>
-          </div>
-        `;
-        this.tutorialDescription.textContent = isEn
-          ? 'Use the onscreen keypad or keyboard numbers 1–9. Toggle Notes mode to mark candidate digits, use Auto-Notes for smart candidates, or ask for a Hint if you ever get stuck!'
-          : 'Управляйте нажатиями на экранную клавиатуру или клавишами 1–9. Включайте режим Заметок для проверки вариантов, используйте Автозаметки или берите Подсказку, если возникли трудности!';
         break;
       }
     }

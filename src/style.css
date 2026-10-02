@@ -2800,11 +2800,12 @@ body.platform-yandex .yandex-hidden {
 }
 
 /* ========================================== */
-/* INTERACTIVE TUTORIAL / ONBOARDING STYLES   */
+/* INTERACTIVE TUTORIAL / KNOWLEDGE BASE STYLES */
 /* ========================================== */
 .tutorial-modal-card {
-  max-width: 440px;
-  width: 100%;
+  max-width: 520px;
+  width: 95%;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2814,7 +2815,9 @@ body.platform-yandex .yandex-hidden {
   border: 1px solid var(--pulse-cyan);
   box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
   border-radius: var(--radius);
-  padding: 24px 20px;
+  padding: 22px 18px 18px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tutorial-step-badge {
@@ -2831,27 +2834,83 @@ body.platform-yandex .yandex-hidden {
   border-radius: 999px;
 }
 
+.tutorial-tabs-bar {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+.tutorial-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+.tut-tab-btn {
+  flex: 1;
+  min-width: fit-content;
+  padding: 7px 11px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.tut-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.tut-tab-btn.active {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: var(--pulse-cyan);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+}
+
+.tutorial-scroll-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  max-height: calc(90vh - 220px);
+  padding-right: 4px;
+}
+.tutorial-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+.tutorial-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.35);
+  border-radius: 4px;
+}
+
 .tutorial-visual-box {
   width: 100%;
   min-height: 120px;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(15, 23, 42, 0.75);
   border: 1px solid var(--surface-border);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 14px;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
 }
 
 .tutorial-description {
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: 0.86rem;
+  line-height: 1.5;
   color: var(--text-main);
+  text-align: left;
   margin: 0;
-  min-height: 52px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 
 .tutorial-dots {
@@ -2859,7 +2918,7 @@ body.platform-yandex .yandex-hidden {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .tutorial-dots .dot {
@@ -2881,7 +2940,52 @@ body.platform-yandex .yandex-hidden {
   display: flex;
   gap: 10px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 2px;
+}
+
+.tut-perk-chips {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tut-perk-chip {
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.tut-perk-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.tut-perk-chip.active {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--pulse-cyan);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+}
+.tut-feedback-box {
+  min-height: 28px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 90%;
+  box-sizing: border-box;
 }
 
 /* ========================================== */

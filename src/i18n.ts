@@ -631,6 +631,10 @@ export const PERK_TRANSLATIONS: Record<string, { ru: { name: string; desc: strin
     ru: { name: 'Импульс ЭМИ', desc: 'В начале раунда автоматически расшифровывает +1 ячейку (+2 на Ур. II)' },
     en: { name: 'EMP Pulse', desc: 'Auto-solves +1 random cell at the start of each stage (+2 on Lvl II)' },
   },
+  auto_scanner: {
+    ru: { name: 'Нейро-сканер', desc: 'Автоматически заполняет карандашные заметки на старте' },
+    en: { name: 'Neuro-Scanner', desc: 'Auto-fills pencil candidate notes at stage start' },
+  },
   overcharge: {
     ru: { name: 'Оверчардж', desc: 'В режиме Fever множитель очков взлетает до x4.0 вместо x2.0' },
     en: { name: 'Overcharge', desc: 'In Fever mode, score multiplier skyrockets to x4.0 instead of x2.0' },

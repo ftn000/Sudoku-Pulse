@@ -958,20 +958,28 @@
   <div id="tutorial-modal" class="modal-overlay hidden">
     <div class="modal-card tutorial-modal-card">
       <button id="btn-close-tutorial-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
-      <div class="tutorial-step-badge" id="tutorial-step-badge">ШАГ 1 ИЗ 5</div>
+      <div class="tutorial-step-badge" id="tutorial-step-badge">РАЗДЕЛ 1 ИЗ 4</div>
       <h2 id="tutorial-title" class="modal-title">🧩 Классические правила Судоку</h2>
 
-      <div class="tutorial-visual-box" id="tutorial-visual-box">
-        <!-- Rendered dynamically -->
+      <div class="tutorial-tabs-bar" id="tutorial-tabs-bar">
+        <button type="button" class="tut-tab-btn active" data-step="0">🧩 Правила</button>
+        <button type="button" class="tut-tab-btn" data-step="1">🧬 Перки</button>
+        <button type="button" class="tut-tab-btn" data-step="2">⚡ Режимы</button>
+        <button type="button" class="tut-tab-btn" data-step="3">🎮 Управление</button>
       </div>
 
-      <p id="tutorial-description" class="tutorial-description">
-        Заполните сетку 9×9 цифрами от 1 до 9. В каждой строке, столбце и малом блоке 3×3 каждая цифра должна встречаться ровно один раз без повторений.
-      </p>
+      <div class="tutorial-scroll-area">
+        <div class="tutorial-visual-box" id="tutorial-visual-box">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <div id="tutorial-description" class="tutorial-description">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
 
       <div class="tutorial-dots" id="tutorial-dots">
         <span class="dot active"></span>
-        <span class="dot"></span>
         <span class="dot"></span>
         <span class="dot"></span>
         <span class="dot"></span>
