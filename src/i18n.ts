@@ -183,7 +183,13 @@ class I18nManager {
       }
     });
 
-    // Update active state on all lang switcher buttons
+    // Update active state on language select dropdown
+    const select = document.getElementById('setting-lang-select') as HTMLSelectElement | null;
+    if (select && select.value !== this.currentLang) {
+      select.value = this.currentLang;
+    }
+
+    // Update active state on all lang switcher buttons if present
     SUPPORTED_LANGUAGES.forEach((l) => {
       const btn = document.getElementById(`lang-btn-${l}`);
       if (btn) {

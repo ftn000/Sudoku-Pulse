@@ -651,20 +651,18 @@
       <h2 class="modal-title" data-i18n="settings_title">⚙️ Настройки</h2>
       
       <div class="settings-list">
-        <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span data-i18n="setting_lang">🌐 Язык интерфейса</span>
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-            <button id="lang-btn-ru" class="diff-pill active" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇷🇺 RU</button>
-            <button id="lang-btn-en" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇺🇸 EN</button>
-            <button id="lang-btn-fr" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇫🇷 FR</button>
-            <button id="lang-btn-de" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇩🇪 DE</button>
-            <button id="lang-btn-es" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇪🇸 ES</button>
-            <button id="lang-btn-tr" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇹🇷 TR</button>
-            <button id="lang-btn-zh" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇨🇳 ZH</button>
-            <button id="lang-btn-ar" class="diff-pill" style="padding: 6px 2px; font-size: 0.78rem; text-align: center;">🇸🇦 AR</button>
-          </div>
+        <div class="setting-item">
+          <span data-i18n="setting_lang">🌐 Язык интерфейса</span>
+          <select id="setting-lang-select" class="lang-select-dropdown" aria-label="Language">
+            <option value="ru">🇷🇺 Русский (RU)</option>
+            <option value="en">🇺🇸 English (EN)</option>
+            <option value="fr">🇫🇷 Français (FR)</option>
+            <option value="de">🇩🇪 Deutsch (DE)</option>
+            <option value="es">🇪🇸 Español (ES)</option>
+            <option value="tr">🇹🇷 Türkçe (TR)</option>
+            <option value="zh">🇨🇳 简体中文 (ZH)</option>
+            <option value="ar">🇸🇦 العربية (AR)</option>
+          </select>
         </div>
         <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">

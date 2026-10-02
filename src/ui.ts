@@ -5,7 +5,7 @@ import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
 import { haptics } from './haptics';
 import { yandexBridge } from './yandex';
-import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS, SUPPORTED_LANGUAGES } from './i18n';
+import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS, SUPPORTED_LANGUAGES, type Language } from './i18n';
 
 export function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return '/sudoku/api';
@@ -1780,13 +1780,28 @@ export class SudokuUI {
       this.promptExitGame();
     });
 
-    // Language switch buttons
+    // Language select dropdown
+    const langSelect = document.getElementById('setting-lang-select') as HTMLSelectElement | null;
+    if (langSelect) {
+      langSelect.value = i18n.getLanguage();
+      langSelect.addEventListener('change', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        const selected = langSelect.value as Language;
+        if (selected) {
+          i18n.setLanguage(selected);
+        }
+      });
+    }
+
+    // Language switch buttons (if present)
     SUPPORTED_LANGUAGES.forEach((lng) => {
       const btn = document.getElementById(`lang-btn-${lng}`);
       btn?.addEventListener('click', () => {
         soundManager.playSelect();
         haptics.selection();
         i18n.setLanguage(lng);
+        if (langSelect) langSelect.value = lng;
       });
     });
 
