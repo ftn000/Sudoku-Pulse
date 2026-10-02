@@ -6,10 +6,6 @@ import puppeteer from 'puppeteer-core';
 const dist = 'C:\\GitHub\\Sudoku-Pulse\\dist';
 const promoDir = 'C:\\GitHub\\Sudoku-Pulse\\yandex-promo';
 
-// Ensure promoDir exists
-if (!fs.existsSync(promoDir)) fs.mkdirSync(promoDir, { recursive: true });
-
-// Simple static server
 const server = http.createServer((req, res) => {
     let filePath = path.join(dist, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
     if (!fs.existsSync(filePath)) filePath = path.join(dist, 'index.html');
@@ -20,15 +16,14 @@ const server = http.createServer((req, res) => {
         '.css': 'text/css',
         '.png': 'image/png',
         '.jpg': 'image/jpeg',
-        '.svg': 'image/svg+xml',
         '.json': 'application/json'
     }[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': mime });
     fs.createReadStream(filePath).pipe(res);
 });
 
-server.listen(4455, async () => {
-    console.log('Static server running on http://localhost:4455');
+server.listen(4499, async () => {
+    console.log('Server running on http://localhost:4499');
     const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
     try {
@@ -38,52 +33,121 @@ server.listen(4455, async () => {
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
         });
 
-        // 1. Desktop screenshots (16:9, 1280x720)
-        const desktopPage = await browser.newPage();
-        await desktopPage.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-        await desktopPage.goto('http://localhost:4455', { waitUntil: 'networkidle0' });
-        await new Promise(r => setTimeout(r, 1000));
+        // ---------------- DESKTOP (1280x720) ----------------
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1280, height: 720 });
+        await page.evaluateOnNewDocument(() => {
+            localStorage.setItem('sudoku_pulse_tutorial_seen', 'true');
+            // Hide daily rewards popup completely
+            const style = document.createElement('style');
+            style.innerHTML = '#daily-reward-modal, #modal-tutorial, #rating-modal { display: none !important; }';
+            document.head ? document.head.appendChild(style) : document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+        });
 
-        // Screenshot 1: Main Menu Desktop
-        await desktopPage.screenshot({ path: path.join(promoDir, 'screenshot-desktop-1.png') });
-        console.log('Saved screenshot-desktop-1.png');
+        await page.goto('http://localhost:4499', { waitUntil: 'networkidle0' });
+        await page.evaluate(() => {
+            if (window.sudokuUI) {
+                window.sudokuUI.openDailyRewardModal = () => {};
+                window.sudokuUI.showScreen('menu');
+            }
+        });
+        await new Promise(r => setTimeout(r, 600));
 
-        // Click to start Classic game or select mode
-        const playBtn = await desktopPage.$('#btn-mode-classic, #start-btn, .mode-card, button');
-        if (playBtn) {
-            await playBtn.click();
-            await new Promise(r => setTimeout(r, 1000));
-        }
+        // 1. Desktop: Clean Main Menu
+        await page.screenshot({ path: path.join(promoDir, 'screenshot-desktop-1.png') });
+        console.log('Saved screenshot-desktop-1.png (Main Menu)');
 
-        // Screenshot 2: Gameplay Desktop
-        await desktopPage.screenshot({ path: path.join(promoDir, 'screenshot-desktop-2.png') });
-        console.log('Saved screenshot-desktop-2.png');
+        // 2. Desktop: Mode Selection Screen
+        await page.evaluate(() => {
+            if (window.sudokuUI) window.sudokuUI.showScreen('mode_category');
+        });
+        await new Promise(r => setTimeout(r, 600));
+        await page.screenshot({ path: path.join(promoDir, 'screenshot-desktop-3.png') });
+        console.log('Saved screenshot-desktop-3.png (Mode Selection)');
 
-        // 2. Mobile screenshots (portrait, 1080x1920 scaled to 720x1280)
+        // 3. Desktop: Active Gameplay with filled cells
+        await page.evaluate(() => {
+            if (window.sudokuUI && window.sudokuUI.game) {
+                window.sudokuUI.game.startNewGame({ difficulty: 'medium', mode: 'classic', perks: [] });
+                window.sudokuUI.showScreen('game');
+                const ui = window.sudokuUI;
+                const game = ui.game;
+                let count = 0;
+                for (let r = 0; r < 9 && count < 8; r++) {
+                    for (let c = 0; c < 9 && count < 8; c++) {
+                        if (game.board[r][c] === 0) {
+                            ui.selectCell(r, c);
+                            ui.handleNumberInput(game.solution[r][c]);
+                            count++;
+                        }
+                    }
+                }
+            }
+        });
+        await new Promise(r => setTimeout(r, 800));
+        await page.screenshot({ path: path.join(promoDir, 'screenshot-desktop-2.png') });
+        console.log('Saved screenshot-desktop-2.png (Active Gameplay)');
+
+        // 4. Desktop: Tutorial / Rules modal specifically shown
+        await page.evaluate(() => {
+            const style = document.createElement('style');
+            style.innerHTML = '#modal-tutorial { display: flex !important; }';
+            document.head.appendChild(style);
+            if (window.sudokuUI) window.sudokuUI.openTutorial(0);
+        });
+        await new Promise(r => setTimeout(r, 600));
+        await page.screenshot({ path: path.join(promoDir, 'screenshot-desktop-4.png') });
+        console.log('Saved screenshot-desktop-4.png (Rules & Tutorial)');
+
+        // ---------------- MOBILE (720x1280) ----------------
         const mobilePage = await browser.newPage();
-        await mobilePage.setViewport({ width: 720, height: 1280, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-        await mobilePage.goto('http://localhost:4455', { waitUntil: 'networkidle0' });
-        await new Promise(r => setTimeout(r, 1000));
+        await mobilePage.setViewport({ width: 720, height: 1280, isMobile: true, hasTouch: true });
+        await mobilePage.evaluateOnNewDocument(() => {
+            localStorage.setItem('sudoku_pulse_tutorial_seen', 'true');
+            const style = document.createElement('style');
+            style.innerHTML = '#daily-reward-modal, #modal-tutorial, #rating-modal { display: none !important; }';
+            document.head ? document.head.appendChild(style) : document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+        });
+        await mobilePage.goto('http://localhost:4499', { waitUntil: 'networkidle0' });
+        await mobilePage.evaluate(() => {
+            if (window.sudokuUI) {
+                window.sudokuUI.openDailyRewardModal = () => {};
+                window.sudokuUI.showScreen('menu');
+            }
+        });
+        await new Promise(r => setTimeout(r, 600));
 
-        // Screenshot 3: Mobile Menu
+        // 1. Mobile Menu
         await mobilePage.screenshot({ path: path.join(promoDir, 'screenshot-mobile-1.png') });
-        console.log('Saved screenshot-mobile-1.png');
+        console.log('Saved screenshot-mobile-1.png (Mobile Menu)');
 
-        // Click to start game on mobile
-        const mobilePlayBtn = await mobilePage.$('#btn-mode-classic, #start-btn, .mode-card, button');
-        if (mobilePlayBtn) {
-            await mobilePlayBtn.click();
-            await new Promise(r => setTimeout(r, 1000));
-        }
-
-        // Screenshot 4: Mobile Gameplay
+        // 2. Mobile Gameplay
+        await mobilePage.evaluate(() => {
+            if (window.sudokuUI && window.sudokuUI.game) {
+                window.sudokuUI.game.startNewGame({ difficulty: 'easy', mode: 'classic', perks: [] });
+                window.sudokuUI.showScreen('game');
+                const ui = window.sudokuUI;
+                const game = ui.game;
+                let count = 0;
+                for (let r = 0; r < 9 && count < 6; r++) {
+                    for (let c = 0; c < 9 && count < 6; c++) {
+                        if (game.board[r][c] === 0) {
+                            ui.selectCell(r, c);
+                            ui.handleNumberInput(game.solution[r][c]);
+                            count++;
+                        }
+                    }
+                }
+            }
+        });
+        await new Promise(r => setTimeout(r, 800));
         await mobilePage.screenshot({ path: path.join(promoDir, 'screenshot-mobile-2.png') });
-        console.log('Saved screenshot-mobile-2.png');
+        console.log('Saved screenshot-mobile-2.png (Mobile Gameplay)');
 
         await browser.close();
-        console.log('Screenshots generation completed successfully!');
-    } catch (err) {
-        console.error('Error during screenshot generation:', err);
+        console.log('Screenshots generation completed!');
+    } catch (e) {
+        console.error('Error generating screenshots:', e);
     } finally {
         server.close();
         process.exit(0);
