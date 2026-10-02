@@ -1073,13 +1073,37 @@ body.screen-is-game {
   100% { transform: scale(1.25); filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.9)); }
 }
 
-.cell.error {
+.cell.error,
+.cell.error.highlight-same,
+.cell.error.highlight-area,
+.cell.error.selected,
+[data-board-skin] .cell.error,
+[data-board-skin] .cell.error.highlight-same,
+[data-board-skin] .cell.error.highlight-area,
+[data-board-skin] .cell.error.selected {
   background: var(--cell-error-bg) !important;
+  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.65), 0 0 8px rgba(239, 68, 68, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.7) !important;
 }
 
-.cell.error .cell-digit {
+.cell.error .cell-digit,
+.cell.error.highlight-same .cell-digit,
+.cell.error.highlight-area .cell-digit,
+.cell.error.selected .cell-digit,
+[data-board-skin] .cell.error .cell-digit,
+[data-board-skin] .cell.error.highlight-same .cell-digit,
+[data-board-skin] .cell.error.highlight-area .cell-digit,
+[data-board-skin] .cell.error.selected .cell-digit {
   color: var(--cell-error-text) !important;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.9), 0 0 18px rgba(239, 68, 68, 0.5) !important;
   animation: shake-digit 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.cell.error.highlight-same,
+[data-board-skin] .cell.error.highlight-same {
+  background: rgba(239, 68, 68, 0.42) !important;
+  box-shadow: inset 0 0 14px rgba(239, 68, 68, 0.85), 0 0 10px rgba(239, 68, 68, 0.5) !important;
+  border-color: #ef4444 !important;
 }
 
 @keyframes shake-digit {
@@ -2805,19 +2829,21 @@ body.platform-yandex .yandex-hidden {
 .tutorial-modal-card {
   max-width: 520px;
   width: 95%;
-  max-height: 90vh;
+  max-height: 92vh;
+  height: 92vh;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   text-align: center;
   position: relative;
   background: var(--surface-bg);
   border: 1px solid var(--pulse-cyan);
   box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
   border-radius: var(--radius);
-  padding: 22px 18px 18px;
+  padding: 20px 16px 16px;
   box-sizing: border-box;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .tutorial-step-badge {
@@ -2832,6 +2858,7 @@ body.platform-yandex .yandex-hidden {
   border: 1px solid rgba(6, 182, 212, 0.4);
   padding: 3px 10px;
   border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .tutorial-tabs-bar {
@@ -2841,6 +2868,7 @@ body.platform-yandex .yandex-hidden {
   overflow-x: auto;
   padding: 2px 2px 6px;
   scrollbar-width: none;
+  flex-shrink: 0;
 }
 .tutorial-tabs-bar::-webkit-scrollbar {
   display: none;
@@ -2874,8 +2902,11 @@ body.platform-yandex .yandex-hidden {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
-  max-height: calc(90vh - 220px);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 4px;
 }
 .tutorial-scroll-area::-webkit-scrollbar {
@@ -2886,19 +2917,29 @@ body.platform-yandex .yandex-hidden {
   border-radius: 4px;
 }
 
+.tutorial-scroll-area.fade-slide {
+  animation: tut-slide-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes tut-slide-in {
+  from { opacity: 0.4; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .tutorial-visual-box {
   width: 100%;
-  min-height: 120px;
+  min-height: auto;
   background: rgba(15, 23, 42, 0.75);
   border: 1px solid var(--surface-border);
   border-radius: 12px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  padding: 14px;
+  padding: 12px 10px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
+  flex-shrink: 0;
 }
 
 .tutorial-description {
@@ -2911,6 +2952,7 @@ body.platform-yandex .yandex-hidden {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 12px 14px;
+  flex-shrink: 0;
 }
 
 .tutorial-dots {
@@ -2986,6 +3028,42 @@ body.platform-yandex .yandex-hidden {
   text-align: center;
   width: 90%;
   box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .tutorial-modal-card {
+    padding: 14px 12px 12px;
+    gap: 7px;
+    height: 94vh;
+    max-height: 94vh;
+  }
+  .tutorial-modal-card .modal-title {
+    font-size: 1.02rem;
+    margin: 2px 0 0;
+  }
+  .tutorial-step-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+  .tut-tab-btn {
+    padding: 5px 8px;
+    font-size: 0.73rem;
+  }
+  .tutorial-scroll-area {
+    gap: 8px;
+  }
+  .tutorial-visual-box {
+    padding: 8px 6px;
+  }
+  .tutorial-description {
+    font-size: 0.79rem;
+    padding: 9px 11px;
+    line-height: 1.45;
+  }
+  .tutorial-nav-buttons button {
+    padding: 8px !important;
+    font-size: 0.85rem;
+  }
 }
 
 /* ========================================== */

@@ -1184,15 +1184,19 @@ export class SudokuGame {
   }
 
   private removeConflictingNotes(row: number, col: number, num: number) {
+    const n = Number(num);
     for (let i = 0; i < 9; i++) {
-      this.board[row][i].notes.delete(num);
-      this.board[i][col].notes.delete(num);
+      this.board[row][i].notes.delete(n);
+      this.board[row][i].notes.delete(String(n) as any);
+      this.board[i][col].notes.delete(n);
+      this.board[i][col].notes.delete(String(n) as any);
     }
     const startRow = Math.floor(row / 3) * 3;
     const startCol = Math.floor(col / 3) * 3;
     for (let r = startRow; r < startRow + 3; r++) {
       for (let c = startCol; c < startCol + 3; c++) {
-        this.board[r][c].notes.delete(num);
+        this.board[r][c].notes.delete(n);
+        this.board[r][c].notes.delete(String(n) as any);
       }
     }
   }
@@ -1712,7 +1716,7 @@ export class SudokuGame {
           const isUserSolved = !c.isGiven && c.value !== 0 && c.value === c.solution;
           return {
             ...c,
-            notes: new Set<number>(c.notes || []),
+            notes: new Set<number>((c.notes || []).map((v: any) => Number(v)).filter((v: number) => !isNaN(v) && v >= 1 && v <= 9)),
             isLocked: c.isGiven || isUserSolved,
             isInEcho: false,
             torchExpireAt: 0,

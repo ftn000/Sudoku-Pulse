@@ -421,6 +421,7 @@ export class SudokuUI {
   private btnTutorialPrev!: HTMLButtonElement;
   private btnTutorialNext!: HTMLButtonElement;
   private btnMenuTutorial!: HTMLButtonElement;
+  private tutorialScrollArea?: HTMLElement | null;
   private currentTutorialStep: number = 0;
 
   // Cyber Shop & Monetization
@@ -848,6 +849,7 @@ export class SudokuUI {
     this.tutorialDots = document.getElementById('tutorial-dots')!;
     this.btnTutorialPrev = document.getElementById('btn-tutorial-prev') as HTMLButtonElement;
     this.btnTutorialNext = document.getElementById('btn-tutorial-next') as HTMLButtonElement;
+    this.tutorialScrollArea = document.querySelector('.tutorial-scroll-area');
 
     this.bgParticlesCanvas = document.getElementById('bg-particles-canvas') as HTMLCanvasElement;
     this.bgParticlesCtx = this.bgParticlesCanvas.getContext('2d');
@@ -1368,6 +1370,49 @@ export class SudokuUI {
         this.renderTutorialStep(step);
       });
     });
+
+    // Touch Swipe gesture support for mobile tutorial window navigation
+    const tutCard = document.querySelector('.tutorial-modal-card') as HTMLElement | null;
+    if (tutCard) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+
+      tutCard.addEventListener('touchstart', (e: TouchEvent) => {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touchStartTime = Date.now();
+        }
+      }, { passive: true });
+
+      tutCard.addEventListener('touchend', (e: TouchEvent) => {
+        if (e.changedTouches.length === 1) {
+          const deltaX = e.changedTouches[0].clientX - touchStartX;
+          const deltaY = e.changedTouches[0].clientY - touchStartY;
+          const elapsed = Date.now() - touchStartTime;
+
+          // Horizontal swipe detection (> 42px swift horizontal flick)
+          if (elapsed < 600 && Math.abs(deltaX) > 42 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+            if (deltaX < 0) {
+              // Swipe Left -> Next Section
+              if (this.currentTutorialStep < 3) {
+                soundManager.playSelect();
+                haptics.selection();
+                this.renderTutorialStep(this.currentTutorialStep + 1);
+              }
+            } else {
+              // Swipe Right -> Prev Section
+              if (this.currentTutorialStep > 0) {
+                soundManager.playSelect();
+                haptics.selection();
+                this.renderTutorialStep(this.currentTutorialStep - 1);
+              }
+            }
+          }
+        }
+      }, { passive: true });
+    }
 
     // Prevent browser context menu and text selection callouts on board and UI (Yandex req 1.6.1.8 & 1.6.2.7)
     document.addEventListener('contextmenu', (e) => {
@@ -6095,29 +6140,36 @@ export class SudokuUI {
       }
     }
 
+    if (this.tutorialScrollArea) {
+      this.tutorialScrollArea.scrollTop = 0;
+      this.tutorialScrollArea.classList.remove('fade-slide');
+      void this.tutorialScrollArea.offsetWidth;
+      this.tutorialScrollArea.classList.add('fade-slide');
+    }
+
     switch (this.currentTutorialStep) {
       case 0: {
         this.tutorialTitle.textContent = isEn ? '🧩 Sudoku Rules for Beginners' : '🧩 Правила Судоку для новичков';
         this.tutorialVisualBox.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
-            <div style="display:grid;grid-template-columns:repeat(3, 40px);grid-template-rows:repeat(3, 40px);gap:4px;padding:6px;background:rgba(0,243,255,0.08);border:2px solid var(--pulse-cyan);border-radius:10px;">
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">5</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">3</div>
-              <div id="tut-rule-target" style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#ff0055;background:rgba(255,0,85,0.18);border:1px dashed #ff0055;border-radius:6px;font-size:1.15rem;transition:all 0.3s ease;">?</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">6</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">7</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">2</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">1</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">9</div>
-              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:6px;font-size:1.15rem;">8</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;">
+            <div style="display:grid;grid-template-columns:repeat(3, 32px);grid-template-rows:repeat(3, 32px);gap:3px;padding:4px;background:rgba(0,243,255,0.08);border:2px solid var(--pulse-cyan);border-radius:9px;">
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">5</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">3</div>
+              <div id="tut-rule-target" style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#ff0055;background:rgba(255,0,85,0.18);border:1px dashed #ff0055;border-radius:5px;font-size:0.95rem;transition:all 0.3s ease;">?</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">6</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#00f3ff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">7</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">2</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">1</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">9</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">8</div>
             </div>
-            <div style="font-size:12px;font-weight:700;color:var(--text-muted);">
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);">
               ${isEn ? 'Which digit completes this 3×3 sector?' : 'Какая цифра дополнит этот сектор 3×3?'}
             </div>
-            <div style="display:flex;gap:10px;">
-              <button id="tut-rule-opt-3" class="btn-secondary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">3</button>
-              <button id="tut-rule-opt-4" class="btn-primary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">4</button>
-              <button id="tut-rule-opt-7" class="btn-secondary" style="width:44px;height:38px;font-size:1.05rem;font-weight:900;border-radius:8px;">7</button>
+            <div style="display:flex;gap:8px;">
+              <button id="tut-rule-opt-3" class="btn-secondary" style="width:40px;height:34px;font-size:0.95rem;font-weight:900;border-radius:7px;">3</button>
+              <button id="tut-rule-opt-4" class="btn-primary" style="width:40px;height:34px;font-size:0.95rem;font-weight:900;border-radius:7px;">4</button>
+              <button id="tut-rule-opt-7" class="btn-secondary" style="width:40px;height:34px;font-size:0.95rem;font-weight:900;border-radius:7px;">7</button>
             </div>
             <div id="tut-rule-feedback" class="tut-feedback-box">
               <span style="color:#00f3ff;">${isEn ? '💡 Tap an option to test your deduction!' : '💡 Нажмите на цифру выше, чтобы проверить логику!'}</span>
