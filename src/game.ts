@@ -12,7 +12,7 @@ import {
 } from './types';
 import { generatePuzzle, hashDateStringToSeed } from './generator';
 import { evaluateNewAchievements, evaluateAllAchievements } from './achievements';
-import { i18n, t } from './i18n';
+import { t, trText } from './i18n';
 
 const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
 const STATS_KEY = 'sudoku_pulse_player_stats_v1';
@@ -905,19 +905,21 @@ export class SudokuGame {
       for (let n = 1; n <= 9; n++) {
         if (this.isValidPlacement(targetRow, targetCol, n)) validNums.push(n);
       }
-      const isEn = i18n.getLanguage() === 'en';
       if (validNums.length === 1) {
-        explanation = isEn
-          ? `💡 Naked Single: in [R${targetRow + 1}, C${targetCol + 1}] only ${sol} fits (other digits already present in lines/box)!`
-          : `💡 Одиночка (Naked Single): в [Р${targetRow + 1}, С${targetCol + 1}] подходит только ${sol} (остальные цифры уже есть в линиях/блоке)!`;
+        explanation = trText(
+          `💡 Одиночка (Naked Single): в [Р${targetRow + 1}, С${targetCol + 1}] подходит только ${sol} (остальные цифры уже есть в линиях/блоке)!`,
+          `💡 Naked Single: in [R${targetRow + 1}, C${targetCol + 1}] only ${sol} fits (other digits already present in lines/box)!`,
+          `💡 Tek Aday (Naked Single): [S${targetRow + 1}, K${targetCol + 1}] hücresine sadece ${sol} gelebilir (diğer sayılar satır/sütun/blokta var)!`
+        );
       } else {
-        explanation = isEn
-          ? `💡 Hint: in cell [R${targetRow + 1}, C${targetCol + 1}], the correct digit is ${sol}.`
-          : `💡 Подсказка: в ячейке [Р${targetRow + 1}, С${targetCol + 1}] верная цифра — ${sol}.`;
+        explanation = trText(
+          `💡 Подсказка: в ячейке [Р${targetRow + 1}, С${targetCol + 1}] верная цифра — ${sol}.`,
+          `💡 Hint: in cell [R${targetRow + 1}, C${targetCol + 1}], the correct digit is ${sol}.`,
+          `💡 İpucu: [S${targetRow + 1}, K${targetCol + 1}] hücresindeki doğru sayı ${sol}.`
+        );
       }
     } else {
-      const isEn = i18n.getLanguage() === 'en';
-      // Search for Naked Single across the board
+        // Search for Naked Single across the board
       for (let r = 0; r < 9 && targetRow === -1; r++) {
         for (let c = 0; c < 9; c++) {
           const cell = this.board[r][c];
@@ -929,9 +931,11 @@ export class SudokuGame {
             if (validNums.length === 1) {
               targetRow = r;
               targetCol = c;
-              explanation = isEn
-                ? `💡 Naked Single: in [R${r + 1}, C${c + 1}] only ${cell.solution} can be placed!`
-                : `💡 Одиночка (Naked Single): в [Р${r + 1}, С${c + 1}] может стоять только ${cell.solution}!`;
+              explanation = trText(
+                `💡 Одиночка (Naked Single): в [Р${r + 1}, С${c + 1}] может стоять только ${cell.solution}!`,
+                `💡 Naked Single: in [R${r + 1}, C${c + 1}] only ${cell.solution} can be placed!`,
+                `💡 Tek Aday (Naked Single): [S${r + 1}, K${c + 1}] hücresine sadece ${cell.solution} gelebilir!`
+              );
               break;
             }
           }
@@ -957,9 +961,11 @@ export class SudokuGame {
               if (this.board[r][c].solution === num) {
                 targetRow = r;
                 targetCol = c;
-                explanation = isEn
-                  ? `💡 Hidden Single: in row ${r + 1}, digit ${num} can only be placed in column ${c + 1}!`
-                  : `💡 Скрытая одиночка: в строке ${r + 1} цифра ${num} может стоять только в столбце ${c + 1}!`;
+                explanation = trText(
+                  `💡 Скрытая одиночка: в строке ${r + 1} цифра ${num} может стоять только в столбце ${c + 1}!`,
+                  `💡 Hidden Single: in row ${r + 1}, digit ${num} can only be placed in column ${c + 1}!`,
+                  `💡 Gizli Tek (Hidden Single): ${r + 1}. satırda ${num} sayısı sadece ${c + 1}. sütuna yerleşebilir!`
+                );
                 break;
               }
             }
@@ -983,9 +989,11 @@ export class SudokuGame {
         const pick = candidates[Math.floor(Math.random() * candidates.length)];
         targetRow = pick.r;
         targetCol = pick.c;
-        explanation = isEn
-          ? `💡 Tactical Move: in [R${targetRow + 1}, C${targetCol + 1}] revealed digit ${this.board[targetRow][targetCol].solution}.`
-          : `💡 Тактический ход: в [Р${targetRow + 1}, С${targetCol + 1}] раскрыта цифра ${this.board[targetRow][targetCol].solution}.`;
+        explanation = trText(
+          `💡 Тактический ход: в [Р${targetRow + 1}, С${targetCol + 1}] раскрыта цифра ${this.board[targetRow][targetCol].solution}.`,
+          `💡 Tactical Move: in [R${targetRow + 1}, C${targetCol + 1}] revealed digit ${this.board[targetRow][targetCol].solution}.`,
+          `💡 Taktiksel Hamle: [S${targetRow + 1}, K${targetCol + 1}] hücresinde ${this.board[targetRow][targetCol].solution} sayısı açıldı.`
+        );
       }
     }
 

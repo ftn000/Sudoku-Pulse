@@ -24,6 +24,10 @@ export const ru: LocaleDefinition = {
 
   // Mode Selection
   mode_select_title: 'Выберите режим',
+  mode_classic: 'Классический',
+  mode_fog: 'Тёмный сектор',
+  mode_run: 'Pulse Run',
+  mode_daily: 'Ежедневное',
   mode_classic_title: 'Классический',
   mode_classic_desc: 'Чистое судоку с комбо-множителем очков и режимом Fever',
   mode_fog_title: 'Тёмный сектор: Зона затмения',
@@ -103,6 +107,8 @@ export const ru: LocaleDefinition = {
   ctrl_erase: 'Стереть',
   ctrl_notes: 'Заметки',
   ctrl_hint: 'Подсказка',
+  hint: 'Подсказка',
+  watch_ad_hint: '+1 Подсказка',
   ctrl_restart: 'Заново',
   ctrl_pause: 'Пауза',
 
@@ -113,6 +119,7 @@ export const ru: LocaleDefinition = {
   pause_menu: 'Главное меню',
 
   win_title: '🎉 Победа!',
+  win_subtitle: 'Головоломка успешно решена!',
   win_time: 'Время',
   win_score: 'Счёт',
   win_combo: 'Макс. комбо',
@@ -215,6 +222,9 @@ export const ru: LocaleDefinition = {
   lb_mode_duels: '🤖 ИИ-Дуэли',
   lb_mode_classic: '⚡ Классика',
   profile_nickname: 'Никнейм:',
+  profile_past_seasons_title: 'Прошлые сезоны:',
+  stat_played: 'Ветеран Pulse',
+  streak_restored: '🔥 Стрик восстановлен! Заберите награду!',
   profile_cyber_league: 'Кибер-Лига:',
   profile_games_ratio: 'Партий сыграно / Побед:',
   profile_max_combo: 'Максимальное комбо:',
@@ -281,6 +291,7 @@ export const ru: LocaleDefinition = {
   shop_hints_title: 'Пакет: 20 подсказок',
   shop_hints_desc: '+20 подсказок для мгновенного раскрытия сложнейших ячеек',
   shop_btn_buy: 'Купить',
+  btn_buy: 'Купить',
   shop_btn_restore: '🔄 Восстановить',
   shop_owned: 'Куплено ✅',
   shop_toast_success: '🎉 Покупка успешно совершена! Спасибо за поддержку!',

@@ -24,6 +24,10 @@ export const en: LocaleDefinition = {
 
   // Mode Selection
   mode_select_title: 'Select Game Mode',
+  mode_classic: 'Classic',
+  mode_fog: 'Dark Sector',
+  mode_run: 'Pulse Run',
+  mode_daily: 'Daily',
   mode_classic_title: 'Classic',
   mode_classic_desc: 'Pure sudoku with dynamic combo scoring and Fever mode',
   mode_fog_title: 'Dark Sector: Eclipse Zone',
@@ -103,6 +107,8 @@ export const en: LocaleDefinition = {
   ctrl_erase: 'Erase',
   ctrl_notes: 'Notes',
   ctrl_hint: 'Hint',
+  hint: 'Hint',
+  watch_ad_hint: '+1 Hint',
   ctrl_restart: 'Restart',
   ctrl_pause: 'Pause',
 
@@ -113,6 +119,7 @@ export const en: LocaleDefinition = {
   pause_menu: 'Main Menu',
 
   win_title: '🎉 Victory!',
+  win_subtitle: 'Puzzle solved successfully!',
   win_time: 'Time',
   win_score: 'Score',
   win_combo: 'Max Combo',
@@ -216,6 +223,9 @@ export const en: LocaleDefinition = {
   lb_mode_duels: '🤖 AI Duels',
   lb_mode_classic: '⚡ Classic',
   profile_nickname: 'Nickname:',
+  profile_past_seasons_title: 'Past seasons:',
+  stat_played: 'Pulse Veteran',
+  streak_restored: '🔥 Streak restored! Claim your daily reward!',
   profile_cyber_league: 'Cyber League:',
   profile_games_ratio: 'Games Played / Victories:',
   profile_max_combo: 'Max Combo:',
@@ -281,6 +291,7 @@ export const en: LocaleDefinition = {
   shop_hints_title: '20 Hints Pack',
   shop_hints_desc: '+20 hints for instant solution of tough cells',
   shop_btn_buy: 'Buy',
+  btn_buy: 'Buy',
   shop_btn_restore: '🔄 Restore',
   shop_owned: 'Owned ✅',
   shop_toast_success: '🎉 Purchase successful! Thank you for supporting the game!',

@@ -939,6 +939,21 @@ export class SudokuUI {
       this.renderDuelHistory();
       this.renderSeasonArchive();
       this.renderPlayerSeasonMedals();
+      if (this.currentScreen === 'game' && this.game) {
+        this.renderToolbar();
+        const modeIcons: Record<string, string> = {
+          classic: '⚡',
+          fog: '🌌',
+          daily: '📅',
+          run: '🚀',
+          ai_duel: '🤖',
+          live_duel: '⚔️',
+        };
+        const stageSuffix = this.game.mode === 'run' ? ` • ${t('stage_fmt', { stage: this.game.runStage || 1 })}` : '';
+        if (this.gameModeBadge) {
+          this.gameModeBadge.textContent = `${modeIcons[this.game.mode] || '⚡'} ${this.getModeLabel(this.game.mode)}${stageSuffix}`;
+        }
+      }
     });
 
     // Background cloud sync on start
@@ -1741,7 +1756,7 @@ export class SudokuUI {
         this.stopLiveLobbyPolling();
         this.game.mode = 'classic';
         if (this.aiDuelHud) this.aiDuelHud.classList.add('hidden');
-        if (this.gameModeBadge) this.gameModeBadge.textContent = '⚡ Классика';
+        if (this.gameModeBadge) this.gameModeBadge.textContent = `⚡ ${this.getModeLabel('classic')}`;
         if (this.game.status === 'paused') {
           this.game.resumeTimer();
         }
@@ -3014,11 +3029,11 @@ export class SudokuUI {
     this.notesBtn.classList.toggle('active', this.game.isNotesMode);
 
     if (this.game.hintsRemaining > 0) {
-      this.hintBtnLabel.textContent = t('hint', 'Подсказка');
+      this.hintBtnLabel.textContent = t('ctrl_hint', t('hint', 'Подсказка'));
       this.hintCounterBadge.textContent = this.game.hintsRemaining.toString();
       this.hintCounterBadge.className = 'badge-counter';
     } else {
-      this.hintBtnLabel.textContent = t('watch_ad_hint', '+1 Подсказка');
+      this.hintBtnLabel.textContent = t('watch_ad_hint', `+1 ${t('ctrl_hint', 'Подсказка')}`);
       this.hintCounterBadge.textContent = '🎬';
       this.hintCounterBadge.className = 'badge-counter ad-badge';
     }
@@ -4248,7 +4263,7 @@ export class SudokuUI {
       this.currentLiveLobbyId = null;
       this.game.mode = 'classic';
       if (this.aiDuelHud) this.aiDuelHud.classList.add('hidden');
-      if (this.gameModeBadge) this.gameModeBadge.textContent = '⚡ Классика';
+      if (this.gameModeBadge) this.gameModeBadge.textContent = `⚡ ${this.getModeLabel('classic')}`;
       if (this.duelResultBanner) this.duelResultBanner.classList.add('hidden');
       const isEn = i18n.getLanguage() === 'en';
       this.showToast(isEn ? '🧩 Continuing solo in Classic mode!' : '🧩 Продолжаем дорешивать соло в классическом режиме!');

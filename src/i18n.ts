@@ -211,3 +211,11 @@ export const t = (
   defaultTextOrParams?: string | Record<string, string | number>,
   params?: Record<string, string | number>
 ): string => i18n.t(key, defaultTextOrParams, params);
+
+export const trText = (ruStr: string, enStr: string, trStr: string): string => {
+  const lang = i18n.getLanguage();
+  if (lang === 'tr') return trStr;
+  if (lang === 'en') return enStr;
+  return ruStr;
+};
+
