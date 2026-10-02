@@ -1780,30 +1780,8 @@ export class SudokuUI {
       this.promptExitGame();
     });
 
-    // Language select dropdown
-    const langSelect = document.getElementById('setting-lang-select') as HTMLSelectElement | null;
-    if (langSelect) {
-      langSelect.value = i18n.getLanguage();
-      langSelect.addEventListener('change', () => {
-        soundManager.playSelect();
-        haptics.selection();
-        const selected = langSelect.value as Language;
-        if (selected) {
-          i18n.setLanguage(selected);
-        }
-      });
-    }
-
-    // Language switch buttons (if present)
-    SUPPORTED_LANGUAGES.forEach((lng) => {
-      const btn = document.getElementById(`lang-btn-${lng}`);
-      btn?.addEventListener('click', () => {
-        soundManager.playSelect();
-        haptics.selection();
-        i18n.setLanguage(lng);
-        if (langSelect) langSelect.value = lng;
-      });
-    });
+    // Custom Language Flag Dropdown
+    this.initLanguageDropdown();
 
     // Sound / Theme toggles
     this.soundToggleBtn.addEventListener('click', () => this.toggleSound());
@@ -2399,6 +2377,138 @@ export class SudokuUI {
         return;
       }
     });
+  }
+
+  private initLanguageDropdown() {
+    const container = document.getElementById('lang-dropdown-container');
+    const btn = document.getElementById('lang-dropdown-btn');
+    const menu = document.getElementById('lang-dropdown-menu');
+    const flagEl = document.getElementById('lang-active-flag');
+    const labelEl = document.getElementById('lang-active-label');
+    const langSelectFallback = document.getElementById('setting-lang-select') as HTMLSelectElement | null;
+
+    if (!container || !btn || !menu || !flagEl || !labelEl) return;
+
+    const LANG_DATA: Record<Language, { label: string; flagSvg: string }> = {
+      ru: {
+        label: 'Русский',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#fff"/><rect y="160" width="640" height="160" fill="#0039a6"/><rect y="320" width="640" height="160" fill="#d52b1e"/></svg>',
+      },
+      en: {
+        label: 'English',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#bd3d44"/><path stroke="#fff" stroke-width="37" d="M0,55H640M0,129H640M0,203H640M0,277H640M0,351H640M0,425H640"/><rect width="260" height="260" fill="#192f5d"/><g fill="#fff"><circle cx="45" cy="40" r="9"/><circle cx="105" cy="40" r="9"/><circle cx="165" cy="40" r="9"/><circle cx="225" cy="40" r="9"/><circle cx="75" cy="80" r="9"/><circle cx="135" cy="80" r="9"/><circle cx="195" cy="80" r="9"/><circle cx="45" cy="120" r="9"/><circle cx="105" cy="120" r="9"/><circle cx="165" cy="120" r="9"/><circle cx="225" cy="120" r="9"/><circle cx="75" cy="160" r="9"/><circle cx="135" cy="160" r="9"/><circle cx="195" cy="160" r="9"/><circle cx="45" cy="200" r="9"/><circle cx="105" cy="200" r="9"/><circle cx="165" cy="200" r="9"/><circle cx="225" cy="200" r="9"/></g></svg>',
+      },
+      fr: {
+        label: 'Français',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="213.3" height="480" fill="#002395"/><rect x="213.3" width="213.4" height="480" fill="#fff"/><rect x="426.7" width="213.3" height="480" fill="#ed2939"/></svg>',
+      },
+      de: {
+        label: 'Deutsch',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#dd0000"/><rect y="320" width="640" height="160" fill="#ffce00"/></svg>',
+      },
+      es: {
+        label: 'Español',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="120" fill="#aa151b"/><rect y="120" width="640" height="240" fill="#f1bf00"/><rect y="360" width="640" height="120" fill="#aa151b"/><circle cx="160" cy="240" r="28" fill="#aa151b"/></svg>',
+      },
+      tr: {
+        label: 'Türkçe',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#e30a17"/><circle cx="250" cy="240" r="120" fill="#fff"/><circle cx="280" cy="240" r="96" fill="#e30a17"/><polygon points="370,240 330,225 345,265 345,215 330,255" fill="#fff"/></svg>',
+      },
+      zh: {
+        label: '简体中文',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#de2910"/><g fill="#ffde00"><polygon points="100,50 115,95 160,95 125,120 140,165 100,135 60,165 75,120 40,95 85,95"/><polygon points="180,45 185,60 200,60 188,70 192,85 180,75 168,85 172,70 160,60 175,60"/><polygon points="220,85 225,100 240,100 228,110 232,125 220,115 208,125 212,110 200,100 215,100"/><polygon points="220,145 225,160 240,160 228,170 232,185 220,175 208,185 212,170 200,160 215,160"/><polygon points="180,185 185,200 200,200 188,210 192,225 180,215 168,225 172,210 160,200 175,200"/></g></svg>',
+      },
+      ar: {
+        label: 'العربية',
+        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#007a3d"/><polygon points="0,0 240,240 0,480" fill="#c8102e"/></svg>',
+      },
+    };
+
+    const updateActiveView = (current: Language) => {
+      const data = LANG_DATA[current] || LANG_DATA.en;
+      flagEl.innerHTML = data.flagSvg;
+      labelEl.textContent = data.label;
+      if (langSelectFallback) langSelectFallback.value = current;
+
+      menu.querySelectorAll<HTMLButtonElement>('.lang-option-item').forEach((item) => {
+        const itemLang = item.getAttribute('data-lang');
+        item.classList.toggle('active', itemLang === current);
+      });
+    };
+
+    menu.innerHTML = '';
+    SUPPORTED_LANGUAGES.forEach((lang) => {
+      const data = LANG_DATA[lang];
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'lang-option-item';
+      opt.setAttribute('data-lang', lang);
+      opt.setAttribute('role', 'option');
+      opt.innerHTML = `
+        <span class="lang-flag-icon">${data.flagSvg}</span>
+        <span class="lang-option-text">${data.label}</span>
+      `;
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        soundManager.playSelect();
+        haptics.selection();
+        i18n.setLanguage(lang);
+        updateActiveView(lang);
+        closeMenu();
+      });
+      menu.appendChild(opt);
+    });
+
+    const openMenu = () => {
+      container.classList.add('open');
+      menu.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+    };
+
+    const closeMenu = () => {
+      container.classList.remove('open');
+      menu.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      soundManager.playSelect();
+      haptics.light();
+      if (menu.classList.contains('hidden')) {
+        openMenu();
+      } else {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!container.contains(e.target as Node)) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeMenu();
+      }
+    });
+
+    if (langSelectFallback) {
+      langSelectFallback.addEventListener('change', () => {
+        const selected = langSelectFallback.value as Language;
+        if (selected) {
+          i18n.setLanguage(selected);
+          updateActiveView(selected);
+        }
+      });
+    }
+
+    i18n.onLanguageChange((newLang) => {
+      updateActiveView(newLang);
+    });
+
+    updateActiveView(i18n.getLanguage());
   }
 
   private updateDifficultyPillsForMode() {
