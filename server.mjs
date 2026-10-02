@@ -40,6 +40,19 @@ const DEFAULT_LEADERBOARD = [
   { name: 'Valkyrie_X', score: 9800, timeSeconds: 164, mode: 'classic', combo: 8, date: '2026-09-24' },
   { name: 'MatrixRunner', score: 8400, timeSeconds: 240, mode: 'fog', combo: 7, date: '2026-09-24' },
   { name: 'SynthWave88', score: 6900, timeSeconds: 195, mode: 'daily', combo: 6, date: '2026-09-24' },
+  { name: 'CyberValkyrie', score: 1540, duelElo: 1540, duelWins: 32, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'ShadowPulse', score: 1380, duelElo: 1380, duelWins: 24, duelLosses: 10, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'GridMaster_99', score: 1250, duelElo: 1250, duelWins: 19, duelLosses: 11, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'NeonSamurai', score: 1160, duelElo: 1160, duelWins: 14, duelLosses: 9, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'QuantumByte', score: 1090, duelElo: 1090, duelWins: 11, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
+];
+
+const DEFAULT_PVP_DUELISTS = [
+  { name: 'CyberValkyrie', score: 1540, duelElo: 1540, duelWins: 32, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'ShadowPulse', score: 1380, duelElo: 1380, duelWins: 24, duelLosses: 10, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'GridMaster_99', score: 1250, duelElo: 1250, duelWins: 19, duelLosses: 11, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'NeonSamurai', score: 1160, duelElo: 1160, duelWins: 14, duelLosses: 9, mode: 'pvp_duel', date: '2026-10-01' },
+  { name: 'QuantumByte', score: 1090, duelElo: 1090, duelWins: 11, duelLosses: 8, mode: 'pvp_duel', date: '2026-10-01' },
 ];
 
 function ensureDb() {
@@ -56,7 +69,13 @@ function readLeaderboard() {
     ensureDb();
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
     const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : DEFAULT_LEADERBOARD;
+    const arr = Array.isArray(list) ? list : DEFAULT_LEADERBOARD;
+    const hasPvp = arr.some((e) => e.mode === 'pvp_duel');
+    if (!hasPvp) {
+      arr.push(...DEFAULT_PVP_DUELISTS);
+      try { saveLeaderboard(arr); } catch {}
+    }
+    return arr;
   } catch {
     return DEFAULT_LEADERBOARD;
   }
@@ -234,19 +253,55 @@ const server = http.createServer((req, res) => {
       const requestedMode = parsedUrl.searchParams.get('mode') || 'all';
 
       const allEntries = readLeaderboard();
-      let filtered = allEntries;
+
+      // Merge profiles with duel stats into pvp_duel entries
+      const profiles = readProfiles();
+      const pvpEntriesFromProfiles = [];
+      const seenPvpKeys = new Set();
+      for (const e of allEntries) {
+        if (e.mode === 'pvp_duel') {
+          const k = (e.playerId && String(e.playerId).trim()) || (e.name ? String(e.name).toLowerCase().trim() : '');
+          if (k) seenPvpKeys.add(k);
+        }
+      }
+      for (const [key, p] of Object.entries(profiles)) {
+        if (!p || !p.stats) continue;
+        const pId = p.key || key;
+        const pName = p.playerName || (p.telegramUser?.username ? `@${p.telegramUser.username}` : '');
+        const pKey = pId || (pName ? pName.toLowerCase() : '');
+        if (!pKey || seenPvpKeys.has(pKey)) continue;
+        const s = p.stats;
+        if ((s.duelWins && s.duelWins > 0) || (s.duelLosses && s.duelLosses > 0) || (s.duelElo && s.duelElo !== 1000)) {
+          seenPvpKeys.add(pKey);
+          pvpEntriesFromProfiles.push({
+            playerId: pId,
+            name: pName || 'Игрок',
+            score: s.duelElo || 1000,
+            duelElo: s.duelElo || 1000,
+            duelWins: s.duelWins || 0,
+            duelLosses: s.duelLosses || 0,
+            mode: 'pvp_duel',
+            date: p.updatedAt ? p.updatedAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+          });
+        }
+      }
+
+      let combined = [...allEntries, ...pvpEntriesFromProfiles];
+      let filtered = combined;
       if (period === 'season') {
-        filtered = allEntries.filter((e) => {
+        filtered = combined.filter((e) => {
           const sId = e.seasonId || (e.date ? getIsoSeasonId(new Date(e.date)) : currentSeason);
           return sId === requestedSeason;
         });
       }
-      if (requestedMode && requestedMode !== 'all') {
+      if (requestedMode === 'all') {
+        filtered = filtered.filter((e) => e.mode !== 'pvp_duel');
+      } else if (requestedMode) {
         filtered = filtered.filter((e) => (e.mode || 'classic') === requestedMode);
       }
 
       const sorted = filtered
-        .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds);
+        .sort((a, b) => b.score - a.score || (a.timeSeconds || 0) - (b.timeSeconds || 0));
 
       const deduplicated = deduplicateLeaderboardEntries(sorted);
 
@@ -304,10 +359,13 @@ const server = http.createServer((req, res) => {
           }
 
           const score = Math.max(0, Math.min(9999999, Number(payload.score) || 0));
-          const timeSeconds = Math.max(1, Number(payload.timeSeconds) || 999);
-          const mode = String(payload.mode || 'classic').slice(0, 12);
+          const timeSeconds = Math.max(0, Number(payload.timeSeconds) || 0);
+          const mode = String(payload.mode || 'classic').slice(0, 16);
           const combo = Math.max(1, Number(payload.combo) || 1);
           const runStage = Math.max(1, Number(payload.runStage) || 1);
+          const duelElo = Number(payload.duelElo) || (mode === 'pvp_duel' ? score : undefined);
+          const duelWins = Number(payload.duelWins) || 0;
+          const duelLosses = Number(payload.duelLosses) || 0;
           const date = new Date().toISOString().split('T')[0];
           const seasonId = String(payload.seasonId || '').trim() || getIsoSeasonId();
 
@@ -317,16 +375,29 @@ const server = http.createServer((req, res) => {
               ? list.findIndex((e) => e.playerId === playerId && (e.mode || 'classic') === mode)
               : list.findIndex((e) => !e.playerId && e.name.toLowerCase() === name.toLowerCase() && (e.mode || 'classic') === mode);
 
+            const newEntry = {
+              playerId,
+              name,
+              score,
+              timeSeconds,
+              mode,
+              combo,
+              runStage,
+              date,
+              seasonId,
+              ...(duelElo !== undefined ? { duelElo, duelWins, duelLosses } : {}),
+            };
+
             if (existingIdx !== -1) {
               list[existingIdx].name = name;
-              if (score >= list[existingIdx].score) {
-                list[existingIdx] = { playerId, name, score, timeSeconds, mode, combo, runStage, date, seasonId };
+              if (mode === 'pvp_duel' || score >= list[existingIdx].score) {
+                list[existingIdx] = newEntry;
               }
             } else {
-              list.push({ playerId, name, score, timeSeconds, mode, combo, runStage, date, seasonId });
+              list.push(newEntry);
             }
             const sorted = list
-              .sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds)
+              .sort((a, b) => b.score - a.score || (a.timeSeconds || 0) - (b.timeSeconds || 0))
               .slice(0, 500);
             saveLeaderboard(sorted);
 
@@ -383,6 +454,7 @@ const server = http.createServer((req, res) => {
           const payload = JSON.parse(body || '{}');
           const hostId = String(payload.hostId || 'p_' + crypto.randomBytes(4).toString('hex'));
           const hostName = String(payload.hostName || 'Игрок 1').slice(0, 18);
+          const hostElo = Number(payload.elo) || 1000;
           const difficulty = ['easy', 'medium', 'hard', 'expert'].includes(payload.difficulty) ? payload.difficulty : 'medium';
           const seed = Math.floor(100000 + Math.random() * 900000);
           const code = generateLobbyCode();
@@ -408,6 +480,7 @@ const server = http.createServer((req, res) => {
               id: hostId,
               name: hostName,
               avatarUrl,
+              elo: hostElo,
               filled: 0,
               total: 45,
               mistakes: 0,
@@ -422,7 +495,7 @@ const server = http.createServer((req, res) => {
 
           liveLobbies.set(lobbyId, lobby);
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ success: true, lobbyId, code, seed, difficulty, hostName }));
+          res.end(JSON.stringify({ success: true, lobbyId, code, seed, difficulty, hostName, hostElo }));
           return;
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -441,6 +514,7 @@ const server = http.createServer((req, res) => {
           const payload = JSON.parse(body || '{}');
           const playerId = String(payload.playerId || 'p_' + crypto.randomBytes(4).toString('hex'));
           const playerName = String(payload.playerName || 'Игрок').slice(0, 18);
+          const playerElo = Number(payload.elo) || 1000;
           const difficulty = ['easy', 'medium', 'hard', 'expert'].includes(payload.difficulty) ? payload.difficulty : 'medium';
           const now = Date.now();
 
@@ -463,6 +537,7 @@ const server = http.createServer((req, res) => {
               id: playerId,
               name: playerName,
               avatarUrl,
+              elo: playerElo,
               filled: 0,
               total: targetLobby.host.total || 45,
               mistakes: 0,
@@ -485,7 +560,9 @@ const server = http.createServer((req, res) => {
               seed: targetLobby.seed,
               difficulty: targetLobby.difficulty,
               hostName: targetLobby.host.name,
+              hostElo: targetLobby.host.elo || 1000,
               guestName: playerName,
+              guestElo: playerElo,
             }));
             return;
           }
@@ -515,6 +592,7 @@ const server = http.createServer((req, res) => {
               id: playerId,
               name: playerName,
               avatarUrl,
+              elo: playerElo,
               filled: 0,
               total: 45,
               mistakes: 0,
@@ -538,6 +616,7 @@ const server = http.createServer((req, res) => {
             seed,
             difficulty,
             hostName: playerName,
+            hostElo: playerElo,
           }));
           return;
         } catch {
@@ -558,6 +637,7 @@ const server = http.createServer((req, res) => {
           const codeInput = String(payload.code || '').trim();
           const guestId = String(payload.guestId || 'p_' + crypto.randomBytes(4).toString('hex'));
           const guestName = String(payload.guestName || 'Игрок 2').slice(0, 18);
+          const guestElo = Number(payload.elo || payload.guestElo) || 1000;
 
           let targetLobby = null;
           for (const l of liveLobbies.values()) {
@@ -578,6 +658,7 @@ const server = http.createServer((req, res) => {
             id: guestId,
             name: guestName,
             avatarUrl,
+            elo: guestElo,
             filled: 0,
             total: targetLobby.host.total || 45,
             mistakes: 0,
@@ -598,7 +679,9 @@ const server = http.createServer((req, res) => {
             seed: targetLobby.seed,
             difficulty: targetLobby.difficulty,
             hostName: targetLobby.host.name,
+            hostElo: targetLobby.host.elo || 1000,
             guestName,
+            guestElo,
           }));
           return;
         } catch {
@@ -795,7 +878,7 @@ const server = http.createServer((req, res) => {
               lobby.status = 'finished';
               lobby.finishedAt = Date.now();
             }
-          } else if (payload.action === 'leave') {
+          } else if (payload.action === 'leave' || payload.action === 'abandon') {
             lobby.status = 'finished';
             lobby.winner = isHost ? 'guest' : 'host';
             lobby.abandonedBy = isHost ? 'host' : 'guest';
@@ -1105,6 +1188,10 @@ const server = http.createServer((req, res) => {
             flawlessWins: Math.max(existingStats.flawlessWins || 0, incomingStats.flawlessWins || 0),
             darkSectorWins: Math.max(existingStats.darkSectorWins || 0, incomingStats.darkSectorWins || 0),
             expertDarkSectorWins: Math.max(existingStats.expertDarkSectorWins || 0, incomingStats.expertDarkSectorWins || 0),
+            duelElo: incomingStats.duelElo !== undefined ? Number(incomingStats.duelElo) : (existingStats.duelElo !== undefined ? Number(existingStats.duelElo) : 1000),
+            duelWins: Math.max(existingStats.duelWins || 0, incomingStats.duelWins || 0),
+            duelLosses: Math.max(existingStats.duelLosses || 0, incomingStats.duelLosses || 0),
+            duelMatches: Math.max(existingStats.duelMatches || 0, incomingStats.duelMatches || 0),
             bestTimeSeconds: {
               easy: incomingStats.bestTimeSeconds?.easy ?? existingStats.bestTimeSeconds?.easy ?? null,
               medium: incomingStats.bestTimeSeconds?.medium ?? existingStats.bestTimeSeconds?.medium ?? null,

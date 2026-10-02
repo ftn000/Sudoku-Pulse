@@ -247,6 +247,9 @@ export class SudokuUI {
     runStage?: number;
     timeSeconds?: number;
     date?: string;
+    duelElo?: number;
+    duelWins?: number;
+    duelLosses?: number;
   }> = [];
   private cachedMyRank: { rank: number; entry: any } | null = null;
   private statPlayed!: HTMLElement;
@@ -1375,7 +1378,11 @@ export class SudokuUI {
         this.leaderboardFilterTabs.forEach((t) => t.classList.remove('active'));
         tab.classList.add('active');
         this.currentLeaderboardModeFilter = tab.getAttribute('data-lb-mode') || 'all';
-        this.renderLeaderboardList();
+        if (this.currentLeaderboardModeFilter === 'pvp_duel' && (!this.cachedLeaderboardEntries.some((e) => e.mode === 'pvp_duel') || yandexBridge.isYandex())) {
+          this.fetchAndRenderLeaderboard();
+        } else {
+          this.renderLeaderboardList();
+        }
       });
     });
 
@@ -2880,8 +2887,12 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       playerStats.duelElo = newElo;
       playerStats.duelWins = (playerStats.duelWins || 0) + 1;
+      playerStats.duelMatches = (playerStats.duelMatches || 0) + 1;
       SudokuGame.savePlayerStats(playerStats);
       this.updateLobbyEloDisplay();
+      if (!this.isLiveBotDuel) {
+        this.submitDuelScoreToLeaderboard(newElo, playerStats.duelWins, playerStats.duelLosses || 0);
+      }
 
       if (this.duelWinEloBox) {
         this.duelWinEloBox.textContent = `+${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
@@ -3267,12 +3278,37 @@ export class SudokuUI {
     }
   }
 
+  private async submitDuelScoreToLeaderboard(elo: number, wins: number, losses: number) {
+    try {
+      const playerId = SudokuGame.getOrCreatePlayerId();
+      const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || this.playerNameInput?.value || 'Игрок').trim() || 'Игрок';
+      const apiBase = `${getApiBaseUrl()}/leaderboard`;
+      await fetch(apiBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId,
+          name: playerName,
+          score: elo,
+          duelElo: elo,
+          duelWins: wins,
+          duelLosses: losses,
+          mode: 'pvp_duel',
+          timeSeconds: 0,
+        }),
+      });
+      this.syncWithCloud(false).catch(() => {});
+    } catch {
+      // Offline or local dev server without /api/leaderboard — silently ignore
+    }
+  }
+
   private async fetchAndRenderLeaderboard() {
     if (!this.leaderboardList) return;
     const isEn = i18n.getLanguage() === 'en';
     this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Loading server leaderboards...' : 'Загрузка онлайн-рекордов...'}</div>`;
 
-    if (yandexBridge.isYandex()) {
+    if (yandexBridge.isYandex() && this.currentLeaderboardModeFilter !== 'pvp_duel') {
       try {
         const yEntries = await yandexBridge.getLeaderboardEntries('records', 30);
         if (yEntries && yEntries.length > 0) {
@@ -3298,11 +3334,22 @@ export class SudokuUI {
     try {
       const myPlayerId = SudokuGame.getOrCreatePlayerId();
       const apiBase = `${getApiBaseUrl()}/leaderboard`;
-      const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}&playerId=${encodeURIComponent(myPlayerId)}`;
+      const modeParam = this.currentLeaderboardModeFilter === 'pvp_duel' ? '&mode=pvp_duel' : '';
+      const url = `${apiBase}?period=${this.currentLeaderboardTimeframe}&playerId=${encodeURIComponent(myPlayerId)}${modeParam}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Network response was not ok');
       const data = await res.json();
-      this.cachedLeaderboardEntries = data.entries || data.leaderboard || [];
+      const fetchedEntries: Array<any> = data.entries || data.leaderboard || [];
+
+      if (this.currentLeaderboardModeFilter === 'pvp_duel') {
+        this.cachedLeaderboardEntries = [
+          ...this.cachedLeaderboardEntries.filter((e) => e.mode !== 'pvp_duel'),
+          ...fetchedEntries,
+        ];
+      } else {
+        this.cachedLeaderboardEntries = fetchedEntries;
+      }
+
       this.currentSeasonId = data.seasonId || data.currentSeason || '';
       this.cachedMyRank = data.myRank || null;
       this.renderLeaderboardList();
@@ -3316,14 +3363,43 @@ export class SudokuUI {
     const isEn = i18n.getLanguage() === 'en';
     const locale = isEn ? 'en-US' : 'ru-RU';
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
+    const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).trim();
     let entries = [...this.cachedLeaderboardEntries];
 
-    if (this.currentLeaderboardModeFilter !== 'all') {
+    const isPvpMode = this.currentLeaderboardModeFilter === 'pvp_duel';
+
+    // Ensure local player duel entry is in entries if looking at PvP or if not yet synced
+    if (isPvpMode) {
+      const stats = SudokuGame.getPlayerStats();
+      const myElo = stats.duelElo || 1000;
+      const hasMyPvp = entries.some((e) => e.mode === 'pvp_duel' && (e.playerId === myPlayerId || e.name.toLowerCase() === myPlayerName.toLowerCase()));
+      if (!hasMyPvp) {
+        entries.push({
+          playerId: myPlayerId,
+          name: myPlayerName,
+          score: myElo,
+          duelElo: myElo,
+          duelWins: stats.duelWins || 0,
+          duelLosses: stats.duelLosses || 0,
+          mode: 'pvp_duel',
+          date: new Date().toISOString().slice(0, 10),
+        });
+      }
+    }
+
+    if (this.currentLeaderboardModeFilter === 'all') {
+      entries = entries.filter((e) => e.mode !== 'pvp_duel');
+    } else if (this.currentLeaderboardModeFilter) {
       entries = entries.filter((e) => e.mode === this.currentLeaderboardModeFilter);
     }
 
-    // Sort descending by score, then ascending by time
-    entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.timeSeconds || 0) - (b.timeSeconds || 0)));
+    if (isPvpMode) {
+      // Sort descending by ELO, then wins
+      entries.sort((a, b) => (b.duelElo || b.score || 0) - (a.duelElo || a.score || 0) || ((b.duelWins || 0) - (a.duelWins || 0)));
+    } else {
+      // Sort descending by score, then ascending by time
+      entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.timeSeconds || 0) - (b.timeSeconds || 0)));
+    }
 
     // Deduplicate entries so each player appears only once with their single best record in this view
     const seen = new Set<string>();
@@ -3353,19 +3429,49 @@ export class SudokuUI {
     }
 
     if (entries.length === 0) {
-      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'No records in this category yet.' : 'Пока нет записей в этом режиме.'}</div>`;
+      const emptyMsg = isPvpMode
+        ? (isEn ? 'No 1v1 PvP records yet. Play a duel match to climb the leaderboard!' : 'Пока нет записей 1v1 PvP. Сыграйте дуэль, чтобы возглавить рейтинг!')
+        : (isEn ? 'No records in this category yet.' : 'Пока нет записей в этом режиме.');
+      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${emptyMsg}</div>`;
       return;
     }
 
     const topEntries = entries.slice(0, 30);
-    const isUserInTop = topEntries.some((item) => item.playerId && item.playerId === myPlayerId);
+    const isUserInTop = topEntries.some((item) => (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase()));
 
     const listHtml = topEntries.map((item, idx) => {
       const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
-      const isMe = item.playerId && item.playerId === myPlayerId;
+      const isMe = (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase());
       const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
       const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
+
+      if (isPvpMode || item.mode === 'pvp_duel') {
+        const elo = item.duelElo || item.score || 1000;
+        const rankTitle = this.getDuelRankName(elo);
+        const wins = item.duelWins || 0;
+        const losses = item.duelLosses || 0;
+        const recordStr = (wins > 0 || losses > 0)
+          ? `<span style="font-size:0.75rem; color:var(--text-muted); margin-left:4px;">(${wins}W - ${losses}L)</span>`
+          : '';
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
+              <span style="font-weight:700; min-width:24px;">${medal}</span>
+              <span style="font-size:0.95rem;">⚔️</span>
+              <div style="display:flex; flex-direction:column; min-width:0;">
+                <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+                  <span style="font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${isMe ? (isEn ? ' <span style="color:var(--accent); font-size:0.75rem;">(You)</span>' : ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>') : ''}</span>
+                  ${recordStr}
+                </div>
+                <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
+              </div>
+            </div>
+            <span style="font-weight:800; color:#38bdf8; white-space:nowrap; padding-left:8px; font-size:0.92rem;">${elo} ELO</span>
+          </div>
+        `;
+      }
+
+      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
       const league = getLeagueForScore(item.score);
       return `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
@@ -3381,8 +3487,8 @@ export class SudokuUI {
     }).join('');
 
     let pinnedUserHtml = '';
-    const myEntryInCurrentList = entries.find((item) => item.playerId && item.playerId === myPlayerId);
-    const myIndexInCurrentList = entries.findIndex((item) => item.playerId && item.playerId === myPlayerId);
+    const myEntryInCurrentList = entries.find((item) => (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase()));
+    const myIndexInCurrentList = entries.findIndex((item) => (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase()));
 
     if (!isUserInTop) {
       let myRank: number | null = null;
@@ -3397,22 +3503,51 @@ export class SudokuUI {
       }
 
       if (myRank && item) {
-        const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
-        const league = getLeagueForScore(item.score);
-        pinnedUserHtml = `
-          <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
-            <span>•••••••••••••</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
-              <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-              <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
-              <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+        if (isPvpMode || item.mode === 'pvp_duel') {
+          const elo = item.duelElo || item.score || 1000;
+          const rankTitle = this.getDuelRankName(elo);
+          const wins = item.duelWins || 0;
+          const losses = item.duelLosses || 0;
+          const recordStr = (wins > 0 || losses > 0)
+            ? `<span style="font-size:0.75rem; color:var(--text-muted); margin-left:4px;">(${wins}W - ${losses}L)</span>`
+            : '';
+          pinnedUserHtml = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
+              <span>•••••••••••••</span>
             </div>
-            <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
-          </div>
-        `;
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+              <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
+                <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
+                <span style="font-size:0.95rem;">⚔️</span>
+                <div style="display:flex; flex-direction:column; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
+                    <span style="font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+                    ${recordStr}
+                  </div>
+                  <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
+                </div>
+              </div>
+              <span style="font-weight:800; color:#38bdf8; white-space:nowrap; padding-left:8px; font-size:0.95rem;">${elo} ELO</span>
+            </div>
+          `;
+        } else {
+          const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
+          const league = getLeagueForScore(item.score);
+          pinnedUserHtml = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
+              <span>•••••••••••••</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
+                <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+                <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+              </div>
+              <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
+            </div>
+          `;
+        }
       }
     }
 
@@ -3532,16 +3667,31 @@ export class SudokuUI {
     const exitIcon = document.getElementById('exit-confirm-icon');
 
     if (isDuel) {
+      const stats = SudokuGame.getPlayerStats();
+      const playerElo = stats.duelElo || 1000;
+      const oppElo = this.currentOpponentElo || 1000;
+      const delta = this.calculateEloDelta(playerElo, oppElo, false);
+      const penalty = Math.abs(delta);
+      const newElo = Math.max(100, playerElo + delta);
+      const isHumanDuel = Boolean((this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'live_duel') && !this.isLiveBotDuel && this.game.mode !== 'ai_duel');
+      const oppLabel = isHumanDuel ? this.liveOpponentName : (this.liveOpponentName || 'AI');
+
       if (exitCard) exitCard.style.borderColor = 'rgba(239, 68, 68, 0.45)';
       if (exitIcon) exitIcon.textContent = '🚪';
       this.exitConfirmTitle.style.color = '#f87171';
       this.exitConfirmTitle.textContent = isEn ? 'Forfeit and exit?' : 'Сдаться и выйти?';
-      this.exitConfirmDesc.textContent = isEn
-        ? '⚠️ Leaving the match now counts as an automatic forfeit and decreases your ELO rating!'
-        : '⚠️ Если вы покинете матч прямо сейчас, вам будет засчитано автоматическое техническое поражение, а ваш рейтинг ELO снизится!';
+      this.exitConfirmDesc.innerHTML = isEn
+        ? `Leaving the match against <strong>${oppLabel}</strong> counts as an automatic forfeit!<br><br>` +
+          `<div style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; color:#fca5a5; font-size:0.92rem; font-weight:700;">` +
+          `<span>📉 Rating Penalty:</span> <span style="color:#ef4444; font-size:1.05rem;">-${penalty} ELO</span> <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">(${playerElo} → ${newElo})</span>` +
+          `</div>`
+        : `Выход из дуэли против <strong>${oppLabel}</strong> считается техническим поражением!<br><br>` +
+          `<div style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; color:#fca5a5; font-size:0.92rem; font-weight:700;">` +
+          `<span>📉 Штраф рейтинга:</span> <span style="color:#ef4444; font-size:1.05rem;">-${penalty} ELO</span> <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">(${playerElo} → ${newElo})</span>` +
+          `</div>`;
       this.btnExitCancel.textContent = isEn ? '▶️ Continue Match' : '▶️ Продолжить игру';
       this.btnExitCancel.style.background = '';
-      this.btnExitConfirm.textContent = isEn ? '🚪 Forfeit (Exit)' : '🚪 Выйти (Сдаться)';
+      this.btnExitConfirm.textContent = isEn ? `🚪 Forfeit (-${penalty} ELO)` : `🚪 Сдаться (-${penalty} ELO)`;
     } else {
       if (exitCard) exitCard.style.borderColor = 'rgba(56, 189, 248, 0.45)';
       if (exitIcon) exitIcon.textContent = '💾';
@@ -3578,18 +3728,27 @@ export class SudokuUI {
           }),
         }).catch(() => {});
       }
+      const wasLiveHuman = Boolean((this.isLiveDuelActive || this.currentLiveLobbyId) && !this.isLiveBotDuel);
       this.stopLiveLobbyPolling();
       this.currentLiveLobbyId = null;
       this.isLiveDuelActive = false;
       this.stopAiBotDuel();
 
-      // Deduct ELO for forfeit
+      // Deduct ELO for forfeit dynamically
       const stats = SudokuGame.getPlayerStats();
       const playerElo = stats.duelElo || 1000;
-      stats.duelElo = Math.max(100, playerElo - 25);
+      const oppElo = this.currentOpponentElo || 1000;
+      const delta = this.calculateEloDelta(playerElo, oppElo, false);
+      const newElo = Math.max(100, playerElo + delta);
+      stats.duelElo = newElo;
       stats.duelLosses = (stats.duelLosses || 0) + 1;
+      stats.duelMatches = (stats.duelMatches || 0) + 1;
       SudokuGame.savePlayerStats(stats);
       this.updateLobbyEloDisplay();
+
+      if (wasLiveHuman) {
+        this.submitDuelScoreToLeaderboard(newElo, stats.duelWins || 0, stats.duelLosses);
+      }
     } else {
       const stats = SudokuGame.getPlayerStats();
       stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
@@ -3971,8 +4130,12 @@ export class SudokuUI {
       const newElo = Math.max(100, playerElo + delta);
       stats.duelElo = newElo;
       stats.duelLosses = (stats.duelLosses || 0) + 1;
+      stats.duelMatches = (stats.duelMatches || 0) + 1;
       SudokuGame.savePlayerStats(stats);
       this.updateLobbyEloDisplay();
+      if (this.isLiveDuelActive && !this.isLiveBotDuel) {
+        this.submitDuelScoreToLeaderboard(newElo, stats.duelWins || 0, stats.duelLosses);
+      }
 
       if (this.duelLossEloBox) {
         this.duelLossEloBox.textContent = `${delta} ELO (${newElo}) • ${this.getDuelRankName(newElo)}`;
@@ -4407,13 +4570,23 @@ export class SudokuUI {
     this.stopLiveLobbyPolling();
     this.currentLiveLobbyId = null;
 
-    // Award +25 ELO for win by forfeit
+    // Dynamic ELO calculation for win by forfeit
     const stats = SudokuGame.getPlayerStats();
+    const playerElo = stats.duelElo || 1000;
+    const oppElo = this.currentOpponentElo || 1000;
+    const delta = this.calculateEloDelta(playerElo, oppElo, true);
+    const newElo = Math.max(100, playerElo + delta);
+
     stats.duelWins = (stats.duelWins || 0) + 1;
     stats.duelMatches = (stats.duelMatches || 0) + 1;
-    stats.duelElo = (stats.duelElo || 1000) + 25;
+    stats.duelElo = newElo;
     SudokuGame.savePlayerStats(stats);
     this.updateDailyInfoOnMenu();
+    this.updateLobbyEloDisplay();
+
+    if (!this.isLiveBotDuel) {
+      this.submitDuelScoreToLeaderboard(newElo, stats.duelWins, stats.duelLosses || 0);
+    }
 
     soundManager.playOpponentAbandon();
     setTimeout(() => soundManager.playVictory(), 320);
@@ -4422,7 +4595,7 @@ export class SudokuUI {
     const isEn = i18n.getLanguage() === 'en';
     const eloEl = document.getElementById('duel-abandon-elo');
     if (eloEl) {
-      eloEl.textContent = `+25 ELO (${isEn ? 'Rating' : 'Рейтинг'}: ${stats.duelElo})`;
+      eloEl.textContent = `+${delta} ELO (${isEn ? 'Rating' : 'Рейтинг'}: ${newElo})`;
     }
 
     if (this.duelAbandonedModal) {
@@ -4659,6 +4832,9 @@ export class SudokuUI {
       const userProfile = yandexBridge.getPlayerProfile();
       const avatarUrl = userProfile?.avatarUrl || null;
 
+      const playerStats = SudokuGame.getPlayerStats();
+      const myElo = playerStats.duelElo || 1000;
+
       const res = await fetch(`${getApiBaseUrl()}/lobby/quick-match`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4667,6 +4843,7 @@ export class SudokuUI {
           playerName,
           avatarUrl,
           difficulty: this.selectedLiveDiff,
+          elo: myElo,
         }),
       });
 
@@ -4682,7 +4859,7 @@ export class SudokuUI {
         this.isLiveBotDuel = false;
         this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
         this.isQuickMatchWaiting = false;
-        this.currentOpponentElo = 1000;
+        this.currentOpponentElo = Number(data.hostElo) || 1000;
         this.showToast(isEn ? `⚡ Opponent found: ${data.hostName}!` : `⚡ Соперник найден: ${data.hostName}!`);
         this.startLiveCountdown(data.hostName, playerName, data.seed, data.difficulty);
       } else {
@@ -4755,6 +4932,8 @@ export class SudokuUI {
       if (this.btnCreateLiveRoom) this.btnCreateLiveRoom.disabled = true;
       const userProfile = yandexBridge.getPlayerProfile();
       const avatarUrl = userProfile?.avatarUrl || null;
+      const playerStats = SudokuGame.getPlayerStats();
+      const myElo = playerStats.duelElo || 1000;
       const res = await fetch(`${getApiBaseUrl()}/lobby/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4763,6 +4942,7 @@ export class SudokuUI {
           hostName,
           avatarUrl,
           difficulty: this.selectedLiveDiff,
+          elo: myElo,
         }),
       });
 
@@ -4818,6 +4998,8 @@ export class SudokuUI {
       if (this.btnJoinLiveRoom) this.btnJoinLiveRoom.disabled = true;
       const userProfile = yandexBridge.getPlayerProfile();
       const avatarUrl = userProfile?.avatarUrl || null;
+      const playerStats = SudokuGame.getPlayerStats();
+      const myElo = playerStats.duelElo || 1000;
       const res = await fetch(`${getApiBaseUrl()}/lobby/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4826,6 +5008,7 @@ export class SudokuUI {
           guestId,
           guestName,
           avatarUrl,
+          elo: myElo,
         }),
       });
 
@@ -4838,6 +5021,8 @@ export class SudokuUI {
       this.currentLiveLobbyId = data.lobbyId;
       this.currentLiveLobbyCode = data.code;
       this.isLiveHost = false;
+      this.isLiveBotDuel = false;
+      this.currentOpponentElo = Number(data.hostElo) || 1000;
       this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
 
       this.liveLobbyModal?.classList.remove('hidden');
@@ -4974,7 +5159,7 @@ export class SudokuUI {
           }
           this.isQuickMatchWaiting = false;
           this.isLiveBotDuel = false;
-          this.currentOpponentElo = 1000;
+          this.currentOpponentElo = Number(lobby.guest?.elo) || 1000;
           this.liveOpponentName = lobby.guest?.name || 'Соперник';
           if (lobby.guest?.avatarUrl) {
             this.opponentAvatarUrl = lobby.guest.avatarUrl;
@@ -5021,6 +5206,9 @@ export class SudokuUI {
         if (this.isLiveDuelActive || this.isSpectating || this.currentLiveLobbyId) {
           const opponent = this.isLiveHost ? lobby.guest : lobby.host;
           if (opponent) {
+            if (opponent.elo) {
+              this.currentOpponentElo = Number(opponent.elo);
+            }
             if (opponent.avatarUrl && opponent.avatarUrl !== this.opponentAvatarUrl) {
               this.opponentAvatarUrl = opponent.avatarUrl;
               if (this.aiBotAvatar) {
@@ -5861,10 +6049,10 @@ export class SudokuUI {
   private calculateEloDelta(playerElo: number, opponentElo: number, won: boolean): number {
     const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
     const actual = won ? 1 : 0;
-    const k = 32;
+    const k = 50;
     const rawDelta = Math.round(k * (actual - expected));
-    if (won) return Math.max(12, rawDelta);
-    return Math.min(-10, rawDelta);
+    if (won) return Math.max(5, rawDelta);
+    return Math.min(-5, rawDelta);
   }
 
   private updateLobbyEloDisplay() {
