@@ -1,0 +1,409 @@
+import { LocaleDefinition } from '../types';
+
+export const tr: LocaleDefinition = {
+  dict: {
+  "menu_daily": "Daily Pulse",
+  "menu_daily_desc": "Mod ve zorluk seçin",
+  "menu_play": "Yeni Oyun",
+  "menu_continue": "Oyuna Devam Et",
+  "menu_continue_meta": "Kaydedilen bulmaca seni bekliyor",
+  "menu_hero_subtitle": "Kombolar ve yeteneklerle neon-siber ritim Sudoku",
+  "menu_daily_tag": "Günlük Dünya Meydan Okuması",
+  "menu_streak_title": "Pulse Günleri",
+  "menu_streak_desc": "Seriyi korumak için bugün oyna",
+  "menu_achievements": "Başarımlar",
+  "menu_ach_tag": "Sektör Sınavları ve Kupalar",
+  "menu_stats": "Rekorlar",
+  "menu_tutorial": "Eğitim",
+  "menu_settings": "Ayarlar",
+  "menu_rules": "Oyun Kuralları",
+  "menu_leaderboard": "Şöhretler Salonu",
+  "menu_yandex_login": "Yandex ile Giriş Yap",
+  "menu_profile": "Profil",
+  "mode_select_title": "Oyun Modunu Seçin",
+  "mode_classic_title": "Klasik",
+  "mode_classic_desc": "Dinamik kombo puanlaması ve Fever moduyla saf Sudoku",
+  "mode_fog_title": "Karanlık Sektör: Tutulma Bölgesi",
+  "mode_fog_desc": "Karanlığa bürünmüş ızgara! Tarayıcı eko ışını (3 sn) ve takımyıldız fenerleri hücreleri aydınlatır",
+  "mode_run_title": "Pulse Koşusu (Run)",
+  "mode_run_desc": "Güçlü siber avantaj geliştirmeleriyle aşamalı bölüm maratonu",
+  "mode_duel_title": "Pulse Yapay Zeka Düellosu",
+  "mode_duel_desc": "Uyum sağlayan sanal yapay zekaya karşı gerçek zamanlı siber savaş!",
+  "mode_live_duel_title": "1v1 Çevrimiçi Düello",
+  "mode_live_duel_desc": "Bir arkadaşınla canlı gerçek zamanlı düello! Lobi kur veya kodla katıl",
+  "diff_title": "Zorluk",
+  "diff_easy": "Kolay",
+  "diff_medium": "Orta",
+  "diff_hard": "Zor",
+  "diff_expert": "Uzman",
+  "btn_choose_perk": "Yetenek Seç →",
+  "btn_start_game": "Oyunu Başlat →",
+  "mode_enter_challenge_btn": "Arkadaş Düello Kodunu Gir",
+  "live_lobby_title": "1v1 Çevrimiçi Düello",
+  "live_lobby_subtitle": "Birebir aynı ızgarada arkadaşınla gerçek zamanlı kapış!",
+  "live_tab_create": "⚡ Lobi Oluştur",
+  "live_tab_join": "🔑 Kodla Katıl",
+  "live_btn_create": "🚀 Oda Oluştur",
+  "live_enter_code_desc": "Arkadaşından aldığın 4 haneli oda kodunu gir:",
+  "live_btn_join": "⚔️ Düelloya Katıl",
+  "live_room_code_label": "Oda Kodunuz:",
+  "live_copy_link": "📋 Bağlantıyı Kopyala",
+  "live_share_link": "📤 Paylaş",
+  "live_waiting_opponent": "Rakibin bağlanması bekleniyor...",
+  "live_cancel_btn": "İptal",
+  "live_starting": "Savaşa hazır olun!",
+  "live_duel_hud_opponent": "Rakip",
+  "live_btn_quick_match": "⚡ Hızlı Eşleşme (Rastgele Rakip)",
+  "live_or_friend": "veya kod ile arkadaşla düello",
+  "live_quick_searching": "Çevrimiçi rakip aranıyor...",
+  "live_quick_searching_desc": "İlk uygun oyuncuya otomatik bağlanılıyor",
+  "live_quick_found": "Rakip bulundu! Düello başlıyor...",
+  "live_duel_victory": "🏆 1v1 DÜELLODA ZAFER!",
+  "live_duel_victory_desc": "Bulmacayı rakibinden daha hızlı çözdün! Saf hız zaferi.",
+  "live_btn_rematch": "🔄 Rövanş (Yeni Tur)",
+  "live_rematch_waiting": "⏳ Rakibin onayı bekleniyor...",
+  "live_rematch_offered": "⚡ Rakip rövanş teklif etti!",
+  "live_btn_spectate": "👀 Rakibi İzle",
+  "live_spectate_banner": "Izgarayı önce sen çözdün! Rakip hala çözmeye devam ediyor...",
+  "live_btn_view_result": "🏆 Maç Sonuçlarına Dön",
+  "ai_btn_rematch": "🔄 Bota Karşı Rövanş",
+  "live_reaction_taunt": "İfadeler:",
+  "stats_tab_lb": "🌐 Sıralama",
+  "stats_tab_profile": "👤 Profil",
+  "stats_tab_seasons": "🏆 Sezonlar",
+  "stats_tab_duels": "⚔️ Düellolar",
+  "challenge_enter_title": "Arkadaş Meydan Okuma Kodu",
+  "challenge_enter_desc": "Arkadaşından gelen düello kodunu veya davet bağlantısını yapıştır:",
+  "challenge_enter_btn": "🔍 Düelloyu Başlat",
+  "challenge_challenger": "Rakip:",
+  "challenge_target_score": "Hedef Puan:",
+  "challenge_target_time": "Hedef Süre:",
+  "challenge_accept": "⚔️ Meydan Okumayı Kabul Et!",
+  "challenge_decline": "Daha Sonra",
+  "perks_title": "Siber Yetenek Seç",
+  "perk_select_title": "Siber Yetenek Seç",
+  "perks_hint": "Bu maç için bir pasif güçlendirme seçin:",
+  "perk_level": "Sev.",
+  "perk_active": "AKTİF",
+  "perk_select_btn": "Seç",
+  "hud_score": "Puan",
+  "hud_time": "Süre",
+  "hud_lives": "Canlar",
+  "hud_combo": "Kombo",
+  "ctrl_undo": "Geri Al",
+  "ctrl_erase": "Sil",
+  "ctrl_notes": "Notlar",
+  "ctrl_hint": "İpucu",
+  "ctrl_restart": "Yeniden",
+  "ctrl_pause": "Duraklat",
+  "pause_title": "⏸ Oyun Duraklatıldı",
+  "pause_resume": "Devam Et",
+  "pause_restart": "Yeniden Başlat",
+  "pause_menu": "Ana Menü",
+  "win_title": "🎉 Zafer!",
+  "win_time": "Süre",
+  "win_score": "Puan",
+  "win_combo": "Maks. Kombo",
+  "win_play_again": "Tekrar Oyna",
+  "win_next_stage": "Sonraki Aşama →",
+  "win_menu": "Menüye Dön",
+  "win_share": "Sonucu Paylaş",
+  "win_share_btn": "📋 Skor Kartını Kopyala",
+  "win_challenge_btn": "⚔️ Arkadaşına Meydan Oku (Düello Kodu)",
+  "gameover_title": "💀 Oyun Bitti",
+  "gameover_subtitle": "3 hata yaptın. Tekrar dene!",
+  "gameover_restart": "Tekrar Oyna",
+  "gameover_menu": "Ana Menü",
+  "gameover_revive": "❤️ İkinci Şans (+1 Can)",
+  "settings_title": "⚙️ Ayarlar",
+  "setting_sound": "Ses Efektleri",
+  "setting_sfx_volume": "🔊 Efekt Sesi (SFX)",
+  "setting_music_volume": "🎵 Müzik Sesi (Fever)",
+  "setting_haptics": "📳 Titreşim Geri Bildirimi",
+  "haptic_off": "Kapalı",
+  "haptic_soft": "Hafif",
+  "haptic_med": "Orta",
+  "haptic_strong": "Güçlü",
+  "menu_daily_rewards": "Günlük Giriş Ödülleri",
+  "menu_daily_rewards_sub": "7 günlük siber bonuslar",
+  "daily_reward_title": "Günlük Giriş Ödülleri",
+  "daily_reward_desc": "Taktiğinizi güçlendirecek siber bonusları almak için her gün giriş yapın!",
+  "daily_reward_claim_btn": "🎁 Ödülü Al",
+  "daily_reward_claimed": "✅ Ödül alındı! Yarın tekrar gel",
+  "daily_reward_rescue_btn": "📺 Reklamla seriyi kurtar",
+  "daily_day_label": "Gün",
+  "menu_shortcut_title": "Ana Ekrana Ekle",
+  "menu_shortcut_reward": "Tek tıkla anında oyun • Bonus: +2 İpucu",
+  "shortcut_reward_toast": "📲 Kısayol eklendi! +2 İpucu kazanıldı",
+  "duel_rating_label": "1v1 Puanınız",
+  "duel_rank_novice": "Çaylak",
+  "duel_rank_agent": "Siber Ajan",
+  "duel_rank_master": "Sektör Ustası",
+  "duel_rank_grandmaster": "Büyük Usta",
+  "live_bot_fallback_notice": "Oyuncu bulunamazsa eşit seviyede yapay zeka botu bağlanır",
+  "live_ai_matched_toast": "🤖 Yapay zeka rakibi eşleşti: ",
+  "setting_theme": "Renk Teması",
+  "setting_grid_skin": "🎨 Hücre Görünümü (Ligler)",
+  "setting_lang": "🌐 Arayüz Dili",
+  "setting_btn_on": "Açık",
+  "setting_btn_off": "Kapalı",
+  "setting_done": "Tamam",
+  "yandex_profile_title": "Yandex Profili:",
+  "yandex_guest": "Misafir",
+  "yandex_auth_btn": "🔴 Yandex Passport ile Giriş",
+  "yandex_auth_connected": "✓ Yandex Hesabı Bağlandı",
+  "yandex_sync_desc": "Skorları ve kupaları Yandex Games hesabınızla senkronize edin",
+  "stats_title": "📊 Sıralama ve Şöhretler Salonu",
+  "stats_games_played": "Toplam Oyun",
+  "stats_games_won": "Zaferler",
+  "stats_win_rate": "Kazanma Oranı",
+  "stats_best_time": "En İyi Süre",
+  "stats_best_score": "En Yüksek Puan",
+  "stats_current_streak": "Mevcut Seri",
+  "stats_best_streak": "En İyi Seri",
+  "stats_player_name": "Oyuncu Adı:",
+  "achievements_title": "🏅 Başarımlar",
+  "ach_unlocked": "✅ Açıldı",
+  "score_label": "PUAN",
+  "pulse_hint_fill": "Hücreleri doğru hamlelerle doldur!",
+  "game_mistakes_label": "Hatalar:",
+  "ai_duel_you": "Sen",
+  "ai_bot_taunt_start": "Bakalım neler yapabiliyorsun!",
+  "btn_resume": "Devam Et",
+  "stat_mode": "Mod:",
+  "stat_diff": "Zorluk:",
+  "stat_time": "Süre:",
+  "stat_score": "Puan:",
+  "stat_max_combo": "Maks. Kombo:",
+  "stat_mistakes": "Hatalar:",
+  "duel_result_title": "⚔️ Düello Sonucu",
+  "duel_result_beat": "Rakibinin rekorunu kırdın!",
+  "run_next_upgrade": "⚡ Aşama için yetenek yükseltmesi seç",
+  "btn_second_chance": "🎬 İkinci Şans: +1 Can (Reklam)",
+  "btn_restart_gameover": "Tekrar Dene",
+  "btn_gameover_menu": "Ana Menü",
+  "lb_period": "Dönem:",
+  "lb_tf_all": "Tüm Zamanlar",
+  "lb_tf_season": "⏳ Sezon",
+  "lb_mode_all": "Tümü",
+  "lb_mode_run": "🚀 Koşu",
+  "lb_mode_daily": "📅 Günlük",
+  "lb_mode_fog": "🌌 Sektör",
+  "lb_mode_pvp_duel": "⚔️ 1v1 PvP",
+  "lb_mode_duels": "🤖 YZ Düelloları",
+  "lb_mode_classic": "⚡ Klasik",
+  "profile_nickname": "Kullanıcı Adı:",
+  "profile_cyber_league": "Siber Lig:",
+  "profile_games_ratio": "Oynanan Oyunlar / Galibiyetler:",
+  "profile_max_combo": "Maksimum Kombo:",
+  "profile_total_score": "Toplam Pulse Puanı:",
+  "profile_daily_streak": "Daily Pulse Serisi:",
+  "profile_run_record": "Pulse Koşusu Rekoru:",
+  "season_league_title": "Lig Sezonu:",
+  "season_archive_title": "🏆 Kupa ve Sezon Arşivi",
+  "season_archive_placeholder": "Hafta bittiğinde sezon kupası kilitlenecektir.",
+  "duel_played_matches": "⚔️ Yapılan Maçlar",
+  "btn_close": "Kapat",
+  "ach_title": "🏅 Başarımlar",
+  "ach_subtitle": "10 kupadan 0 tanesi açıldı",
+  "guest": "Misafir",
+  "settings_yandex_profile": "Yandex Profili:",
+  "settings_yandex_desc": "Skorları ve başarımları Yandex Games hesabınızla eşitleyin",
+  "settings_yandex_login": "🔴 Yandex ID ile Giriş",
+  "btn_done": "Tamam",
+  "challenge_modal_title": "Düello Meydan Okuması!",
+  "challenge_modal_subtitle": "Birebir aynı Sudoku ızgarasında sana meydan okundu!",
+  "btn_paste": "📋 Yapıştır",
+  "mode_category_title": "Oyun Türünü Seçin",
+  "mode_cat_solo_title": "Tek Kişilik Oyun",
+  "mode_cat_solo_desc": "Klasik Sudoku, Karanlık Sektör ve Pulse Koşusu",
+  "mode_cat_duel_title": "1v1 Düellolar",
+  "mode_cat_duel_desc": "Yapay Zekaya veya çevrimiçi arkadaşa karşı hız savaşı",
+  "mode_cat_solo_badge": "3 Mod",
+  "mode_cat_duel_badge": "2 Mod",
+  "duel_abandon_title": "Rakip Ayrıldı!",
+  "duel_abandon_desc": "Rakip düelloyu terk etti. Kesin zafer (+ELO) sana verildi!",
+  "duel_abandon_choice": "Bu tahtayı tek başına çözmeye devam etmek mi yoksa menüye dönmek mi istersin?",
+  "duel_abandon_btn_solo": "🧩 Tek Başına Devam Et",
+  "duel_abandon_btn_menu": "🏠 Ana Menü",
+  "live_paused_by_opp_title": "Rakip Duraklattı",
+  "live_paused_by_opp_desc": "Rakip düelloyu duraklattı. Devam edilmesi bekleniyor...",
+  "rotate_device_title": "Lütfen Cihazı Döndürün",
+  "rotate_device_desc": "En iyi deneyim için Sudoku Pulse dikey modda optimize edilmiştir.",
+  "tutorial_prev": "◀ Geri",
+  "tutorial_next": "İleri ▶",
+  "menu_shop_title": "Siber Mağaza",
+  "menu_shop_sub": "Reklamsız • VIP Kart • İpuçları",
+  "settings_open_shop_btn": "Siber Mağaza (Reklamsız / VIP)",
+  "shop_title": "Siber Mağaza",
+  "shop_subtitle": "Ayrıcalıklar ve oyuna destek",
+  "shop_badge_vip": "EN İYİ FİYAT",
+  "shop_badge_noads": "POPÜLER",
+  "shop_vip_title": "Siber VIP Kart",
+  "shop_vip_desc": "Sonsuza kadar reklamsız + Siber Altın tema + 25 ipucu + VIP rozeti",
+  "shop_noads_title": "Reklamsız Kart",
+  "shop_noads_desc": "Tüm tam ekran ve afiş reklamlarının kalıcı olarak kaldırılması",
+  "shop_hints_title": "20 İpucu Paketi",
+  "shop_hints_desc": "Zor hücreleri anında çözmek için +20 ipucu",
+  "shop_btn_buy": "Satın Al",
+  "shop_btn_restore": "🔄 Geri Yükle",
+  "shop_owned": "Satın Alındı ✅",
+  "shop_toast_success": "🎉 Satın alma başarılı! Desteğiniz için teşekkürler!",
+  "shop_toast_restored": "✨ Satın alımlar başarıyla geri yüklendi!",
+  "win_double_score_btn": "Tur Puanını İkiye Katla",
+  "win_double_score_done": "✅ Puan İkiye Katlandı!",
+  "win_double_score_toast": "🎉 Zafer puanı ikiye katlandı!",
+  "skin_trial_title": "Görünümü Dene",
+  "skin_trial_desc": "Bu hücre görünümü kilitli. Kısa bir video izleyerek bu oturum için denemek ister misiniz?",
+  "skin_trial_btn_watch": "🎬 Video ile Dene",
+  "skin_trial_active_toast": "🎨 Hücre görünümü bu oyun için geçici olarak açıldı!"
+},
+  perks: {
+  "neon_shield": {
+    "name": "Neon Kalkan",
+    "desc": "Her aşamada hataları engeller (Seviye başına +1 kalkan)"
+  },
+  "time_warp": {
+    "name": "Zaman Bükülmesi",
+    "desc": "Kombo çubuğu belirgin şekilde daha yavaş soğur"
+  },
+  "fever_overdrive": {
+    "name": "Süper Overdrive",
+    "desc": "Fever modu seviye başına +5 sn daha uzun sürer"
+  },
+  "power_bank": {
+    "name": "Güç Deposu",
+    "desc": "Yetenek seviyesi başına +1 fazladan ipucu"
+  },
+  "keen_eye": {
+    "name": "Uzun Menzilli Radar",
+    "desc": "Karanlık Sektörde tarayıcı 5×5 olur (Sev. II'de 7×7)"
+  },
+  "point_surge": {
+    "name": "Pulse Rezonansı",
+    "desc": "Yetenek seviyesi başına +%50 bonus Pulse puanı"
+  },
+  "extra_heart": {
+    "name": "Kuantum Kalbi",
+    "desc": "Hata limiti seviye başına +2 can artar"
+  },
+  "combo_master": {
+    "name": "Kombo Hızlandırıcı",
+    "desc": "Temel kombo çarpanı x2.0 ile başlar (Sev. II'de x3.0)"
+  },
+  "chrono_boost": {
+    "name": "Krono Dopingi",
+    "desc": "Maçın ilk 2 dakikasında çift puan verilir"
+  },
+  "emp_pulse": {
+    "name": "EMP Darbesi",
+    "desc": "Her aşama başında rastgele +1 hücre çözer (Sev. II'de +2)"
+  },
+  "auto_scanner": {
+    "name": "Nöro-Tarayıcı",
+    "desc": "Başlangıçta aday notlarını otomatik doldurur"
+  },
+  "overcharge": {
+    "name": "Aşırı Yükleme",
+    "desc": "Fever modunda puan çarpanı x2.0 yerine x4.0 olur"
+  }
+},
+  achievements: {
+  "first_win": {
+    "title": "İlk Kıvılcım",
+    "desc": "Herhangi bir modda ilk zaferini kazan"
+  },
+  "combo_8": {
+    "title": "Pulse Ritmi",
+    "desc": "Art arda 8 doğru hamlelik bir kombo serisi yakala"
+  },
+  "combo_15": {
+    "title": "Kuantum Rezonansı",
+    "desc": "Bozulmayan 15 doğru hamlelik bir seri yakala"
+  },
+  "fever_master": {
+    "title": "Overdrive",
+    "desc": "Fever Overdrive modunu 10 kez tetikle"
+  },
+  "fever_hyper": {
+    "title": "Hiper Sürüş",
+    "desc": "Fever Overdrive modunu 30 kez tetikle"
+  },
+  "flawless": {
+    "title": "Kusursuz Zihin",
+    "desc": "Tek bir hata yapmadan bir bulmacayı çöz"
+  },
+  "flawless_hard": {
+    "title": "Soğuk Hesaplama",
+    "desc": "Zor veya Uzman seviyesinde hatasız kazan"
+  },
+  "no_hints": {
+    "title": "Saf Sezgi",
+    "desc": "Hiç ipucu kullanmadan bir oyunu tamamla"
+  },
+  "speed_demon": {
+    "title": "Süpersonik",
+    "desc": "Klasik Sudoku'yu 3 dakikadan kısa sürede çöz"
+  },
+  "dark_navigator": {
+    "title": "Uçurum Gezgini",
+    "desc": "Karanlık Sektör modunda 3 zafer kazan"
+  },
+  "blind_flight": {
+    "title": "Kör Uçuş",
+    "desc": "Karanlık Sektörü Uzman seviyesinde tamamla (0 fener)"
+  },
+  "run_stage_3": {
+    "title": "Sektör Fatihi",
+    "desc": "Tek bir Pulse Koşusunda en az 3 aşama geç"
+  },
+  "run_stage_5": {
+    "title": "Süpernova",
+    "desc": "Pulse Koşusunda 5. Aşamaya ulaş (Ekstrem mod)"
+  },
+  "surge_hunter": {
+    "title": "Yıldırım Avcısı",
+    "desc": "15 yıldırım enerji hücresini yakala"
+  },
+  "surge_storm": {
+    "title": "Fırtına Efendisi",
+    "desc": "40 yıldırım enerji hücresini yakala"
+  },
+  "streak_3": {
+    "title": "Disiplin Ritmi",
+    "desc": "Daily Pulse'da 3 günlük galibiyet serisini koru"
+  },
+  "streak_7": {
+    "title": "Haftalık Pulse",
+    "desc": "Daily Pulse'da 7 günlük galibiyet serisini koru"
+  },
+  "duel_master": {
+    "title": "Siber Düellocu",
+    "desc": "Sanal yapay zekaya karşı 3 düello kazan"
+  },
+  "score_25k": {
+    "title": "Enerji Zirvesi",
+    "desc": "Tek bir maçta 25.000'den fazla puan al"
+  },
+  "score_50k": {
+    "title": "Neon Efsanesi",
+    "desc": "Tek bir maçta 50.000'den fazla puan al"
+  },
+  "total_score_50k": {
+    "title": "Rütbe Ustası",
+    "desc": "Tüm oyunlarda toplam 50.000 kariyer puanı topla"
+  },
+  "grandmaster": {
+    "title": "Pulse Büyük Ustası",
+    "desc": "Tüm oyunlarda toplam 150.000 kariyer puanı topla"
+  },
+  "veteran_10": {
+    "title": "Deneyimli Operatör",
+    "desc": "Tüm modlarda toplam 10 galibiyet elde et"
+  },
+  "veteran_25": {
+    "title": "Matris Gazisi",
+    "desc": "Tüm modlarda toplam 25 galibiyet elde et"
+  }
+}
+};

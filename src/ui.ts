@@ -5,7 +5,7 @@ import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
 import { haptics } from './haptics';
 import { yandexBridge } from './yandex';
-import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS } from './i18n';
+import { i18n, t, PERK_TRANSLATIONS, ACHIEVEMENT_TRANSLATIONS, SUPPORTED_LANGUAGES } from './i18n';
 
 export function getApiBaseUrl(): string {
   if (typeof window === 'undefined') return '/sudoku/api';
@@ -1736,17 +1736,13 @@ export class SudokuUI {
     });
 
     // Language switch buttons
-    const btnRu = document.getElementById('lang-btn-ru');
-    const btnEn = document.getElementById('lang-btn-en');
-    btnRu?.addEventListener('click', () => {
-      soundManager.playSelect();
-      haptics.selection();
-      i18n.setLanguage('ru');
-    });
-    btnEn?.addEventListener('click', () => {
-      soundManager.playSelect();
-      haptics.selection();
-      i18n.setLanguage('en');
+    SUPPORTED_LANGUAGES.forEach((lng) => {
+      const btn = document.getElementById(`lang-btn-${lng}`);
+      btn?.addEventListener('click', () => {
+        soundManager.playSelect();
+        haptics.selection();
+        i18n.setLanguage(lng);
+      });
     });
 
     // Sound / Theme toggles
@@ -2346,27 +2342,25 @@ export class SudokuUI {
   }
 
   private updateDifficultyPillsForMode() {
-    const lang = i18n.getLanguage();
-    const isEn = lang === 'en';
     const labels: Record<Difficulty, { normal: string; fog: string; ai: string }> = {
       easy: {
-        normal: isEn ? 'Easy' : 'Легкий',
-        fog: isEn ? 'Easy (5 🗼)' : 'Легкий (5 🗼)',
+        normal: t('diff_easy'),
+        fog: `${t('diff_easy')} (5 🗼)`,
         ai: '🟢 PulseBot v1',
       },
       medium: {
-        normal: isEn ? 'Medium' : 'Средний',
-        fog: isEn ? 'Medium (3 🗼)' : 'Средний (3 🗼)',
+        normal: t('diff_medium'),
+        fog: `${t('diff_medium')} (3 🗼)`,
         ai: '🟡 CyberPulse v2',
       },
       hard: {
-        normal: isEn ? 'Hard' : 'Сложный',
-        fog: isEn ? 'Hard (1 🗼)' : 'Сложный (1 🗼)',
+        normal: t('diff_hard'),
+        fog: `${t('diff_hard')} (1 🗼)`,
         ai: '🔴 NeuralPulse v3',
       },
       expert: {
-        normal: isEn ? 'Expert' : 'Эксперт',
-        fog: isEn ? 'Expert (0 🗼)' : 'Эксперт (0 🗼)',
+        normal: t('diff_expert'),
+        fog: `${t('diff_expert')} (0 🗼)`,
         ai: '🔥 QuantumPulse v4',
       },
     };
@@ -2702,7 +2696,7 @@ export class SudokuUI {
       if (this.game.activePerks.length === 1) {
         const perk = this.game.activePerks[0];
         const lvlStr = (perk.level && perk.level > 1) ? ` ${formatRomanLevel(perk.level)}` : '';
-        const perkTr = PERK_TRANSLATIONS[perk.id]?.[isEn ? 'en' : 'ru'];
+        const perkTr = PERK_TRANSLATIONS[perk.id]?.[i18n.getLanguage()] || PERK_TRANSLATIONS[perk.id]?.['en'];
         const pName = perkTr?.name || perk.name;
         this.gamePerkBadge.textContent = `${perk.icon} ${pName}${lvlStr}`;
       } else {
@@ -2714,7 +2708,7 @@ export class SudokuUI {
       }
       this.gamePerkBadge.title = this.game.activePerks.map((p) => {
         const lvlStr = (p.level && p.level > 1) ? ` (${formatRomanLevel(p.level)})` : '';
-        const perkTr = PERK_TRANSLATIONS[p.id]?.[isEn ? 'en' : 'ru'];
+        const perkTr = PERK_TRANSLATIONS[p.id]?.[i18n.getLanguage()] || PERK_TRANSLATIONS[p.id]?.['en'];
         const pName = perkTr?.name || p.name;
         const pDesc = perkTr?.desc || p.description;
         return `${p.icon} ${pName}${lvlStr}: ${pDesc}`;
@@ -3151,7 +3145,7 @@ export class SudokuUI {
         card.className = 'perk-card';
         card.style.padding = '10px 12px';
         const lvlStr = (perk.level && perk.level > 1) ? ` (${formatRomanLevel(perk.level)})` : '';
-        const perkTr = PERK_TRANSLATIONS[perk.id]?.[isEn ? 'en' : 'ru'];
+        const perkTr = PERK_TRANSLATIONS[perk.id]?.[i18n.getLanguage()] || PERK_TRANSLATIONS[perk.id]?.['en'];
         const pName = perkTr?.name || perk.name;
         const pDesc = perkTr?.desc || perk.description;
         card.innerHTML = `

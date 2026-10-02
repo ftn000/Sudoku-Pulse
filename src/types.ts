@@ -4,6 +4,28 @@ export type GameMode = 'classic' | 'fog' | 'daily' | 'run' | 'ai_duel' | 'live_d
 
 export type AppScreen = 'menu' | 'mode_category' | 'mode_select' | 'perk_select' | 'game';
 
+export type Language = 'ru' | 'en' | 'fr' | 'de' | 'es' | 'tr' | 'zh' | 'ar';
+
+export interface TranslationDict {
+  [key: string]: string;
+}
+
+export interface PerkTranslation {
+  name: string;
+  desc: string;
+}
+
+export interface AchievementTranslation {
+  title: string;
+  desc: string;
+}
+
+export interface LocaleDefinition {
+  dict: TranslationDict;
+  perks: Record<string, PerkTranslation>;
+  achievements: Record<string, AchievementTranslation>;
+}
+
 export interface DifficultyConfig {
   name: string;
   label: string;
