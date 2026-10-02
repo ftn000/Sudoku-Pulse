@@ -4,7 +4,7 @@ export type GameMode = 'classic' | 'fog' | 'daily' | 'run' | 'ai_duel' | 'live_d
 
 export type AppScreen = 'menu' | 'mode_category' | 'mode_select' | 'perk_select' | 'game';
 
-export type Language = 'ru' | 'en' | 'fr' | 'de' | 'es' | 'tr' | 'zh' | 'ar';
+export type Language = 'ru' | 'en' | 'tr';
 
 export interface TranslationDict {
   [key: string]: string;

@@ -668,12 +668,7 @@
           <select id="setting-lang-select" class="hidden" style="display: none;" aria-label="Language">
             <option value="ru">Русский</option>
             <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="es">Español</option>
             <option value="tr">Türkçe</option>
-            <option value="zh">简体中文</option>
-            <option value="ar">العربية</option>
           </select>
         </div>
         <div class="setting-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
@@ -710,33 +705,33 @@
           <button id="setting-theme-btn" class="diff-pill">Cyber Neon</button>
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
-          <button class="diff-pill theme-skin-pill" data-skin="dark" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
-          <button class="diff-pill theme-skin-pill" data-skin="synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synthwave</button>
-          <button class="diff-pill theme-skin-pill" data-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
-          <button class="diff-pill theme-skin-pill" data-skin="oled" style="flex:1; font-size: 0.78rem;">🌑 OLED</button>
-          <button class="diff-pill theme-skin-pill" data-skin="light" style="flex:1; font-size: 0.78rem;">☀️ Светлая</button>
-          <button class="diff-pill theme-skin-pill" data-skin="crimson_sector" style="flex:1; font-size: 0.78rem;">🩸 Сектор</button>
-          <button class="diff-pill theme-skin-pill" data-skin="grandmaster" style="flex:1; font-size: 0.78rem;">👑 Грандмастер</button>
+          <button class="diff-pill theme-skin-pill" data-skin="dark" data-i18n="theme_pill_dark" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
+          <button class="diff-pill theme-skin-pill" data-skin="synthwave" data-i18n="theme_pill_synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synthwave</button>
+          <button class="diff-pill theme-skin-pill" data-skin="matrix" data-i18n="theme_pill_matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
+          <button class="diff-pill theme-skin-pill" data-skin="oled" data-i18n="theme_pill_oled" style="flex:1; font-size: 0.78rem;">🌑 OLED</button>
+          <button class="diff-pill theme-skin-pill" data-skin="light" data-i18n="theme_pill_light" style="flex:1; font-size: 0.78rem;">☀️ Light</button>
+          <button class="diff-pill theme-skin-pill" data-skin="crimson_sector" data-i18n="theme_pill_crimson_sector" style="flex:1; font-size: 0.78rem;">🩸 Sector</button>
+          <button class="diff-pill theme-skin-pill" data-skin="grandmaster" data-i18n="theme_pill_grandmaster" style="flex:1; font-size: 0.78rem;">👑 Grandmaster</button>
         </div>
 
-        <div class="section-title" data-i18n="setting_victory_effect" style="margin-top: 10px; margin-bottom: 4px;">✨ Эффект победы (Салют)</div>
+        <div class="section-title" data-i18n="setting_victory_effect" style="margin-top: 10px; margin-bottom: 4px;">✨ Victory Effect</div>
         <div class="victory-effect-list" id="victory-effect-selector" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
-          <button class="diff-pill victory-effect-pill active" data-victory-effect="classic" style="flex:1; font-size: 0.78rem;">🎉 Кибер-салют</button>
-          <button class="diff-pill victory-effect-pill" data-victory-effect="plasma" style="flex:1; font-size: 0.78rem;">🩸 Плазма (1400 ELO)</button>
-          <button class="diff-pill victory-effect-pill" data-victory-effect="supernova" style="flex:1; font-size: 0.78rem;">👑 Сверхновая (1700 ELO)</button>
+          <button class="diff-pill victory-effect-pill active" data-victory-effect="classic" data-i18n="victory_effect_classic" style="flex:1; font-size: 0.78rem;">🎉 Cyber Fireworks</button>
+          <button class="diff-pill victory-effect-pill" data-victory-effect="plasma" data-i18n="victory_effect_plasma" style="flex:1; font-size: 0.78rem;">🩸 Plasma</button>
+          <button class="diff-pill victory-effect-pill" data-victory-effect="supernova" data-i18n="victory_effect_supernova" style="flex:1; font-size: 0.78rem;">👑 Supernova</button>
         </div>
 
-        <div class="section-title" data-i18n="setting_grid_skin" style="margin-top: 10px; margin-bottom: 4px;">🎨 Скин ячеек сетки (Лиги)</div>
+        <div class="section-title" data-i18n="setting_grid_skin" style="margin-top: 10px; margin-bottom: 4px;">🎨 Grid Cell Skin (Leagues)</div>
         <div class="board-skin-list" id="board-skin-selector" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
-          <button class="diff-pill board-skin-pill active" data-board-skin="neon" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synth</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="aqua" style="flex:1; font-size: 0.78rem;">🌊 Aqua</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="crimson" style="flex:1; font-size: 0.78rem;">🩸 Crimson</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="hologram" style="flex:1; font-size: 0.78rem;">💎 Hologram</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="retro" style="flex:1; font-size: 0.78rem;">👾 Retro</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="obsidian" style="flex:1; font-size: 0.78rem;">👑 Obsidian</button>
-          <button class="diff-pill board-skin-pill" data-board-skin="cyber_gold" style="flex:1; font-size: 0.78rem; border-color: rgba(255,215,0,0.5);">👑 Gold VIP</button>
+          <button class="diff-pill board-skin-pill active" data-board-skin="neon" data-i18n="skin_neon" style="flex:1; font-size: 0.78rem;">⚡ Cyber</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="synthwave" data-i18n="skin_synthwave" style="flex:1; font-size: 0.78rem;">🌆 Synth</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="aqua" data-i18n="skin_aqua" style="flex:1; font-size: 0.78rem;">🌊 Aqua</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="matrix" data-i18n="skin_matrix" style="flex:1; font-size: 0.78rem;">🟢 Matrix</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="crimson" data-i18n="skin_crimson" style="flex:1; font-size: 0.78rem;">🩸 Crimson</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="hologram" data-i18n="skin_hologram" style="flex:1; font-size: 0.78rem;">💎 Hologram</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="retro" data-i18n="skin_retro" style="flex:1; font-size: 0.78rem;">👾 Retro</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="obsidian" data-i18n="skin_obsidian" style="flex:1; font-size: 0.78rem;">👑 Obsidian</button>
+          <button class="diff-pill board-skin-pill" data-board-skin="cyber_gold" data-i18n="skin_cyber_gold" style="flex:1; font-size: 0.78rem; border-color: rgba(255,215,0,0.5);">👑 Gold VIP</button>
         </div>
       </div>
 

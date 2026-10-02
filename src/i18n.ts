@@ -7,26 +7,16 @@ import {
 } from './types';
 import { ru } from './locales/ru';
 import { en } from './locales/en';
-import { fr } from './locales/fr';
-import { de } from './locales/de';
-import { es } from './locales/es';
 import { tr } from './locales/tr';
-import { zh } from './locales/zh';
-import { ar } from './locales/ar';
 
 export type { Language, TranslationDict, PerkTranslation, AchievementTranslation, LocaleDefinition };
 
-export const SUPPORTED_LANGUAGES: Language[] = ['ru', 'en', 'fr', 'de', 'es', 'tr', 'zh', 'ar'];
+export const SUPPORTED_LANGUAGES: Language[] = ['ru', 'en', 'tr'];
 
 export const LOCALES: Record<Language, LocaleDefinition> = {
   ru,
   en,
-  fr,
-  de,
-  es,
   tr,
-  zh,
-  ar,
 };
 
 export const PERK_TRANSLATIONS: Record<string, Record<Language, PerkTranslation>> = {};
@@ -34,12 +24,7 @@ for (const perkId of Object.keys(en.perks)) {
   PERK_TRANSLATIONS[perkId] = {
     ru: ru.perks[perkId] || en.perks[perkId],
     en: en.perks[perkId],
-    fr: fr.perks[perkId] || en.perks[perkId],
-    de: de.perks[perkId] || en.perks[perkId],
-    es: es.perks[perkId] || en.perks[perkId],
     tr: tr.perks[perkId] || en.perks[perkId],
-    zh: zh.perks[perkId] || en.perks[perkId],
-    ar: ar.perks[perkId] || en.perks[perkId],
   };
 }
 
@@ -48,12 +33,7 @@ for (const achId of Object.keys(en.achievements)) {
   ACHIEVEMENT_TRANSLATIONS[achId] = {
     ru: ru.achievements[achId] || en.achievements[achId],
     en: en.achievements[achId],
-    fr: fr.achievements[achId] || en.achievements[achId],
-    de: de.achievements[achId] || en.achievements[achId],
-    es: es.achievements[achId] || en.achievements[achId],
     tr: tr.achievements[achId] || en.achievements[achId],
-    zh: zh.achievements[achId] || en.achievements[achId],
-    ar: ar.achievements[achId] || en.achievements[achId],
   };
 }
 
@@ -76,12 +56,7 @@ class I18nManager {
     ) {
       return 'ru';
     }
-    if (lower.startsWith('fr')) return 'fr';
-    if (lower.startsWith('de')) return 'de';
-    if (lower.startsWith('es')) return 'es';
     if (lower.startsWith('tr')) return 'tr';
-    if (lower.startsWith('zh')) return 'zh';
-    if (lower.startsWith('ar')) return 'ar';
     return 'en';
   }
 
@@ -139,7 +114,7 @@ class I18nManager {
 
     if (typeof document !== 'undefined') {
       document.documentElement.lang = lang;
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.dir = 'ltr';
       this.applyTranslationsToDOM();
     }
 
@@ -153,20 +128,29 @@ class I18nManager {
     };
   }
 
-  public t(key: string, defaultText?: string): string {
-    const activeDict = LOCALES[this.currentLang]?.dict;
-    if (activeDict && activeDict[key]) {
-      return activeDict[key];
+  public t(key: string, defaultTextOrParams?: string | Record<string, string | number>, params?: Record<string, string | number>): string {
+    let defaultText: string | undefined;
+    let actualParams: Record<string, string | number> | undefined;
+
+    if (typeof defaultTextOrParams === 'object' && defaultTextOrParams !== null) {
+      actualParams = defaultTextOrParams;
+    } else {
+      defaultText = defaultTextOrParams;
+      actualParams = params;
     }
-    const enDict = LOCALES.en.dict;
-    if (enDict && enDict[key]) {
-      return enDict[key];
+
+    let text = LOCALES[this.currentLang]?.dict?.[key]
+      || LOCALES.en?.dict?.[key]
+      || LOCALES.ru?.dict?.[key]
+      || defaultText
+      || key;
+
+    if (actualParams) {
+      for (const [pKey, pVal] of Object.entries(actualParams)) {
+        text = text.replace(new RegExp(`\\{${pKey}\\}`, 'g'), String(pVal));
+      }
     }
-    const ruDict = LOCALES.ru.dict;
-    if (ruDict && ruDict[key]) {
-      return ruDict[key];
-    }
-    return defaultText || key;
+    return text;
   }
 
   public applyTranslationsToDOM(): void {
@@ -179,6 +163,28 @@ class I18nManager {
         const translation = this.t(key);
         if (translation) {
           el.textContent = translation;
+        }
+      }
+    });
+
+    const placeholders = document.querySelectorAll<HTMLElement>('[data-i18n-placeholder]');
+    placeholders.forEach((el) => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (key) {
+        const translation = this.t(key);
+        if (translation && 'placeholder' in el) {
+          (el as any).placeholder = translation;
+        }
+      }
+    });
+
+    const titles = document.querySelectorAll<HTMLElement>('[data-i18n-title]');
+    titles.forEach((el) => {
+      const key = el.getAttribute('data-i18n-title');
+      if (key) {
+        const translation = this.t(key);
+        if (translation) {
+          el.title = translation;
         }
       }
     });
@@ -200,4 +206,8 @@ class I18nManager {
 }
 
 export const i18n = new I18nManager();
-export const t = (key: string, defaultText?: string): string => i18n.t(key, defaultText);
+export const t = (
+  key: string,
+  defaultTextOrParams?: string | Record<string, string | number>,
+  params?: Record<string, string | number>
+): string => i18n.t(key, defaultTextOrParams, params);

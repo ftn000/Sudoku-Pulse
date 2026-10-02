@@ -54,25 +54,43 @@ export interface LeagueInfo {
 }
 
 export function getLeagueForScore(totalScore: number): LeagueInfo {
-  const isEn = i18n.getLanguage() === 'en';
-  if (totalScore >= 150000) return { id: 'grandmaster', name: isEn ? 'Cyber Master' : 'Кибер-Мастер', icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
-  if (totalScore >= 75000) return { id: 'platinum', name: isEn ? 'Platinum' : 'Платиновая', icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
-  if (totalScore >= 30000) return { id: 'gold', name: isEn ? 'Gold' : 'Золотая', icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
-  if (totalScore >= 10000) return { id: 'silver', name: isEn ? 'Silver' : 'Серебряная', icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
-  return { id: 'bronze', name: isEn ? 'Bronze' : 'Бронзовая', icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
+  const lang = i18n.getLanguage();
+  if (totalScore >= 150000) return { id: 'grandmaster', name: lang === 'en' ? 'Cyber Master' : (lang === 'tr' ? 'Siber Büyük Usta' : 'Кибер-Мастер'), icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
+  if (totalScore >= 75000) return { id: 'platinum', name: lang === 'en' ? 'Platinum' : (lang === 'tr' ? 'Platin' : 'Платиновая'), icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
+  if (totalScore >= 30000) return { id: 'gold', name: lang === 'en' ? 'Gold' : (lang === 'tr' ? 'Altın' : 'Золотая'), icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
+  if (totalScore >= 10000) return { id: 'silver', name: lang === 'en' ? 'Silver' : (lang === 'tr' ? 'Gümüş' : 'Серебряная'), icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
+  return { id: 'bronze', name: lang === 'en' ? 'Bronze' : (lang === 'tr' ? 'Bronz' : 'Бронзовая'), icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
-export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; nameRu: string; nameEn: string; icon: string; isVipOnly?: boolean }> = {
-  neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', nameRu: 'Кибер', nameEn: 'Cyber', icon: '⚡' },
-  synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', nameRu: 'Синтвейв', nameEn: 'Synth', icon: '🌆' },
-  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', nameRu: 'Аква', nameEn: 'Aqua', icon: '🌊' },
-  matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', nameRu: 'Матрица', nameEn: 'Matrix', icon: '🟢' },
-  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', nameRu: 'Багровый', nameEn: 'Crimson', icon: '🩸' },
-  hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', nameRu: 'Голограмма', nameEn: 'Hologram', icon: '💎' },
-  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', nameRu: 'Ретро', nameEn: 'Retro', icon: '👾' },
-  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', nameRu: 'Обсидиан', nameEn: 'Obsidian', icon: '👑' },
-  cyber_gold: { minScore: -1, isVipOnly: true, leagueRu: 'VIP Pass', leagueEn: 'VIP Pass', nameRu: 'Cyber Gold', nameEn: 'Gold VIP', icon: '👑' },
+export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; leagueTr: string; nameRu: string; nameEn: string; nameTr: string; icon: string; isVipOnly?: boolean }> = {
+  neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', leagueTr: 'Bronz', nameRu: 'Кибер', nameEn: 'Cyber', nameTr: 'Siber', icon: '⚡' },
+  synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', leagueTr: 'Gümüş', nameRu: 'Синтвейв', nameEn: 'Synth', nameTr: 'Synth', icon: '🌆' },
+  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', leagueTr: 'Aqua', nameRu: 'Аква', nameEn: 'Aqua', nameTr: 'Aqua', icon: '🌊' },
+  matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', leagueTr: 'Altın', nameRu: 'Матрица', nameEn: 'Matrix', nameTr: 'Matris', icon: '🟢' },
+  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', leagueTr: 'Yakut', nameRu: 'Багровый', nameEn: 'Crimson', nameTr: 'Kızıl', icon: '🩸' },
+  hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', leagueTr: 'Platin', nameRu: 'Голограмма', nameEn: 'Hologram', nameTr: 'Hologram', icon: '💎' },
+  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', leagueTr: 'Elmas', nameRu: 'Ретро', nameEn: 'Retro', nameTr: 'Retro', icon: '👾' },
+  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', leagueTr: 'Usta', nameRu: 'Обсидиан', nameEn: 'Obsidian', nameTr: 'Obsidyen', icon: '👑' },
+  cyber_gold: { minScore: -1, isVipOnly: true, leagueRu: 'VIP Pass', leagueEn: 'VIP Pass', leagueTr: 'VIP Kart', nameRu: 'Cyber Gold', nameEn: 'Gold VIP', nameTr: 'Altın VIP', icon: '👑' },
 };
+
+export function getSkinName(skinKey: string): string {
+  const req = BOARD_SKINS_CONFIG[skinKey];
+  if (!req) return skinKey;
+  const lang = i18n.getLanguage();
+  if (lang === 'en') return req.nameEn;
+  if (lang === 'tr') return req.nameTr;
+  return req.nameRu;
+}
+
+export function getSkinLeague(skinKey: string): string {
+  const req = BOARD_SKINS_CONFIG[skinKey];
+  if (!req) return '';
+  const lang = i18n.getLanguage();
+  if (lang === 'en') return req.leagueEn;
+  if (lang === 'tr') return req.leagueTr;
+  return req.leagueRu;
+}
 
 export function getSeasonRemainingText(): string {
   const now = new Date();
@@ -83,8 +101,10 @@ export function getSeasonRemainingText(): string {
   const diffHoursTotal = Math.floor(diffMs / (1000 * 3600));
   const days = Math.floor(diffHoursTotal / 24);
   const hours = diffHoursTotal % 24;
-  const isEn = i18n.getLanguage() === 'en';
-  return isEn ? `${days}d ${hours}h` : `${days} дн. ${hours} ч.`;
+  const lang = i18n.getLanguage();
+  if (lang === 'en') return `${days}d ${hours}h`;
+  if (lang === 'tr') return `${days}g. ${hours}sa.`;
+  return `${days} дн. ${hours} ч.`;
 }
 
 export interface SeasonTrophy {
@@ -108,6 +128,25 @@ export function getCurrentSeasonId(): string {
 }
 
 export class SudokuUI {
+  public getDifficultyLabel(diff: Difficulty): string {
+    switch (diff) {
+      case 'easy': return t('diff_easy');
+      case 'medium': return t('diff_medium');
+      case 'hard': return t('diff_hard');
+      case 'expert': return t('diff_expert');
+    }
+  }
+
+  public getModeLabel(mode: GameMode): string {
+    switch (mode) {
+      case 'classic': return t('mode_classic');
+      case 'fog': return t('mode_fog');
+      case 'daily': return t('mode_daily');
+      case 'run': return t('mode_run');
+      case 'ai_duel': return t('mode_ai_duel');
+      case 'live_duel': return t('mode_live_duel');
+    }
+  }
   private game: SudokuGame;
   private timerInterval?: number;
   private currentScreen: AppScreen = 'menu';
@@ -534,15 +573,10 @@ export class SudokuUI {
           soundManager.playCorrect(this.game.comboCount);
           haptics.success();
           if (this.game.mode === 'ai_duel' && this.game.comboCount >= 4) {
-            const isEn = i18n.getLanguage() === 'en';
-            const comboTaunts = isEn ? [
-              `Whoa, combo x${this.game.comboCount}?! Nice acceleration!`,
-              `Combo x${this.game.comboCount}! But I'm still faster.`,
-              'Impressive tempo... Challenge accepted!',
-            ] : [
-              `Ого, комбо x${this.game.comboCount}?! Неплохой разгон!`,
-              `Комбо x${this.game.comboCount}! Но я всё равно быстрее.`,
-              'Впечатляющий темп... Принимаю вызов!',
+            const comboTaunts = [
+              t('ai_taunt_combo_1', { count: this.game.comboCount }),
+              t('ai_taunt_combo_2', { count: this.game.comboCount }),
+              t('ai_taunt_combo_3'),
             ];
             this.showAiBotTaunt(comboTaunts[Math.floor(Math.random() * comboTaunts.length)], 2600);
           }
@@ -551,15 +585,10 @@ export class SudokuUI {
           haptics.error();
           if (this.game.mode === 'ai_duel') {
             this.setAiBotEmotion('smug', 2800);
-            const isEn = i18n.getLanguage() === 'en';
-            const mistakeTaunts = isEn ? [
-              'A mistake! My algorithm never makes such misses.',
-              'Lost an attempt! Your focus is slipping.',
-              'Nerves breaking? Speed demands pure precision!',
-            ] : [
-              'Ошибочка! Мой алгоритм таких промахов не делает.',
-              'Минус попытка! Твоя концентрация падает.',
-              'Нервы сдают? Скорость требует предельной точности!',
+            const mistakeTaunts = [
+              t('ai_taunt_mistake_1'),
+              t('ai_taunt_mistake_2'),
+              t('ai_taunt_mistake_3'),
             ];
             this.showAiBotTaunt(mistakeTaunts[Math.floor(Math.random() * mistakeTaunts.length)], 2800);
           }
@@ -573,8 +602,7 @@ export class SudokuUI {
           haptics.fever();
           if (this.game.mode === 'ai_duel') {
             this.setAiBotEmotion('fever');
-            const isEn = i18n.getLanguage() === 'en';
-            this.showAiBotTaunt(isEn ? '🔥 FEVER Mode?! Overclocking processor cores!' : '🔥 Режим FEVER?! Форсирую ядра процессора!', 3000);
+            this.showAiBotTaunt(t('ai_taunt_fever'), 3000);
           }
         } else if (sound === 'fever_end') {
           soundManager.stopFeverTrack();
@@ -1008,12 +1036,11 @@ export class SudokuUI {
     this.updateScreenBackButton();
 
     if (screen === 'mode_select') {
-      const isEn = i18n.getLanguage() === 'en';
       const titleEl = document.getElementById('mode-select-title-text');
       if (titleEl) {
         titleEl.textContent = this.selectedCategory === 'duel'
-          ? (isEn ? '1v1 Duels' : '1v1 Дуэли')
-          : (isEn ? 'Solo Modes' : 'Соло Режимы');
+          ? t('mode_cat_duel_title')
+          : t('mode_cat_solo_title');
       }
 
       this.modeCards.forEach((card) => {
@@ -1886,8 +1913,7 @@ export class SudokuUI {
 
         this.setBoardSkin(skinKey);
         haptics.selection();
-        const appliedMsg = isEn ? '🎨 Grid skin applied!' : '🎨 Применён скин сетки!';
-        this.showToast(appliedMsg);
+        this.showToast(t('toast_skin_applied'));
       });
     });
 
@@ -1920,10 +1946,9 @@ export class SudokuUI {
           this.showToast(explanation);
         }
       } else {
-        const isEn = i18n.getLanguage() === 'en';
-        this.showMockAd(isEn ? '🎁 Reward: +1 Hint' : '🎁 Награда: +1 Подсказка', () => {
+        this.showMockAd(t('ad_reward_hint'), () => {
           this.game.addBonusHint();
-          this.showToast(isEn ? '🎉 Extra hint granted!' : '🎉 Получена дополнительная подсказка!');
+          this.showToast(t('toast_extra_hint'));
         });
       }
     });
@@ -2281,11 +2306,10 @@ export class SudokuUI {
     // Game Over buttons
     this.secondChanceBtn.addEventListener('click', () => {
       this.gameOverModal.classList.add('hidden');
-      const isEn = i18n.getLanguage() === 'en';
-      this.showMockAd(isEn ? '❤️ Second Chance: +1 Life' : '❤️ Второй шанс: +1 Жизнь', () => {
+      this.showMockAd(t('ad_second_chance'), () => {
         soundManager.stopFeverTrack();
         this.game.reviveSecondChance();
-        this.showToast(isEn ? '❤️ Second chance granted!' : '❤️ Вы получили второй шанс!');
+        this.showToast(t('toast_second_chance_granted'));
       });
     });
 
@@ -2398,29 +2422,9 @@ export class SudokuUI {
         label: 'English',
         flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#bd3d44"/><path stroke="#fff" stroke-width="37" d="M0,55H640M0,129H640M0,203H640M0,277H640M0,351H640M0,425H640"/><rect width="260" height="260" fill="#192f5d"/><g fill="#fff"><circle cx="45" cy="40" r="9"/><circle cx="105" cy="40" r="9"/><circle cx="165" cy="40" r="9"/><circle cx="225" cy="40" r="9"/><circle cx="75" cy="80" r="9"/><circle cx="135" cy="80" r="9"/><circle cx="195" cy="80" r="9"/><circle cx="45" cy="120" r="9"/><circle cx="105" cy="120" r="9"/><circle cx="165" cy="120" r="9"/><circle cx="225" cy="120" r="9"/><circle cx="75" cy="160" r="9"/><circle cx="135" cy="160" r="9"/><circle cx="195" cy="160" r="9"/><circle cx="45" cy="200" r="9"/><circle cx="105" cy="200" r="9"/><circle cx="165" cy="200" r="9"/><circle cx="225" cy="200" r="9"/></g></svg>',
       },
-      fr: {
-        label: 'Français',
-        flagSvg: '<svg viewBox="0 0 640 480"><rect width="213.3" height="480" fill="#002395"/><rect x="213.3" width="213.4" height="480" fill="#fff"/><rect x="426.7" width="213.3" height="480" fill="#ed2939"/></svg>',
-      },
-      de: {
-        label: 'Deutsch',
-        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#dd0000"/><rect y="320" width="640" height="160" fill="#ffce00"/></svg>',
-      },
-      es: {
-        label: 'Español',
-        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="120" fill="#aa151b"/><rect y="120" width="640" height="240" fill="#f1bf00"/><rect y="360" width="640" height="120" fill="#aa151b"/><circle cx="160" cy="240" r="28" fill="#aa151b"/></svg>',
-      },
       tr: {
         label: 'Türkçe',
         flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#e30a17"/><circle cx="250" cy="240" r="120" fill="#fff"/><circle cx="280" cy="240" r="96" fill="#e30a17"/><polygon points="370,240 330,225 345,265 345,215 330,255" fill="#fff"/></svg>',
-      },
-      zh: {
-        label: '简体中文',
-        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="480" fill="#de2910"/><g fill="#ffde00"><polygon points="100,50 115,95 160,95 125,120 140,165 100,135 60,165 75,120 40,95 85,95"/><polygon points="180,45 185,60 200,60 188,70 192,85 180,75 168,85 172,70 160,60 175,60"/><polygon points="220,85 225,100 240,100 228,110 232,125 220,115 208,125 212,110 200,100 215,100"/><polygon points="220,145 225,160 240,160 228,170 232,185 220,175 208,185 212,170 200,160 215,160"/><polygon points="180,185 185,200 200,200 188,210 192,225 180,215 168,225 172,210 160,200 175,200"/></g></svg>',
-      },
-      ar: {
-        label: 'العربية',
-        flagSvg: '<svg viewBox="0 0 640 480"><rect width="640" height="160" fill="#000"/><rect y="160" width="640" height="160" fill="#fff"/><rect y="320" width="640" height="160" fill="#007a3d"/><polygon points="0,0 240,240 0,480" fill="#c8102e"/></svg>',
       },
     };
 
@@ -2668,41 +2672,28 @@ export class SudokuUI {
   }
 
   private updateThemeButtons(theme: string) {
-    const isEn = i18n.getLanguage() === 'en';
-    const labels: Record<string, { icon: string; ru: string; en: string }> = {
-      dark: { icon: '⚡', ru: 'Кибер-Неон', en: 'Cyber Neon' },
-      synthwave: { icon: '🌆', ru: 'Синтвейв 80-х', en: 'Synthwave 80s' },
-      matrix: { icon: '🟢', ru: 'Матрица', en: 'Matrix' },
-      oled: { icon: '🌑', ru: 'ОЛЕД (Черная)', en: 'OLED Black' },
-      light: { icon: '☀️', ru: 'Светлая', en: 'Light Neon' },
-      crimson_sector: { icon: '🩸', ru: 'Сектор-Мастер', en: 'Crimson Sector' },
-      grandmaster: { icon: '👑', ru: 'Грандмастер', en: 'Celestial Gold' },
-    };
-    const pillLabels: Record<string, { ru: string; en: string }> = {
-      dark: { ru: '⚡ Кибер', en: '⚡ Cyber' },
-      synthwave: { ru: '🌆 Синтвейв', en: '🌆 Synth' },
-      matrix: { ru: '🟢 Матрица', en: '🟢 Matrix' },
-      oled: { ru: '🌑 ОЛЕД', en: '🌑 OLED' },
-      light: { ru: '☀️ Светлая', en: '☀️ Light' },
-      crimson_sector: { ru: '🩸 Сектор', en: '🩸 Sector' },
-      grandmaster: { ru: '👑 Грандмастер', en: '👑 Grandmaster' },
+    const icons: Record<string, string> = {
+      dark: '⚡',
+      synthwave: '🌆',
+      matrix: '🟢',
+      oled: '🌑',
+      light: '☀️',
+      crimson_sector: '🩸',
+      grandmaster: '👑',
     };
 
-    const info = labels[theme] || labels.dark;
-    this.themeToggleBtn.textContent = info.icon;
-    const themeName = isEn ? info.en : info.ru;
-    this.settingThemeBtn.textContent = `${info.icon} ${themeName}`;
+    const icon = icons[theme] || icons.dark;
+    this.themeToggleBtn.textContent = icon;
+    const themeName = t(`theme_${theme}`, t('theme_dark'));
+    this.settingThemeBtn.textContent = `${icon} ${themeName}`;
 
     this.themeSkinPills.forEach((pill) => {
       const skinKey = pill.getAttribute('data-skin') || 'dark';
       const isUnlocked = this.isThemeUnlocked(skinKey);
       pill.classList.toggle('active', skinKey === theme);
       pill.style.opacity = isUnlocked ? '1' : '0.55';
-      const pLabel = pillLabels[skinKey];
-      if (pLabel) {
-        const text = isEn ? pLabel.en : pLabel.ru;
-        pill.textContent = isUnlocked ? text : `🔒 ${text}`;
-      }
+      const text = t(`theme_pill_${skinKey}`, skinKey);
+      pill.textContent = isUnlocked ? text : `🔒 ${text}`;
     });
 
     this.updateVictoryEffectButtons();
@@ -2722,7 +2713,6 @@ export class SudokuUI {
     const current = this.getVictoryEffect();
     const stats = SudokuGame.getPlayerStats();
     const elo = stats.duelElo || 1000;
-    const isEn = i18n.getLanguage() === 'en';
 
     this.victoryEffectPills.forEach((pill) => {
       const effect = pill.getAttribute('data-victory-effect');
@@ -2732,11 +2722,11 @@ export class SudokuUI {
         (effect === 'plasma' && elo < 1400 && !this.isThemeUnlocked('crimson_sector'));
       pill.style.opacity = isLocked ? '0.55' : '1';
       if (effect === 'plasma') {
-        pill.textContent = isLocked ? (isEn ? '🔒 Plasma (1400 ELO)' : '🔒 Плазма (1400 ELO)') : (isEn ? '🩸 Plasma Storm' : '🩸 Плазма');
+        pill.textContent = isLocked ? t('victory_effect_plasma_locked') : t('victory_effect_plasma');
       } else if (effect === 'supernova') {
-        pill.textContent = isLocked ? (isEn ? '🔒 Supernova (1700 ELO)' : '🔒 Сверхновая (1700 ELO)') : (isEn ? '👑 Supernova' : '👑 Сверхновая');
+        pill.textContent = isLocked ? t('victory_effect_supernova_locked') : t('victory_effect_supernova');
       } else if (effect === 'classic') {
-        pill.textContent = isEn ? '🎉 Cyber Fireworks' : '🎉 Кибер-салют';
+        pill.textContent = t('victory_effect_classic');
       }
     });
   }
@@ -2772,23 +2762,21 @@ export class SudokuUI {
   }
 
   private updateDailyInfoOnMenu() {
-    const lang = i18n.getLanguage();
+
     const stats = SudokuGame.getPlayerStats();
     evaluateAllAchievements(stats);
     SudokuGame.savePlayerStats(stats);
-    const isEn = lang === 'en';
     if (this.menuDailyStreak) {
-      this.menuDailyStreak.textContent = isEn ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
+      this.menuDailyStreak.textContent = t('menu_streak_days', { days: stats.dailyStreak });
     }
 
     const todayStr = SudokuGame.getLocalDateStr();
     const streakDoneToday = stats.lastDailyDate === todayStr;
     if (this.menuDailyDate) {
       if (streakDoneToday) {
-        this.menuDailyDate.textContent = isEn ? 'Серия сегодня продлена! 🔥' : 'Серия сегодня продлена! 🔥';
-        if (isEn) this.menuDailyDate.textContent = 'Streak completed for today! 🔥';
+        this.menuDailyDate.textContent = t('streak_today_done');
       } else {
-        this.menuDailyDate.textContent = isEn ? 'Play any game to keep streak' : 'Сыграйте любую партию для серии';
+        this.menuDailyDate.textContent = t('streak_play_prompt');
       }
     }
 
@@ -2811,24 +2799,11 @@ export class SudokuUI {
           const raw = localStorage.getItem('sudoku_pulse_saved_game_v3');
           if (raw) {
             const data = JSON.parse(raw);
-            const isEn = lang === 'en';
-            const mLabels: Record<string, string> = {
-              classic: isEn ? 'Classic' : 'Классика',
-              fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
-              daily: 'Daily Pulse',
-              run: isEn ? `Pulse Run (Stage ${data.runStage || 1})` : `Забег (Этап ${data.runStage || 1})`,
-              ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
-            };
-            const dLabels: Record<string, string> = {
-              easy: isEn ? 'Easy' : 'Легкий',
-              medium: isEn ? 'Medium' : 'Средний',
-              hard: isEn ? 'Hard' : 'Сложный',
-              expert: isEn ? 'Expert' : 'Эксперт',
-            };
             const mins = Math.floor((data.timerSeconds || 0) / 60);
             const secs = (data.timerSeconds || 0) % 60;
             const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            this.menuContinueMeta.textContent = `${mLabels[data.mode] || (isEn ? 'Game' : 'Игра')} • ${dLabels[data.difficulty] || ''} • ${timeStr}`;
+            const stageSuffix = data.mode === 'run' ? ` (${t('stage_fmt', { stage: data.runStage || 1 })})` : '';
+            this.menuContinueMeta.textContent = `${this.getModeLabel(data.mode)}${stageSuffix} • ${this.getDifficultyLabel(data.difficulty)} • ${timeStr}`;
           }
         } catch {}
       }
@@ -2849,17 +2824,16 @@ export class SudokuUI {
   }
 
   private renderHeaderAndStatus() {
-    const isEn = i18n.getLanguage() === 'en';
-    // Mode badge
-    const modeNames: Record<GameMode, string> = {
-      classic: isEn ? '⚡ Classic' : '⚡ Классика',
-      fog: isEn ? '🌌 Dark Sector' : '🌌 Тёмный сектор',
-      daily: '📅 Daily Pulse',
-      run: isEn ? `🚀 Run (Stage ${this.game.runStage})` : `🚀 Забег (Этап ${this.game.runStage})`,
-      ai_duel: isEn ? '🤖 AI Duel' : '🤖 AI Дуэль',
-      live_duel: isEn ? '⚔️ 1v1 Duel' : '⚔️ 1v1 Дуэль',
+    const modeIcons: Record<GameMode, string> = {
+      classic: '⚡',
+      fog: '🌌',
+      daily: '📅',
+      run: '🚀',
+      ai_duel: '🤖',
+      live_duel: '⚔️',
     };
-    this.gameModeBadge.textContent = modeNames[this.game.mode];
+    const stageSuffix = this.game.mode === 'run' ? ` (${t('stage_fmt', { stage: this.game.runStage })})` : '';
+    this.gameModeBadge.textContent = `${modeIcons[this.game.mode] || '⚡'} ${this.getModeLabel(this.game.mode)}${stageSuffix}`;
 
     // Perk badge
     if (this.game.activePerks.length > 0) {
@@ -2889,7 +2863,8 @@ export class SudokuUI {
     }
 
     // Score
-    this.scoreCounter.textContent = this.game.score.toLocaleString(isEn ? 'en-US' : 'ru-RU');
+    const lang = i18n.getLanguage();
+    this.scoreCounter.textContent = this.game.score.toLocaleString(lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU'));
 
     // Timer
     const mins = Math.floor(this.game.timerSeconds / 60);
@@ -2912,13 +2887,12 @@ export class SudokuUI {
 
   private renderPulseBar() {
     this.pulseFill.style.width = `${this.game.pulseEnergy}%`;
-    const isEn = i18n.getLanguage() === 'en';
 
     if (this.game.isFeverMode && this.game.status === 'playing') {
       this.comboBadge.textContent = `🔥 FEVER OVERDRIVE! 10x`;
       this.comboBadge.className = 'combo-badge fever';
       this.pulseFill.classList.add('fever');
-      this.pulseStatusText.textContent = isEn ? `Remaining: ${this.game.feverSecondsLeft}s!` : `Осталось: ${this.game.feverSecondsLeft} сек!`;
+      this.pulseStatusText.textContent = t('pulse_remaining_fever', { sec: this.game.feverSecondsLeft });
     } else {
       soundManager.stopFeverTrack();
       this.comboBadge.className = 'combo-badge';
@@ -2926,12 +2900,12 @@ export class SudokuUI {
 
       if (this.game.comboCount >= 2) {
         this.comboBadge.textContent = `🔥 x${this.game.comboMultiplier.toFixed(1)} COMBO (${this.game.comboCount})`;
-        this.pulseStatusText.textContent = isEn ? 'Hold the combo rhythm!' : 'Удерживайте комбо-ритм!';
+        this.pulseStatusText.textContent = t('pulse_hold_rhythm');
       } else {
         this.comboBadge.textContent = `⚡ PULSE x${this.game.comboMultiplier.toFixed(1)}`;
         this.pulseStatusText.textContent = this.game.comboMultiplier > 1.0
-          ? (isEn ? `Booster active: multiplier x${this.game.comboMultiplier.toFixed(1)}!` : `Ускоритель активен: множитель x${this.game.comboMultiplier.toFixed(1)}!`)
-          : (isEn ? 'Solve fast for combo!' : 'Решайте быстро для комбо!');
+          ? t('pulse_booster_active', { mult: this.game.comboMultiplier.toFixed(1) })
+          : t('pulse_solve_fast');
       }
     }
   }
@@ -3104,8 +3078,8 @@ export class SudokuUI {
     this.currentWinStats = stats;
     this.hasDoubledCurrentWinScore = false;
     yandexBridge.gameplayStop();
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
     const mins = Math.floor(stats.timeSeconds / 60);
     const secs = stats.timeSeconds % 60;
     this.modalTime.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -3113,24 +3087,10 @@ export class SudokuUI {
     this.modalCombo.textContent = `x${stats.maxCombo}`;
     this.modalMistakes.textContent = `${stats.mistakes}/${this.game.maxMistakes}`;
 
-    const modeLabels: Record<GameMode, string> = {
-      classic: isEn ? 'Classic' : 'Классический',
-      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
-      daily: 'Daily Pulse',
-      run: isEn ? `Pulse Run (Stage ${this.game.runStage})` : `Pulse Run (Этап ${this.game.runStage})`,
-      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
-      live_duel: isEn ? '1v1 Live Duel' : '1v1 Онлайн Дуэль',
-    };
-    this.modalMode.textContent = modeLabels[stats.mode];
-
-    const diffLabels: Record<Difficulty, string> = {
-      easy: isEn ? 'Easy' : 'Легкий',
-      medium: isEn ? 'Medium' : 'Средний',
-      hard: isEn ? 'Hard' : 'Сложный',
-      expert: isEn ? 'Expert' : 'Эксперт',
-    };
+    const stageSuffix = stats.mode === 'run' ? ` (${t('stage_fmt', { stage: this.game.runStage })})` : '';
+    this.modalMode.textContent = `${this.getModeLabel(stats.mode)}${stageSuffix}`;
     if (this.modalDiff) {
-      this.modalDiff.textContent = diffLabels[stats.difficulty] || (isEn ? 'Medium' : 'Средний');
+      this.modalDiff.textContent = this.getDifficultyLabel(stats.difficulty);
     }
 
     this.stopAiBotDuel();
@@ -3147,13 +3107,11 @@ export class SudokuUI {
       this.duelResultBanner.classList.remove('hidden');
       this.duelResultBanner.className = 'duel-result-banner victory';
       if (this.duelResultTitle) {
-        this.duelResultTitle.textContent = isEn ? '🏆 VICTORY IN 1v1 DUEL!' : '🏆 ПОБЕДА В ЖИВОЙ ДУЭЛИ 1v1!';
+        this.duelResultTitle.textContent = t('duel_win_title');
         this.duelResultTitle.style.color = '#34d399';
       }
       if (this.duelResultText) {
-        this.duelResultText.textContent = isEn
-          ? `You solved the puzzle faster than ${this.liveOpponentName}! Pure speed victory.`
-          : `Вы решили судоку быстрее, чем ${this.liveOpponentName}! Чистая победа на скорости.`;
+        this.duelResultText.textContent = t('duel_live_win_desc', { opp: this.liveOpponentName });
       }
       soundManager.playDuelWin();
 
@@ -3183,7 +3141,7 @@ export class SudokuUI {
       if (statusEl) statusEl.classList.add('hidden');
       const btnRematch = document.getElementById('btn-duel-rematch') as HTMLButtonElement | null;
       if (btnRematch) {
-        btnRematch.textContent = isEn ? '🔄 Rematch (New Round)' : '🔄 Реванш (Новый раунд)';
+        btnRematch.textContent = t('btn_rematch_round');
         btnRematch.disabled = false;
         btnRematch.style.opacity = '1';
       }
@@ -3226,14 +3184,12 @@ export class SudokuUI {
       }
 
       if (this.duelResultTitle) {
-        this.duelResultTitle.textContent = isEn ? '🎉 YOU WON THE AI DUEL!' : '🎉 ВЫ ПОБЕДИЛИ В ИИ-ДУЭЛИ!';
+        this.duelResultTitle.textContent = t('duel_ai_win_title');
         this.duelResultTitle.style.color = '#34d399';
       }
       if (this.duelResultText) {
         const scoreDiff = stats.score - botScore;
-        this.duelResultText.textContent = isEn
-          ? `You outpaced ${botName} and solved the grid faster! Advantage: +${Math.max(0, scoreDiff).toLocaleString(locale)} pts.`
-          : `Вы опередили ${botName} и решили сетку быстрее! Преимущество: +${Math.max(0, scoreDiff).toLocaleString(locale)} очков.`;
+        this.duelResultText.textContent = t('duel_ai_win_desc', { bot: botName, score: Math.max(0, scoreDiff).toLocaleString(locale) });
       }
 
       if (rematchContainer) rematchContainer.classList.remove('hidden');
@@ -3241,7 +3197,7 @@ export class SudokuUI {
       if (statusEl) statusEl.classList.add('hidden');
       const btnRematch = document.getElementById('btn-duel-rematch') as HTMLButtonElement | null;
       if (btnRematch) {
-        btnRematch.textContent = isEn ? '🔄 Rematch vs Bot' : '🔄 Реванш против бота';
+        btnRematch.textContent = t('btn_rematch_bot');
         btnRematch.disabled = false;
         btnRematch.style.opacity = '1';
       }
@@ -3268,24 +3224,20 @@ export class SudokuUI {
 
       if (wonDuel) {
         if (this.duelResultTitle) {
-          this.duelResultTitle.textContent = isEn ? '🎉 YOU WON THE DUEL!' : '🎉 ВЫ ПОБЕДИЛИ В ДУЭЛИ!';
+          this.duelResultTitle.textContent = t('duel_win_title');
           this.duelResultTitle.style.color = '#34d399';
         }
         if (this.duelResultText) {
           const scoreDiff = stats.score - targetScore;
-          this.duelResultText.textContent = isEn
-            ? `Your score (${stats.score.toLocaleString(locale)}) beat ${challenger}'s record (+${scoreDiff.toLocaleString(locale)} pts)!`
-            : `Ваш результат (${stats.score.toLocaleString(locale)}) превзошёл рекорд ${challenger} (+${scoreDiff.toLocaleString(locale)} очков)!`;
+          this.duelResultText.textContent = t('duel_beat_target_record', { myScore: stats.score.toLocaleString(locale), challenger, scoreDiff: scoreDiff.toLocaleString(locale) });
         }
       } else {
         if (this.duelResultTitle) {
-          this.duelResultTitle.textContent = isEn ? '⚔️ Duel Finished' : '⚔️ Дуэль завершена';
+          this.duelResultTitle.textContent = t('duel_finished_fallback');
           this.duelResultTitle.style.color = '#f59e0b';
         }
         if (this.duelResultText) {
-          this.duelResultText.textContent = isEn
-            ? `${challenger}'s record: ${targetScore.toLocaleString(locale)} pts. Try again!`
-            : `Рекорд ${challenger}: ${targetScore.toLocaleString(locale)} очков. Попробуйте еще раз!`;
+          this.duelResultText.textContent = `${challenger} - ${t('challenge_target_score')} ${targetScore.toLocaleString(locale)}`;
         }
       }
     } else {
@@ -3293,17 +3245,15 @@ export class SudokuUI {
       if (rematchContainer) rematchContainer.classList.add('hidden');
       if (this.duelWinEloBox) this.duelWinEloBox.classList.add('hidden');
       if (stats.mode === 'live_duel' || stats.mode === 'ai_duel') {
-        this.modalMode.textContent = modeLabels['classic'];
+        this.modalMode.textContent = this.getModeLabel('classic');
       }
     }
 
     if (stats.mode === 'run') {
       const nextStage = this.game.runStage + 1;
       const stageBonus = 1500 * this.game.runStage;
-      this.modalWinTitle.textContent = isEn ? `🚀 Stage ${this.game.runStage} Complete!` : `🚀 Этап ${this.game.runStage} пройден!`;
-      this.modalSubtitle.textContent = isEn
-        ? `Stage bonus: +${stageBonus.toLocaleString(locale)} pts! Select a new perk:`
-        : `Бонус за этап: +${stageBonus.toLocaleString(locale)} очков! Выберите новый перк:`;
+      this.modalWinTitle.textContent = t('win_stage_complete', { stage: this.game.runStage });
+      this.modalSubtitle.textContent = t('win_stage_bonus', { bonus: stageBonus.toLocaleString(locale) });
       this.nextStageNum.textContent = nextStage.toString();
       this.runStageUpgrade.classList.remove('hidden');
       this.playAgainBtn.classList.add('hidden');
@@ -3330,13 +3280,13 @@ export class SudokuUI {
           this.stopConfetti();
           soundManager.playCorrect(3);
           this.game.advanceRunStage(perk);
-          this.showToast(isEn ? `🚀 Stage ${this.game.runStage}: ${this.game.getRunModifierDescription()}` : `🚀 Этап ${this.game.runStage}: ${this.game.getRunModifierDescription()}`);
+          this.showToast(t('stage_advance_toast', { stage: this.game.runStage, desc: this.game.getRunModifierDescription() }));
         });
         this.runPerksDraft.appendChild(card);
       });
     } else {
-      this.modalWinTitle.textContent = isEn ? 'Victory!' : 'Победа!';
-      this.modalSubtitle.textContent = isEn ? 'Puzzle solved successfully!' : 'Головоломка успешно решена!';
+      this.modalWinTitle.textContent = t('win_title');
+      this.modalSubtitle.textContent = t('win_puzzle_solved');
       this.runStageUpgrade.classList.add('hidden');
       this.playAgainBtn.classList.remove('hidden');
     }
@@ -3352,9 +3302,7 @@ export class SudokuUI {
         }
         const lbl = document.getElementById('btn-double-win-score-label');
         if (lbl) {
-          lbl.textContent = isEn
-            ? `✨ Double Score (+${stats.score.toLocaleString(locale)}) 🎁`
-            : `✨ Удвоить очки партии (+${stats.score.toLocaleString(locale)}) 🎁`;
+          lbl.textContent = `✨ ${t('win_double_score_label')} (+${stats.score.toLocaleString(locale)}) 🎁`;
         }
       } else {
         this.btnDoubleWinScore.classList.add('hidden');
@@ -3455,7 +3403,7 @@ export class SudokuUI {
     let mode: GameMode = 'classic';
     let targetScore = 0;
     let targetTime = 0;
-    let challenger = isEn ? 'Friend' : 'Друг';
+    let challenger = t('friend_label');
 
     if (rawParam && (rawParam.startsWith('c_') || rawParam.startsWith('challenge_'))) {
       const parts = rawParam.replace(/^(c_|challenge_)/, '').split('_');
@@ -3491,25 +3439,12 @@ export class SudokuUI {
     const tSecs = targetTime % 60;
     const timeStr = targetTime > 0 ? `${tMins.toString().padStart(2, '0')}:${tSecs.toString().padStart(2, '0')}` : '—';
 
-    const diffLabels: Record<Difficulty, string> = {
-      easy: isEn ? 'Easy' : 'Легкий',
-      medium: isEn ? 'Medium' : 'Средний',
-      hard: isEn ? 'Hard' : 'Сложный',
-      expert: isEn ? 'Expert' : 'Эксперт',
-    };
-    const modeLabels: Record<GameMode, string> = {
-      classic: isEn ? 'Classic' : 'Классический',
-      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
-      daily: 'Daily Pulse',
-      run: 'Pulse Run',
-      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
-      live_duel: isEn ? '1v1 Live Duel' : '1v1 Онлайн Дуэль',
-    };
-
     if (this.challengeChallengerName) this.challengeChallengerName.textContent = challenger;
-    if (this.challengeDiff) this.challengeDiff.textContent = diffLabels[diff] || (isEn ? 'Medium' : 'Средний');
-    if (this.challengeMode) this.challengeMode.textContent = modeLabels[mode] || (isEn ? 'Classic' : 'Классика');
-    if (this.challengeTargetScore) this.challengeTargetScore.textContent = targetScore > 0 ? targetScore.toLocaleString(isEn ? 'en-US' : 'ru-RU') : '—';
+    if (this.challengeDiff) this.challengeDiff.textContent = this.getDifficultyLabel(diff);
+    if (this.challengeMode) this.challengeMode.textContent = this.getModeLabel(mode);
+    const lang = i18n.getLanguage();
+    const cLocale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
+    if (this.challengeTargetScore) this.challengeTargetScore.textContent = targetScore > 0 ? targetScore.toLocaleString(cLocale) : '—';
     if (this.challengeTargetTime) this.challengeTargetTime.textContent = timeStr;
 
     // Clean URL params quietly if loaded from page URL
@@ -3586,8 +3521,7 @@ export class SudokuUI {
 
   private async fetchAndRenderLeaderboard() {
     if (!this.leaderboardList) return;
-    const isEn = i18n.getLanguage() === 'en';
-    this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Loading server leaderboards...' : 'Загрузка онлайн-рекордов...'}</div>`;
+    this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${t('season_server_loading')}</div>`;
 
     if (yandexBridge.isYandex() && this.currentLeaderboardModeFilter !== 'pvp_duel') {
       try {
@@ -3598,7 +3532,7 @@ export class SudokuUI {
             id: 'y_' + e.rank,
             name: e.name,
             score: e.score,
-            date: new Date().toLocaleDateString(isEn ? 'en-US' : 'ru-RU'),
+            date: new Date().toLocaleDateString(i18n.getLanguage() === 'en' ? 'en-US' : (i18n.getLanguage() === 'tr' ? 'tr-TR' : 'ru-RU')),
             mode: 'classic' as GameMode,
             playerId: e.isUser ? myPlayerId : undefined,
           }));
@@ -3635,16 +3569,16 @@ export class SudokuUI {
       this.cachedMyRank = data.myRank || null;
       this.renderLeaderboardList();
     } catch {
-      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${isEn ? 'Server unreachable (offline mode)' : 'Онлайн-сервер недоступен (офлайн-режим)'}</div>`;
+      this.leaderboardList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${t('season_server_offline')}</div>`;
     }
   }
 
   private renderLeaderboardList() {
     if (!this.leaderboardList) return;
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
-    const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).trim();
+    const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).trim();
     let entries = [...this.cachedLeaderboardEntries];
 
     const isPvpMode = this.currentLeaderboardModeFilter === 'pvp_duel';
@@ -3706,18 +3640,16 @@ export class SudokuUI {
     let seasonHeader = '';
     if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
       const parts = this.currentSeasonId.split('-W');
-      const weekLabel = parts.length === 2 ? (isEn ? `Week ${parts[1]}, ${parts[0]}` : `Неделя ${parts[1]}, ${parts[0]}`) : this.currentSeasonId;
+      const weekLabel = parts.length === 2 ? `${t('season_header_active')} ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
       seasonHeader = `
         <div style="font-size:0.75rem; color:var(--accent); font-weight:600; text-align:center; margin-bottom:8px; padding:4px 8px; background:rgba(99,102,241,0.12); border-radius:6px; border:1px solid rgba(99,102,241,0.25);">
-          ⏳ ${isEn ? 'Active season:' : 'Текущий сезон:'} ${weekLabel}
+          ⏳ ${t('season_status_active')}: ${weekLabel}
         </div>
       `;
     }
 
     if (entries.length === 0) {
-      const emptyMsg = isPvpMode
-        ? (isEn ? 'No 1v1 PvP records yet. Play a duel match to climb the leaderboard!' : 'Пока нет записей 1v1 PvP. Сыграйте дуэль, чтобы возглавить рейтинг!')
-        : (isEn ? 'No records in this category yet.' : 'Пока нет записей в этом режиме.');
+      const emptyMsg = isPvpMode ? t('season_empty_pvp') : t('season_empty_category');
       this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${emptyMsg}</div>`;
       return;
     }
@@ -3746,7 +3678,7 @@ export class SudokuUI {
               <span style="font-size:0.95rem;">⚔️</span>
               <div style="display:flex; flex-direction:column; min-width:0;">
                 <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                  <span style="font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${isMe ? (isEn ? ' <span style="color:var(--accent); font-size:0.75rem;">(You)</span>' : ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>') : ''}</span>
+                  <span style="font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
                   ${recordStr}
                 </div>
                 <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
@@ -3757,14 +3689,14 @@ export class SudokuUI {
         `;
       }
 
-      const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
+      const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
       const league = getLeagueForScore(item.score);
       return `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-weight:700; min-width:24px;">${medal}</span>
-            <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? (isEn ? ' <span style="color:var(--accent); font-size:0.75rem;">(You)</span>' : ' <span style="color:var(--accent); font-size:0.75rem;">(Вы)</span>') : ''}</span>
+            <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
             <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
           </div>
           <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString(locale)}</span>
@@ -3807,7 +3739,7 @@ export class SudokuUI {
                 <span style="font-size:0.95rem;">⚔️</span>
                 <div style="display:flex; flex-direction:column; min-width:0;">
                   <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                    <span style="font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+                    <span style="font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">(${t('player_you')})</span></span>
                     ${recordStr}
                   </div>
                   <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
@@ -3817,7 +3749,7 @@ export class SudokuUI {
             </div>
           `;
         } else {
-          const badge = item.mode === 'run' ? (isEn ? `🚀 St.${item.runStage || 1}` : `🚀 Эт.${item.runStage || 1}`) : item.mode === 'daily' ? '📅 Daily' : item.mode === 'fog' ? (isEn ? '🌌 Sector' : '🌌 Сектор') : item.mode === 'ai_duel' ? (isEn ? '🤖 Duel' : '🤖 Дуэль') : (isEn ? '⚡ Classic' : '⚡ Классика');
+          const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
           const league = getLeagueForScore(item.score);
           pinnedUserHtml = `
             <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
@@ -3826,8 +3758,8 @@ export class SudokuUI {
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
-                <span title="${isEn ? 'League' : 'Лига'}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-                <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${isEn ? '(You)' : '(Вы)'}</span></span>
+                <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
+                <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${t('player_you')}</span></span>
                 <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
               </div>
               <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
@@ -3894,15 +3826,15 @@ export class SudokuUI {
 
   private updateYandexAuthPill() {
     if (!this.btnMenuYandexAuth || !this.menuYandexAuthLabel) return;
-    const isEn = i18n.getLanguage() === 'en';
+
     const yName = yandexBridge.getPlayerName();
     if (yName) {
-      this.menuYandexAuthLabel.textContent = isEn ? `Yandex: ${yName}` : `Яндекс: ${yName}`;
+      this.menuYandexAuthLabel.textContent = `Yandex: ${yName}`;
       this.btnMenuYandexAuth.style.borderColor = '#fc3f1d';
       this.btnMenuYandexAuth.style.color = '#ff6b4a';
       this.btnMenuYandexAuth.style.background = 'rgba(252, 63, 29, 0.15)';
     } else {
-      this.menuYandexAuthLabel.textContent = isEn ? 'Login with Yandex' : 'Войти в Яндекс';
+      this.menuYandexAuthLabel.textContent = t('settings_yandex_login');
       this.btnMenuYandexAuth.style.borderColor = 'rgba(252, 63, 29, 0.4)';
       this.btnMenuYandexAuth.style.color = '#ff6b4a';
       this.btnMenuYandexAuth.style.background = 'rgba(252, 63, 29, 0.12)';
@@ -3946,7 +3878,7 @@ export class SudokuUI {
       this.confirmForfeitAndExit();
       return;
     }
-    const isEn = i18n.getLanguage() === 'en';
+
     const isDuel = Boolean(this.isLiveDuelActive || this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel');
 
     const exitCard = this.exitConfirmModal.querySelector('.modal-card') as HTMLElement | null;
@@ -3965,30 +3897,24 @@ export class SudokuUI {
       if (exitCard) exitCard.style.borderColor = 'rgba(239, 68, 68, 0.45)';
       if (exitIcon) exitIcon.textContent = '🚪';
       this.exitConfirmTitle.style.color = '#f87171';
-      this.exitConfirmTitle.textContent = isEn ? 'Forfeit and exit?' : 'Сдаться и выйти?';
-      this.exitConfirmDesc.innerHTML = isEn
-        ? `Leaving the match against <strong>${oppLabel}</strong> counts as an automatic forfeit!<br><br>` +
-          `<div style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; color:#fca5a5; font-size:0.92rem; font-weight:700;">` +
-          `<span>📉 Rating Penalty:</span> <span style="color:#ef4444; font-size:1.05rem;">-${penalty} ELO</span> <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">(${playerElo} → ${newElo})</span>` +
-          `</div>`
-        : `Выход из дуэли против <strong>${oppLabel}</strong> считается техническим поражением!<br><br>` +
-          `<div style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; color:#fca5a5; font-size:0.92rem; font-weight:700;">` +
-          `<span>📉 Штраф рейтинга:</span> <span style="color:#ef4444; font-size:1.05rem;">-${penalty} ELO</span> <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">(${playerElo} → ${newElo})</span>` +
-          `</div>`;
-      this.btnExitCancel.textContent = isEn ? '▶️ Continue Match' : '▶️ Продолжить игру';
+      this.exitConfirmTitle.textContent = t('exit_duel_forfeit_title');
+      this.exitConfirmDesc.innerHTML =
+        t('exit_duel_forfeit_desc', { opp: oppLabel, penalty, playerElo, newElo }) +
+        `<br><br><div style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); border-radius:10px; color:#fca5a5; font-size:0.92rem; font-weight:700;">` +
+        `<span>📉 ${t('exit_duel_penalty_label')}:</span> <span style="color:#ef4444; font-size:1.05rem;">-${penalty} ELO</span> <span style="font-weight:400; font-size:0.8rem; color:var(--text-muted);">(${playerElo} → ${newElo})</span>` +
+        `</div>`;
+      this.btnExitCancel.textContent = t('exit_duel_btn_continue');
       this.btnExitCancel.style.background = '';
-      this.btnExitConfirm.textContent = isEn ? `🚪 Forfeit (-${penalty} ELO)` : `🚪 Сдаться (-${penalty} ELO)`;
+      this.btnExitConfirm.textContent = t('exit_duel_btn_forfeit', { penalty });
     } else {
       if (exitCard) exitCard.style.borderColor = 'rgba(56, 189, 248, 0.45)';
       if (exitIcon) exitIcon.textContent = '💾';
       this.exitConfirmTitle.style.color = '#38bdf8';
-      this.exitConfirmTitle.textContent = isEn ? 'Exit Game' : 'Пауза и выход';
-      this.exitConfirmDesc.textContent = isEn
-        ? 'Would you like to save your current puzzle progress to continue later, or exit without saving?'
-        : 'Хотите сохранить прогресс текущей партии и продолжить позже или выйти без сохранения?';
-      this.btnExitCancel.textContent = isEn ? '💾 Save & Exit' : '💾 Сохранить и выйти';
+      this.exitConfirmTitle.textContent = t('exit_confirm_title');
+      this.exitConfirmDesc.textContent = t('exit_confirm_desc');
+      this.btnExitCancel.textContent = t('exit_btn_save');
       this.btnExitCancel.style.background = 'linear-gradient(135deg, #0284c7, #38bdf8)';
-      this.btnExitConfirm.textContent = isEn ? '🗑️ Exit without saving' : '🗑️ Выйти без сохранения';
+      this.btnExitConfirm.textContent = t('exit_btn_nosave');
     }
 
     if (this.game.mode !== 'live_duel' && !this.isLiveDuelActive && this.game.status === 'playing') {
@@ -4116,7 +4042,7 @@ export class SudokuUI {
     const badge = document.getElementById('yandex-account-badge');
     const btn = document.getElementById('btn-yandex-auth');
     const name = yandexBridge.getPlayerName();
-    const isEn = i18n.getLanguage() === 'en';
+
 
     if (name) {
       if (badge) {
@@ -4124,18 +4050,18 @@ export class SudokuUI {
         badge.style.color = '#34d399';
       }
       if (btn) {
-        btn.textContent = isEn ? '✓ Yandex Account Connected' : '✓ Яндекс аккаунт подключен';
+        btn.textContent = t('yandex_auth_connected');
         btn.setAttribute('disabled', 'true');
         btn.style.opacity = '0.7';
         btn.style.cursor = 'default';
       }
     } else {
       if (badge) {
-        badge.textContent = isEn ? 'Guest' : 'Гость';
+        badge.textContent = t('guest');
         badge.style.color = '#f87171';
       }
       if (btn) {
-        btn.textContent = isEn ? '🔴 Login with Yandex ID' : '🔴 Войти через Яндекс Паспорт';
+        btn.textContent = t('settings_yandex_login');
         btn.removeAttribute('disabled');
         btn.style.opacity = '1';
         btn.style.cursor = 'pointer';
@@ -4239,78 +4165,62 @@ export class SudokuUI {
   }
 
   private async shareScoreCard() {
-    const isEn = i18n.getLanguage() === 'en';
+
     const mins = Math.floor(this.game.timerSeconds / 60);
     const secs = this.game.timerSeconds % 60;
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    const modeLabels: Record<GameMode, string> = {
-      classic: isEn ? 'Classic' : 'Классика',
-      fog: isEn ? 'Dark Sector' : 'Тёмный сектор',
-      daily: 'Daily Pulse',
-      run: isEn ? `Pulse Run (Stage ${this.game.runStage})` : `Pulse Run (Этап ${this.game.runStage})`,
-      ai_duel: isEn ? 'Pulse AI Duel' : 'Pulse AI Дуэль',
-      live_duel: isEn ? '1v1 Live Duel' : '1v1 Онлайн Дуэль',
-    };
-    const diffLabels: Record<Difficulty, string> = {
-      easy: isEn ? 'Easy' : 'Легкий',
-      medium: isEn ? 'Medium' : 'Средний',
-      hard: isEn ? 'Hard' : 'Сложный',
-      expert: isEn ? 'Expert' : 'Эксперт',
-    };
+    const lang = i18n.getLanguage();
+    const vLocale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
+    const stageSuffix = this.game.mode === 'run' ? ` (${t('stage_fmt', { stage: this.game.runStage })})` : '';
+    const modeName = `${this.getModeLabel(this.game.mode)}${stageSuffix}`;
+    const diffName = this.getDifficultyLabel(this.game.difficulty);
 
-    const modeName = modeLabels[this.game.mode] || (isEn ? 'Classic' : 'Классика');
-    const diffName = diffLabels[this.game.difficulty] || (isEn ? 'Medium' : 'Средний');
-
-    const title = isEn ? 'Sudoku Pulse — Victory!' : '⚡ Sudoku Pulse — Победа!';
-    const text = isEn
-      ? `⚡ Sudoku Pulse — Victory!\n🎮 Mode: ${modeName} (${diffName})\n⏱️ Time: ${timeStr} | 💎 Score: ${this.game.score.toLocaleString('en-US')}\n🔥 Max Combo: x${this.game.maxComboAchieved} | ❤️ Mistakes: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩`
-      : `⚡ Sudoku Pulse — Победа!\n🎮 Режим: ${modeName} (${diffName})\n⏱️ Время: ${timeStr} | 💎 Очки: ${this.game.score.toLocaleString('ru-RU')}\n🔥 Макс. комбо: x${this.game.maxComboAchieved} | ❤️ Ошибки: ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩`;
+    const title = `⚡ Sudoku Pulse — ${t('win_title')}!`;
+    const text = `⚡ Sudoku Pulse — ${t('win_title')}!\n🎮 ${t('stat_mode')} ${modeName} (${diffName})\n⏱️ ${t('stat_time')} ${timeStr} | 💎 ${t('stat_score')} ${this.game.score.toLocaleString(vLocale)}\n🔥 ${t('stat_max_combo')} x${this.game.maxComboAchieved} | ❤️ ${t('stat_mistakes')} ${this.game.mistakesCount}/${this.game.maxMistakes}\n🟩🟩🟩🟨🟩`;
 
     const shared = await this.tryNativeShare({ title, text });
     if (!shared) {
       await this.copyTextToClipboard(text);
-      this.showToast(isEn ? '📋 Result card copied to clipboard!' : '📋 Карточка счёта скопирована в буфер!');
+      this.showToast(t('win_share_btn'));
     }
   }
 
   private async shareChallenge() {
-    const isEn = i18n.getLanguage() === 'en';
+
     const seed = this.game.currentSeed;
     const diff = this.game.difficulty;
     const mode = this.game.mode;
     const score = this.game.score;
     const time = this.game.timerSeconds;
-    const myName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '');
+    const myName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).replace(/[@_\s]/g, '');
 
+    const lang = i18n.getLanguage();
+    const cLocale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
     const mins = Math.floor(time / 60);
     const secs = time % 60;
     const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    const diffLabels: Record<Difficulty, string> = {
-      easy: isEn ? 'Easy' : 'Легкий',
-      medium: isEn ? 'Medium' : 'Средний',
-      hard: isEn ? 'Hard' : 'Сложный',
-      expert: isEn ? 'Expert' : 'Эксперт',
-    };
-    const diffName = diffLabels[diff] || (isEn ? 'Medium' : 'Средний');
+    const diffName = this.getDifficultyLabel(diff);
 
     const challengeCode = `c_${seed}_${diff}_${mode}_${score}_${time}_${encodeURIComponent(myName)}`;
 
-    const title = isEn ? 'Sudoku Pulse — Friend Challenge!' : '⚔️ Sudoku Pulse — Вызов другу!';
-    const text = isEn
-      ? `⚔️ Challenging you in Sudoku Pulse!\n🎯 My score: ${score.toLocaleString('en-US')} pts in ${timeStr} on "${diffName}".\nCan you beat my record on the exact same grid?\n🔑 Challenge Code: ${challengeCode}`
-      : `⚔️ Бросаю вызов в Sudoku Pulse!\n🎯 Мой рекорд: ${score.toLocaleString('ru-RU')} очков за ${timeStr} на сложности "${diffName}".\nСможешь побить мой рекорд на той же сетке? 🚀\n🔑 Код дуэли: ${challengeCode}`;
+    const title = `⚔️ Sudoku Pulse — ${t('challenge_modal_title')}`;
+    const text = `⚔️ ${t('challenge_modal_subtitle')}\n🎯 ${t('challenge_target_score')} ${score.toLocaleString(cLocale)} | ${timeStr} (${diffName})\n🔑 ${t('stats_player_name')} ${myName}\n${challengeCode}`;
 
     const shared = await this.tryNativeShare({ title, text });
     if (!shared) {
       await this.copyTextToClipboard(challengeCode);
-      this.showToast(isEn ? '⚔️ Challenge code copied to clipboard!' : '⚔️ Код дуэли скопирован в буфер!');
+      this.showToast(t('toast_challenge_copied'));
     }
   }
 
-  private formatMistakesCount(count: number, isEn: boolean): string {
-    if (isEn) {
+  private formatMistakesCount(count: number): string {
+    const lang = i18n.getLanguage();
+    if (lang === 'en') {
       return count === 1 ? '1 mistake' : `${count} mistakes`;
+    }
+    if (lang === 'tr') {
+      return `${count} hata`;
     }
     const mod10 = count % 10;
     const mod100 = count % 100;
@@ -4348,29 +4258,26 @@ export class SudokuUI {
   private showGameOverModal(reason: 'mistakes' | 'opponent_finished' | 'abandon' = 'mistakes') {
     yandexBridge.gameplayStop();
     this.stopAiBotDuel();
-    const isEn = i18n.getLanguage() === 'en';
+
     const isDuel = Boolean(this.currentLiveLobbyId || this.game.mode === 'ai_duel' || this.game.mode === 'live_duel' || this.isLiveDuelActive);
 
     const rematchLossContainer = document.getElementById('duel-loss-rematch-container');
 
+    const lang = i18n.getLanguage();
+    const gLocale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
+
     if (isDuel) {
       if (this.gameOverTitle) {
-        this.gameOverTitle.textContent = isEn ? 'Defeat in Duel' : 'Поражение в дуэли';
+        this.gameOverTitle.textContent = t('duel_defeat_title');
       }
-      const oppName = this.game.mode === 'ai_duel' ? `🤖 ${this.aiBotProgress.name}` : (this.liveOpponentName || (isEn ? 'Opponent' : 'Противник'));
+      const oppName = this.game.mode === 'ai_duel' ? `🤖 ${this.aiBotProgress.name}` : (this.liveOpponentName || t('opponent_label'));
 
       if (reason === 'opponent_finished') {
-        this.gameOverSubtitle.textContent = isEn
-          ? `${oppName} solved the puzzle faster than you.`
-          : `Противник (${oppName}) завершил сборку быстрее вас.`;
+        this.gameOverSubtitle.textContent = t('duel_defeat_finished', { opp: oppName });
       } else if (reason === 'abandon') {
-        this.gameOverSubtitle.textContent = isEn
-          ? 'You forfeited the duel.'
-          : 'Вы досрочно покинули дуэль.';
+        this.gameOverSubtitle.textContent = t('duel_defeat_forfeit');
       } else {
-        this.gameOverSubtitle.textContent = isEn
-          ? `You made ${this.formatMistakesCount(this.game.maxMistakes, true)} in duel against ${oppName}.`
-          : `Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)} в дуэли против ${oppName}.`;
+        this.gameOverSubtitle.textContent = t('duel_defeat_mistakes', { count: this.formatMistakesCount(this.game.maxMistakes), opp: oppName });
       }
 
       // Hide solo buttons in duel: strictly leave Rematch and Menu
@@ -4382,24 +4289,26 @@ export class SudokuUI {
         const btnLossRematch = document.getElementById('btn-duel-loss-rematch') as HTMLButtonElement | null;
         if (btnLossRematch) {
           btnLossRematch.textContent = this.game.mode === 'ai_duel'
-            ? (isEn ? '🔄 Rematch vs Bot' : '🔄 Реванш против бота')
-            : (isEn ? '🔄 Rematch (New Round)' : '🔄 Реванш (Новый раунд)');
+            ? t('btn_rematch_bot')
+            : t('btn_rematch_round');
           btnLossRematch.disabled = false;
           btnLossRematch.style.opacity = '1';
         }
       }
     } else {
       if (this.gameOverTitle) {
-        this.gameOverTitle.textContent = isEn ? 'Game Over' : 'Игра окончена';
+        this.gameOverTitle.textContent = t('gameover_title');
       }
       if (this.game.mode === 'run') {
-        this.gameOverSubtitle.textContent = isEn
-          ? `Pulse Run ended at Stage ${this.game.runStage}. You made ${this.formatMistakesCount(this.game.maxMistakes, true)}. Your score: ${this.game.score.toLocaleString('en-US')}`
-          : `Забег окончен на Этапе ${this.game.runStage}. Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)}. Ваш счёт: ${this.game.score.toLocaleString('ru-RU')}`;
+        this.gameOverSubtitle.textContent = t('gameover_run_subtitle', {
+          stage: this.game.runStage,
+          count: this.formatMistakesCount(this.game.maxMistakes),
+          score: this.game.score.toLocaleString(gLocale)
+        });
       } else {
-        this.gameOverSubtitle.textContent = isEn
-          ? `You made ${this.formatMistakesCount(this.game.maxMistakes, true)}.`
-          : `Вы совершили ${this.formatMistakesCount(this.game.maxMistakes, false)}.`;
+        this.gameOverSubtitle.textContent = t('gameover_mistakes_subtitle', {
+          count: this.formatMistakesCount(this.game.maxMistakes)
+        });
       }
 
       // Show solo buttons
@@ -4445,17 +4354,17 @@ export class SudokuUI {
 
   private showStatsModal() {
     const stats = SudokuGame.getPlayerStats();
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
     this.statPlayed.textContent = stats.gamesPlayed.toString();
     this.statWon.textContent = stats.gamesWon.toString();
     this.statCombo.textContent = `x${stats.maxCombo}`;
     this.statScore.textContent = stats.totalScore.toLocaleString(locale);
-    this.statStreak.textContent = isEn ? `🔥 ${stats.dailyStreak} d.` : `🔥 ${stats.dailyStreak} дн.`;
+    this.statStreak.textContent = t('menu_streak_days', { days: stats.dailyStreak });
     const bestRun = stats.bestRunStage || 0;
     const bestRunScore = stats.bestRunScore || 0;
     this.statRunStage.textContent = bestRun > 0
-      ? (isEn ? `Stage ${bestRun} (${bestRunScore.toLocaleString(locale)})` : `Этап ${bestRun} (${bestRunScore.toLocaleString(locale)})`)
+      ? `${t('stage_fmt', { stage: bestRun })} (${bestRunScore.toLocaleString(locale)})`
       : '—';
     this.updateLeagueViews();
     this.renderPlayerSeasonMedals();
@@ -4503,39 +4412,29 @@ export class SudokuUI {
   private renderDuelHistory() {
     if (!this.duelHistoryList || !this.duelHistorySummary) return;
     const history = this.getDuelHistory();
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
     if (history.length === 0) {
-      this.duelHistorySummary.textContent = isEn ? '0 duels played' : '0 дуэлей сыграно';
-      this.duelHistoryList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:10px;">${
-        isEn ? 'You have not participated in duels yet. Share a challenge code after winning!' : 'Вы еще не участвовали в дуэлях. Поделитесь вызовом после победы!'
-      }</div>`;
+      this.duelHistorySummary.textContent = `0 ${t('duel_played_matches')}`;
+      this.duelHistoryList.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:10px;">${t('season_empty_pvp')}</div>`;
       return;
     }
 
     const wins = history.filter((d) => d.won).length;
     const losses = history.length - wins;
     const winRate = Math.round((wins / history.length) * 100);
-    this.duelHistorySummary.textContent = isEn
-      ? `Wins: ${wins} | Defeats: ${losses} (${winRate}% win rate)`
-      : `Побед: ${wins} | Поражений: ${losses} (${winRate}% винрейт)`;
-
-    const diffLabels: Record<Difficulty, string> = {
-      easy: isEn ? 'Easy' : 'Легкий',
-      medium: isEn ? 'Medium' : 'Средний',
-      hard: isEn ? 'Hard' : 'Сложный',
-      expert: isEn ? 'Expert' : 'Эксперт',
-    };
+    this.duelHistorySummary.textContent = `${t('stat_label_wins')}: ${wins} | ${t('stat_label_losses')}: ${losses} (${winRate}%)`;
 
     this.duelHistoryList.innerHTML = history.slice(0, 10).map((d) => {
       const statusIcon = d.won ? '🏆' : '💀';
       const statusClass = d.won ? 'won' : 'lost';
-      const statusText = d.won ? (isEn ? 'Victory' : 'Победа') : (isEn ? 'Defeat' : 'Поражение');
+      const statusText = d.won ? t('victory_label') : t('defeat_label');
       const myMins = Math.floor(d.myTime / 60);
       const mySecs = d.myTime % 60;
       const myTimeStr = `${myMins.toString().padStart(2, '0')}:${mySecs.toString().padStart(2, '0')}`;
-      const diffName = diffLabels[d.diff] || (isEn ? 'Medium' : 'Средний');
+      const diffName = this.getDifficultyLabel(d.diff);
 
       const scoreDiff = d.myScore - d.targetScore;
       const diffStr = scoreDiff >= 0 ? `+${scoreDiff.toLocaleString(locale)}` : `${scoreDiff.toLocaleString(locale)}`;
@@ -4551,7 +4450,7 @@ export class SudokuUI {
           </div>
           <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted);">
             <span>${diffName} | ⏱️ ${myTimeStr}</span>
-            <span>${isEn ? 'Score' : 'Счёт'}: <strong style="color:var(--text-main);">${d.myScore.toLocaleString(locale)}</strong> (<span style="color:${d.won ? '#34d399' : '#f43f5e'};">${diffStr}</span>)</span>
+            <span>${t('stat_score_short')}: <strong style="color:var(--text-main);">${d.myScore.toLocaleString(locale)}</strong> (<span style="color:${d.won ? '#34d399' : '#f43f5e'};">${diffStr}</span>)</span>
           </div>
         </div>
       `;
@@ -4561,7 +4460,7 @@ export class SudokuUI {
   private updateLeagueViews() {
     const stats = SudokuGame.getPlayerStats();
     const league = getLeagueForScore(stats.totalScore);
-    const isEn = i18n.getLanguage() === 'en';
+
 
     if (this.menuLeagueBadge) {
       this.menuLeagueBadge.className = league.badgeClass;
@@ -4570,11 +4469,11 @@ export class SudokuUI {
 
     if (this.statLeagueBadge) {
       this.statLeagueBadge.className = league.badgeClass;
-      this.statLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>${isEn ? 'League' : 'Лига'}: ${league.name}</span>`;
+      this.statLeagueBadge.innerHTML = `<span>${league.icon}</span> <span>${t('profile_cyber_league')} ${league.name}</span>`;
     }
 
     if (this.statSeasonTimer) {
-      this.statSeasonTimer.textContent = `⏳ ${isEn ? 'Season' : 'Сезон'}: ${getSeasonRemainingText()}`;
+      this.statSeasonTimer.textContent = `⏳ ${t('season_league_title')} ${getSeasonRemainingText()}`;
     }
   }
 
@@ -4601,7 +4500,8 @@ export class SudokuUI {
     const lastSeason = localStorage.getItem('sudoku_last_season_id');
     const stats = SudokuGame.getPlayerStats();
     const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
     if (!lastSeason) {
       localStorage.setItem('sudoku_last_season_id', currentSeason);
@@ -4618,7 +4518,7 @@ export class SudokuUI {
       const finalLeague = getLeagueForScore(stats.totalScore);
       const trophy: SeasonTrophy = {
         seasonId: lastSeason,
-        seasonName: isEn ? `Season ${lastSeason.replace('-', ' ')}` : `Сезон ${lastSeason.replace('-', ' ')}`,
+        seasonName: `${t('season_title_prefix')} ${lastSeason.replace('-', ' ')}`,
         leagueId: finalLeague.id,
         leagueName: finalLeague.name,
         icon: finalLeague.icon,
@@ -4696,13 +4596,14 @@ export class SudokuUI {
       if (raw) return JSON.parse(raw);
     } catch {}
     const stats = SudokuGame.getPlayerStats();
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
     if (stats.gamesWon > 0) {
       const starter: SeasonBadge = {
         id: 'badge_starter',
         seasonId: getCurrentSeasonId(),
-        title: isEn ? '⚡ Pulse Veteran' : '⚡ Ветеран Pulse',
+        title: `⚡ ${t('stat_played') || 'Pulse Veteran'}`,
         icon: '⚡',
         tier: 'veteran',
         dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
@@ -4728,14 +4629,14 @@ export class SudokuUI {
   private renderPlayerSeasonMedals() {
     if (!this.playerSeasonMedals) return;
     const badges = this.getSeasonBadges();
-    const isEn = i18n.getLanguage() === 'en';
+
     if (badges.length === 0) {
       this.playerSeasonMedals.classList.add('hidden');
       return;
     }
     this.playerSeasonMedals.classList.remove('hidden');
     this.playerSeasonMedals.innerHTML = badges.map((b) => `
-      <span class="player-medal-chip ${b.tier}" title="${isEn ? 'Reward for' : 'Награда за'} ${b.title}">
+      <span class="player-medal-chip ${b.tier}" title="${t('season_badge_reward_for')} ${b.title}">
         <span>${b.icon}</span>
         <span>${b.title}</span>
       </span>
@@ -4769,43 +4670,44 @@ export class SudokuUI {
     const currentSeason = getCurrentSeasonId();
     const stats = SudokuGame.getPlayerStats();
     const currentLeague = getLeagueForScore(stats.totalScore);
-    const isEn = i18n.getLanguage() === 'en';
-    const locale = isEn ? 'en-US' : 'ru-RU';
+
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
     const currentCard = `
       <div class="season-trophy-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.06); margin-bottom: 6px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:1.1rem;">⏳</span>
           <div>
-            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${isEn ? 'Season' : 'Сезон'} ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">${isEn ? '(Current)' : '(Текущий)'}</span></div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">${isEn ? 'Qualification' : 'Квалификация'}: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString(locale)} ${isEn ? 'pts' : 'очков'})</div>
+            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t('season_title_prefix')} ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">(${t('season_status_active')})</span></div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${t('season_qualification_label')}: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString(locale)} ${t('season_pts_unit')})</div>
           </div>
         </div>
-        <span class="season-trophy-tag ${currentLeague.badgeClass}">${currentLeague.icon} ${isEn ? 'Active' : 'В игре'}</span>
+        <span class="season-trophy-tag ${currentLeague.badgeClass}">${currentLeague.icon} ${t('season_status_active')}</span>
       </div>
     `;
 
     if (archive.length === 0) {
       this.seasonArchiveList.innerHTML = currentCard + `
         <div style="text-align:center; color:var(--text-muted); font-size:0.78rem; padding:6px;">
-          ${isEn ? 'Current week trophy will be locked into the archive when the season ends!' : 'Трофей за текущую неделю закрепится в архиве по завершению сезона!'}
+          ${t('season_archive_future_notice')}
         </div>
       `;
       return;
     }
 
-    const pastCards = archive.map((t) => {
-      const league = getLeagueForScore(t.points);
+    const pastCards = archive.map((trophy) => {
+      const league = getLeagueForScore(trophy.points);
       return `
         <div class="season-trophy-card">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.1rem;">${t.icon}</span>
+            <span style="font-size:1.1rem;">${trophy.icon}</span>
             <div>
-              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t.seasonName}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points.toLocaleString(locale)} ${isEn ? 'pts' : 'очков'}</div>
+              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${trophy.seasonName}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${trophy.dateAwarded} • ${trophy.points.toLocaleString(locale)} ${t('season_pts_unit')}</div>
             </div>
           </div>
-          <span class="season-trophy-tag ${league.badgeClass}">${t.leagueName}</span>
+          <span class="season-trophy-tag ${league.badgeClass}">${trophy.leagueName}</span>
         </div>
       `;
     }).join('');
@@ -4815,7 +4717,7 @@ export class SudokuUI {
 
   private async renderProfilePastSeasons() {
     if (!this.profilePastSeasonsList) return;
-    const isEn = i18n.getLanguage() === 'en';
+
     const myPlayerId = SudokuGame.getOrCreatePlayerId();
     const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || '').trim();
 
@@ -4828,14 +4730,14 @@ export class SudokuUI {
         if (data && Array.isArray(data.history) && data.history.length > 0) {
           const items = data.history;
           if (this.profilePastSeasonsCount) {
-            this.profilePastSeasonsCount.textContent = `${items.length} ${isEn ? 'seasons' : 'сезонов'}`;
+            this.profilePastSeasonsCount.textContent = t('season_count_fmt', { count: items.length });
           }
           this.profilePastSeasonsList.innerHTML = items.map((s: any) => {
             const medal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`;
             const rankColor = s.rank === 1 ? '#fbbf24' : s.rank === 2 ? '#94a3b8' : s.rank === 3 ? '#b45309' : 'var(--pulse-cyan)';
             const activeTag = s.isCurrent
-              ? `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--pulse-cyan); font-weight:700;">${isEn ? 'Active' : 'В игре'}</span>`
-              : `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(34,197,94,0.15); color:#34d399; font-weight:700;">${isEn ? 'Ended' : 'Завершен'}</span>`;
+              ? `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--pulse-cyan); font-weight:700;">${t('season_status_active')}</span>`
+              : `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(34,197,94,0.15); color:#34d399; font-weight:700;">${t('season_status_ended')}</span>`;
 
             return `
               <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:6px 10px; font-size:0.8rem;">
@@ -4843,13 +4745,13 @@ export class SudokuUI {
                   <span style="font-size:1.1rem;">${medal}</span>
                   <div>
                     <div style="font-weight:700; color:var(--text-main); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
-                      ${isEn ? 'Season' : 'Сезон'} ${s.seasonId} ${activeTag}
+                      ${t('season_title_prefix')} ${s.seasonId} ${activeTag}
                     </div>
                     <div style="font-size:0.73rem; color:var(--text-muted);">${s.duelElo || 1000} ELO • ${s.duelWins || 0}W - ${s.duelLosses || 0}L</div>
                   </div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="font-weight:800; font-size:0.85rem; color:${rankColor};">${isEn ? `Rank #${s.rank}` : `${s.rank} место`}</div>
+                  <div style="font-weight:800; font-size:0.85rem; color:${rankColor};">${t('season_rank_place_fmt', { rank: s.rank })}</div>
                 </div>
               </div>
             `;
@@ -4862,35 +4764,35 @@ export class SudokuUI {
     // Fallback: check local season trophies/archive
     const archive = this.getSeasonArchive();
     const stats = SudokuGame.getPlayerStats();
-    const currentSeason = getCurrentSeasonId();
+
 
     if (archive.length === 0 && !stats.duelWins) {
-      if (this.profilePastSeasonsCount) this.profilePastSeasonsCount.textContent = `0 ${isEn ? 'seasons' : 'сезонов'}`;
+      if (this.profilePastSeasonsCount) this.profilePastSeasonsCount.textContent = t('season_count_fmt', { count: 0 });
       this.profilePastSeasonsList.innerHTML = `
         <div style="text-align:center; color:var(--text-muted); font-size:0.78rem; padding:8px;">
-          ${isEn ? `Season ${currentSeason} is active. Results and places will be recorded upon season end!` : `Сезон ${currentSeason} активен. Занятые места закрепятся по окончании сезона!`}
+          ${t('season_archive_future_notice')}
         </div>
       `;
       return;
     }
 
     if (this.profilePastSeasonsCount) {
-      this.profilePastSeasonsCount.textContent = `${archive.length} ${isEn ? 'seasons' : 'сезонов'}`;
+      this.profilePastSeasonsCount.textContent = t('season_count_fmt', { count: archive.length });
     }
 
-    this.profilePastSeasonsList.innerHTML = archive.map((t, idx) => {
+    this.profilePastSeasonsList.innerHTML = archive.map((trophy, idx) => {
       const medal = idx === 0 ? '🏆' : '🏅';
       return `
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:6px 10px; font-size:0.8rem;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.1rem;">${t.icon || medal}</span>
+            <span style="font-size:1.1rem;">${trophy.icon || medal}</span>
             <div>
-              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t.seasonName || t.seasonId}</div>
-              <div style="font-size:0.73rem; color:var(--text-muted);">${t.dateAwarded} • ${t.points} pts</div>
+              <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${trophy.seasonName || trophy.seasonId}</div>
+              <div style="font-size:0.73rem; color:var(--text-muted);">${trophy.dateAwarded} • ${trophy.points} pts</div>
             </div>
           </div>
           <div style="text-align:right;">
-            <span style="font-weight:800; font-size:0.82rem; color:var(--pulse-cyan);">${t.leagueName}</span>
+            <span style="font-weight:800; font-size:0.82rem; color:var(--pulse-cyan);">${trophy.leagueName}</span>
           </div>
         </div>
       `;
@@ -5024,32 +4926,32 @@ export class SudokuUI {
   private startAiBotDuel() {
     this.stopAiBotDuel();
     this.setAiBotEmotion('idle');
-    const isEn = i18n.getLanguage() === 'en';
+
     const counts = this.game.getProgressCounts();
     const botProfiles: Record<Difficulty, { name: string; stepMs: number; errorChance: number; startTaunt: string }> = {
       easy: {
         name: 'PulseBot v1',
         stepMs: 8000,
         errorChance: 0.15,
-        startTaunt: isEn ? 'Hello, human! Show me your grid solving skills.' : 'Привет, человек! Покажи, как ты решаешь сетку.'
+        startTaunt: t('ai_taunt_start_easy')
       },
       medium: {
         name: 'CyberPulse v2',
         stepMs: 5000,
         errorChance: 0.05,
-        startTaunt: isEn ? 'My neural circuits are heated. Prepare for the duel!' : 'Мои нейронные цепи прогреты. Готовься к дуэли!'
+        startTaunt: t('ai_taunt_start_medium')
       },
       hard: {
         name: 'NeuralPulse v3',
         stepMs: 3400,
         errorChance: 0,
-        startTaunt: isEn ? 'High difficulty? Excellent, I won\'t hold back.' : 'Высокая сложность? Отлично, я не буду поддаваться.'
+        startTaunt: t('ai_taunt_start_hard')
       },
       expert: {
         name: 'QuantumPulse v4',
         stepMs: 2300,
         errorChance: 0,
-        startTaunt: isEn ? '01000111 01001111! Full quantum dominance.' : '01000111 01001111! Полное квантовое доминирование.'
+        startTaunt: t('ai_taunt_start_expert')
       },
     };
     const profile = botProfiles[this.game.difficulty] || botProfiles.medium;
@@ -5069,7 +4971,7 @@ export class SudokuUI {
 
     // Render Player and Bot Avatars
     const userProfile = yandexBridge.getPlayerProfile();
-    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || (isEn ? 'You' : 'Вы');
+    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || t('player_you');
     const myAvatar = userProfile.avatarUrl || null;
     if (this.playerDuelAvatar) {
       this.renderMiniAvatar(this.playerDuelAvatar, false, myName, myAvatar);
@@ -5092,14 +4994,10 @@ export class SudokuUI {
 
       if (Math.random() < profile.errorChance) {
         this.setAiBotEmotion('glitch', 2400);
-        const errorTaunts = isEn ? [
-          'Calculation glitch... Logic rebooting!',
-          'My sensor misfired... Here is your chance!',
-          'Critical stream drift... Correcting!',
-        ] : [
-          'Сбой в вычислениях... Перезагрузка логики!',
-          'Похоже, мой датчик ошибся... Твой шанс!',
-          'Критическая погрешность потока... Исправляю!',
+        const errorTaunts = [
+          t('ai_taunt_error_1'),
+          t('ai_taunt_error_2'),
+          t('ai_taunt_error_3'),
         ];
         this.showAiBotTaunt(errorTaunts[Math.floor(Math.random() * errorTaunts.length)], 2500);
         return;
@@ -5115,11 +5013,11 @@ export class SudokuUI {
       if (!this.aiBotProgress.reachedHalf && this.aiBotProgress.filled >= halfCount) {
         this.aiBotProgress.reachedHalf = true;
         this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt(isEn ? 'Half the grid is mine! Catch up!' : 'Половина сетки за мной! Догоняй!', 2800);
+        this.showAiBotTaunt(t('ai_taunt_half'), 2800);
       } else if (!this.aiBotProgress.reachedEighty && this.aiBotProgress.filled >= eightyCount) {
         this.aiBotProgress.reachedEighty = true;
         this.setAiBotEmotion('smug', 3000);
-        this.showAiBotTaunt(isEn ? 'Home stretch! Victory is near!' : 'Финишная прямая! Победа уже близко!', 2800);
+        this.showAiBotTaunt(t('ai_taunt_eighty'), 2800);
       }
 
       if (this.aiBotProgress.filled >= this.aiBotProgress.total) {
@@ -5178,11 +5076,11 @@ export class SudokuUI {
   }
 
   private handleAiDuelLoss() {
-    const isEn = i18n.getLanguage() === 'en';
+
     const botName = `🤖 ${this.aiBotProgress.name}`;
     const duelRecord: DuelRecord = {
       id: 'duel_' + Date.now(),
-      date: new Date().toLocaleDateString(isEn ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'short' }),
+      date: new Date().toLocaleDateString(i18n.getLanguage() === 'en' ? 'en-US' : (i18n.getLanguage() === 'tr' ? 'tr-TR' : 'ru-RU'), { day: 'numeric', month: 'short' }),
       challenger: botName,
       won: false,
       myScore: this.game.score,
@@ -5242,7 +5140,7 @@ export class SudokuUI {
     soundManager.playSelect();
     const isEn = i18n.getLanguage() === 'en';
     const playerId = SudokuGame.getOrCreatePlayerId();
-    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).replace(/[@_\s]/g, '') || t('player_label');
 
     try {
       if (this.btnLiveQuickMatch) this.btnLiveQuickMatch.disabled = true;
@@ -5275,7 +5173,7 @@ export class SudokuUI {
         // Instant match found as guest!
         this.isLiveHost = false;
         this.isLiveBotDuel = false;
-        this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
+        this.liveOpponentName = data.hostName || t('opponent_host');
         this.isQuickMatchWaiting = false;
         this.currentOpponentElo = Number(data.hostElo) || 1000;
         this.showToast(isEn ? `⚡ Opponent found: ${data.hostName}!` : `⚡ Соперник найден: ${data.hostName}!`);
@@ -5284,22 +5182,16 @@ export class SudokuUI {
         // Waiting in queue as host
         this.isLiveHost = true;
         this.isLiveBotDuel = false;
-        this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
+        this.liveOpponentName = t('opponent_label');
         this.isQuickMatchWaiting = true;
 
         if (this.liveWaitingRoomBox) this.liveWaitingRoomBox.classList.add('hidden');
         if (this.liveWaitingQuickBox) this.liveWaitingQuickBox.classList.remove('hidden');
         if (this.liveWaitingStatusLabel) {
-          this.liveWaitingStatusLabel.textContent = isEn ? 'Searching for random opponent...' : 'Поиск случайного соперника...';
+          this.liveWaitingStatusLabel.textContent = t('live_searching_random_opp');
         }
         if (this.liveQuickDiffLabel) {
-          const diffLabels: Record<Difficulty, string> = {
-            easy: isEn ? 'Easy' : 'Легкий',
-            medium: isEn ? 'Medium' : 'Средний',
-            hard: isEn ? 'Hard' : 'Сложный',
-            expert: isEn ? 'Expert' : 'Эксперт',
-          };
-          this.liveQuickDiffLabel.textContent = `${isEn ? 'Difficulty' : 'Сложность'}: ${diffLabels[data.difficulty as Difficulty] || data.difficulty}`;
+          this.liveQuickDiffLabel.textContent = `${t('stat_diff')} ${this.getDifficultyLabel(data.difficulty as Difficulty)}`;
         }
 
         if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.add('hidden');
@@ -5311,13 +5203,13 @@ export class SudokuUI {
         if (this.quickMatchCountdownInterval) clearInterval(this.quickMatchCountdownInterval);
         let secondsLeft = 10;
         if (this.liveQuickTimerLabel) {
-          this.liveQuickTimerLabel.textContent = isEn ? `⏳ Searching: ${secondsLeft}s` : `⏳ Поиск: ${secondsLeft}с`;
+          this.liveQuickTimerLabel.textContent = `⏳ ${t('live_searching_random_opp')} (${secondsLeft}s)`;
         }
 
         this.quickMatchCountdownInterval = setInterval(() => {
           secondsLeft--;
           if (this.liveQuickTimerLabel) {
-            this.liveQuickTimerLabel.textContent = isEn ? `⏳ Searching: ${secondsLeft}s` : `⏳ Поиск: ${secondsLeft}с`;
+            this.liveQuickTimerLabel.textContent = `⏳ ${t('live_searching_random_opp')} (${secondsLeft}s)`;
           }
 
           if (secondsLeft <= 0) {
@@ -5344,7 +5236,7 @@ export class SudokuUI {
   private async createLiveRoom() {
     const isEn = i18n.getLanguage() === 'en';
     const hostId = SudokuGame.getOrCreatePlayerId();
-    const hostName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Host' : 'Игрок 1')).replace(/[@_\s]/g, '') || (isEn ? 'Host' : 'Игрок 1');
+    const hostName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('opponent_host')).replace(/[@_\s]/g, '') || t('opponent_host');
 
     try {
       if (this.btnCreateLiveRoom) this.btnCreateLiveRoom.disabled = true;
@@ -5370,24 +5262,18 @@ export class SudokuUI {
       this.currentLiveLobbyId = data.lobbyId;
       this.currentLiveLobbyCode = data.code;
       this.isLiveHost = true;
-      this.liveOpponentName = isEn ? 'Opponent' : 'Соперник';
+      this.liveOpponentName = t('opponent_label');
       this.isQuickMatchWaiting = false;
 
       if (this.liveWaitingRoomBox) this.liveWaitingRoomBox.classList.remove('hidden');
       if (this.liveWaitingQuickBox) this.liveWaitingQuickBox.classList.add('hidden');
       if (this.liveWaitingStatusLabel) {
-        this.liveWaitingStatusLabel.textContent = isEn ? 'Waiting for opponent to join...' : 'Ожидание подключения соперника...';
+        this.liveWaitingStatusLabel.textContent = t('live_waiting_opponent_join');
       }
 
       if (this.liveWaitingCode) this.liveWaitingCode.textContent = data.code;
-      const diffLabels: Record<Difficulty, string> = {
-        easy: isEn ? 'Easy' : 'Легкий',
-        medium: isEn ? 'Medium' : 'Средний',
-        hard: isEn ? 'Hard' : 'Сложный',
-        expert: isEn ? 'Expert' : 'Эксперт',
-      };
       if (this.liveWaitingDiff) {
-        this.liveWaitingDiff.textContent = `${isEn ? 'Difficulty' : 'Сложность'}: ${diffLabels[data.difficulty as Difficulty] || data.difficulty}`;
+        this.liveWaitingDiff.textContent = `${t('stat_diff')} ${this.getDifficultyLabel(data.difficulty as Difficulty)}`;
       }
 
       if (this.liveLobbyViewMain) this.liveLobbyViewMain.classList.add('hidden');
@@ -5405,12 +5291,12 @@ export class SudokuUI {
     const isEn = i18n.getLanguage() === 'en';
     const code = inputCode.trim();
     if (!code) {
-      this.showToast(isEn ? '⚠️ Enter 4-digit room code' : '⚠️ Введите 4-значный код комнаты');
+      this.showToast(t('toast_enter_4digit'));
       return;
     }
 
     const guestId = SudokuGame.getOrCreatePlayerId();
-    const guestName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Challenger' : 'Игрок 2')).replace(/[@_\s]/g, '') || (isEn ? 'Challenger' : 'Игрок 2');
+    const guestName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('friend_label')).replace(/[@_\s]/g, '') || t('friend_label');
 
     try {
       if (this.btnJoinLiveRoom) this.btnJoinLiveRoom.disabled = true;
@@ -5441,7 +5327,7 @@ export class SudokuUI {
       this.isLiveHost = false;
       this.isLiveBotDuel = false;
       this.currentOpponentElo = Number(data.hostElo) || 1000;
-      this.liveOpponentName = data.hostName || (isEn ? 'Host' : 'Соперник');
+      this.liveOpponentName = data.hostName || t('opponent_host');
 
       this.liveLobbyModal?.classList.remove('hidden');
       this.startLiveCountdown(data.hostName, guestName, data.seed, data.difficulty);
@@ -5497,10 +5383,10 @@ export class SudokuUI {
     const oppElo = this.currentOpponentElo || 1000;
     const winDelta = this.calculateEloDelta(playerElo, oppElo, true);
     const lossDelta = this.calculateEloDelta(playerElo, oppElo, false);
-    const isEn = i18n.getLanguage() === 'en';
+
 
     if (this.liveCdStakesLabel) {
-      this.liveCdStakesLabel.textContent = isEn ? '⚡ Match stakes:' : '⚡ За эту игру:';
+      this.liveCdStakesLabel.textContent = t('live_stakes_label');
     }
     if (this.liveCdWinElo) {
       this.liveCdWinElo.textContent = `+${winDelta}`;
@@ -5553,7 +5439,7 @@ export class SudokuUI {
 
     // Render Avatars
     const userProfile = yandexBridge.getPlayerProfile();
-    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || (isEn ? 'You' : 'Вы');
+    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || t('player_you');
     const myAvatar = userProfile.avatarUrl || null;
     if (this.playerDuelAvatar) {
       this.renderMiniAvatar(this.playerDuelAvatar, false, myName, myAvatar);
@@ -5619,15 +5505,15 @@ export class SudokuUI {
             this.hasReceivedRematchOfferSound = true;
             soundManager.playRematchOffer();
           }
-          const isEn = i18n.getLanguage() === 'en';
+
           const statusWin = document.getElementById('duel-rematch-status');
           const statusLoss = document.getElementById('duel-loss-rematch-status');
           if (statusWin) {
-            statusWin.textContent = isEn ? '⚡ Opponent offered a rematch!' : '⚡ Соперник предлагает реванш!';
+            statusWin.textContent = t('toast_opp_offered_rematch');
             statusWin.classList.remove('hidden');
           }
           if (statusLoss) {
-            statusLoss.textContent = isEn ? '⚡ Opponent offered a rematch!' : '⚡ Соперник предлагает реванш!';
+            statusLoss.textContent = t('toast_opp_offered_rematch');
             statusLoss.classList.remove('hidden');
           }
         }
@@ -5728,7 +5614,7 @@ export class SudokuUI {
     soundManager.playDuelLoss();
     haptics.error();
 
-    if (this.duelResultTitle) this.duelResultTitle.textContent = isEn ? 'DEFEAT' : 'ПОРАЖЕНИЕ В ДУЭЛИ';
+    if (this.duelResultTitle) this.duelResultTitle.textContent = t('duel_defeat_title');
     if (this.duelResultText) {
       this.duelResultText.textContent = isEn
         ? `${this.liveOpponentName} completed the puzzle first!`
@@ -5930,8 +5816,6 @@ export class SudokuUI {
     const currentSkin = this.getBoardSkin();
     const stats = SudokuGame.getPlayerStats();
     const totalScore = stats.totalScore;
-    const lang = i18n.getLanguage();
-    const isEn = lang === 'en';
 
     this.boardSkinPills.forEach((pill) => {
       const skinKey = pill.getAttribute('data-board-skin') || 'neon';
@@ -5948,11 +5832,12 @@ export class SudokuUI {
       pill.classList.toggle('active', currentSkin === skinKey);
       pill.classList.toggle('locked', !isUnlocked);
 
-      const skinName = isEn ? req.nameEn : req.nameRu;
-      const leagueName = isEn ? req.leagueEn : req.leagueRu;
+      const skinName = getSkinName(skinKey);
+      const leagueName = getSkinLeague(skinKey);
+      const trialBadge = t('skin_trial_badge', 'Trial');
 
       if (this.activeTrialSkinKey === skinKey && !yandexBridge.isVip() && (req.isVipOnly || totalScore < req.minScore)) {
-        pill.textContent = `✨ ${skinName} (Trial)`;
+        pill.textContent = `✨ ${skinName} (${trialBadge})`;
       } else if (isUnlocked) {
         pill.textContent = `${req.icon} ${skinName}`;
       } else if (req.isVipOnly) {
@@ -6228,22 +6113,25 @@ export class SudokuUI {
 
   public renderTutorialStep(stepIndex: number = this.currentTutorialStep) {
     this.currentTutorialStep = Math.max(0, Math.min(3, stepIndex));
-    const isEn = i18n.getLanguage() === 'en';
+    const lang = i18n.getLanguage();
+    const trText = (ruStr: string, enStr: string, trStr: string): string => {
+      if (lang === 'en') return enStr;
+      if (lang === 'tr') return trStr;
+      return ruStr;
+    };
 
     // Update Tab Bar Active State and multilingual titles
     const tabBtns = document.querySelectorAll<HTMLButtonElement>('.tut-tab-btn');
-    const tabTitles = isEn
+    const tabTitles = lang === 'en'
       ? ['🧩 Rules', '🧬 Perks', '⚡ Modes', '🎮 Controls']
-      : ['🧩 Правила', '🧬 Перки', '⚡ Режимы', '🎮 Управление'];
+      : (lang === 'tr' ? ['🧩 Kurallar', '🧬 Yetenekler', '⚡ Modlar', '🎮 Kontroller'] : ['🧩 Правила', '🧬 Перки', '⚡ Режимы', '🎮 Управление']);
     tabBtns.forEach((btn, idx) => {
       if (tabTitles[idx]) btn.textContent = tabTitles[idx];
       btn.classList.toggle('active', idx === this.currentTutorialStep);
     });
 
     if (this.tutorialStepBadge) {
-      this.tutorialStepBadge.textContent = isEn
-        ? `SECTION ${this.currentTutorialStep + 1} OF 4`
-        : `РАЗДЕЛ ${this.currentTutorialStep + 1} ИЗ 4`;
+      this.tutorialStepBadge.textContent = t('tut_step_badge', { current: this.currentTutorialStep + 1, total: 4 });
     }
 
     if (this.tutorialDots) {
@@ -6259,9 +6147,9 @@ export class SudokuUI {
 
     if (this.btnTutorialNext) {
       if (this.currentTutorialStep === 3) {
-        this.btnTutorialNext.textContent = isEn ? "Let's Play! 🚀" : 'Погнали! 🚀';
+        this.btnTutorialNext.textContent = trText('Погнали! 🚀', "Let's Play! 🚀", 'Hadi Oynayalım! 🚀');
       } else {
-        this.btnTutorialNext.textContent = isEn ? 'Next ▶' : 'Далее ▶';
+        this.btnTutorialNext.textContent = trText('Далее ▶', 'Next ▶', 'İleri ▶');
       }
     }
 
@@ -6274,7 +6162,7 @@ export class SudokuUI {
 
     switch (this.currentTutorialStep) {
       case 0: {
-        this.tutorialTitle.textContent = isEn ? '🧩 Sudoku Rules for Beginners' : '🧩 Правила Судоку для новичков';
+        this.tutorialTitle.textContent = trText('🧩 Правила Судоку для новичков', '🧩 Sudoku Rules for Beginners', '🧩 Yeni Başlayanlar İçin Sudoku Kuralları');
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;">
             <div style="display:grid;grid-template-columns:repeat(3, 32px);grid-template-rows:repeat(3, 32px);gap:3px;padding:4px;background:rgba(0,243,255,0.08);border:2px solid var(--pulse-cyan);border-radius:9px;">
@@ -6289,7 +6177,7 @@ export class SudokuUI {
               <div style="display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;background:rgba(255,255,255,0.06);border-radius:5px;font-size:0.95rem;">8</div>
             </div>
             <div style="font-size:11px;font-weight:700;color:var(--text-muted);">
-              ${isEn ? 'Which digit completes this 3×3 sector?' : 'Какая цифра дополнит этот сектор 3×3?'}
+              ${trText('Какая цифра дополнит этот сектор 3×3?', 'Which digit completes this 3×3 sector?', 'Bu 3×3 sektörü hangi rakam tamamlar?')}
             </div>
             <div style="display:flex;gap:8px;">
               <button id="tut-rule-opt-3" class="btn-secondary" style="width:40px;height:34px;font-size:0.95rem;font-weight:900;border-radius:7px;">3</button>
@@ -6297,21 +6185,21 @@ export class SudokuUI {
               <button id="tut-rule-opt-7" class="btn-secondary" style="width:40px;height:34px;font-size:0.95rem;font-weight:900;border-radius:7px;">7</button>
             </div>
             <div id="tut-rule-feedback" class="tut-feedback-box">
-              <span style="color:#00f3ff;">${isEn ? '💡 Tap an option to test your deduction!' : '💡 Нажмите на цифру выше, чтобы проверить логику!'}</span>
+              <span style="color:#00f3ff;">${trText('💡 Нажмите на цифру выше, чтобы проверить логику!', '💡 Tap an option to test your deduction!', '💡 Mantığınızı denemek için yukarıdaki bir rakama dokunun!')}</span>
             </div>
           </div>
         `;
 
         this.tutorialDescription.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div><strong>${isEn ? 'Pure Logic, Zero Math:' : 'Чистая логика без математики:'}</strong> ${isEn ? 'In Sudoku, you never add or calculate numbers — only eliminate candidates.' : 'В судоку не нужно ничего считать или складывать — игра строится только на внимании и исключении лишнего.'}</div>
+            <div><strong>${trText('Чистая логика без математики:', 'Pure Logic, Zero Math:', 'Saf Mantık, Sıfır Matematik:')}</strong> ${trText('В судоку не нужно ничего считать или складывать — игра строится только на внимании и исключении лишнего.', 'In Sudoku, you never add or calculate numbers — only eliminate candidates.', 'Sudoku\'da asla sayı toplamaz veya hesaplamazsınız — yalnızca adayları elersiniz.')}</div>
             <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
-              <div>• <strong>${isEn ? 'Rows (horizontal):' : 'Строки (горизонталь):'}</strong> ${isEn ? 'Digits 1 to 9 with no repeats.' : 'Цифры от 1 до 9 без повторений.'}</div>
-              <div>• <strong>${isEn ? 'Columns (vertical):' : 'Столбцы (вертикаль):'}</strong> ${isEn ? 'Digits 1 to 9 with no repeats.' : 'Цифры от 1 до 9 без повторений.'}</div>
-              <div>• <strong>${isEn ? '3×3 Blocks (bold lines):' : 'Квадраты 3×3 (жирные рамки):'}</strong> ${isEn ? 'Each block must contain 1 to 9 once.' : 'Каждый квадрат 3×3 содержит 1–9 ровно по одному разу.'}</div>
+              <div>• <strong>${trText('Строки (горизонталь):', 'Rows (horizontal):', 'Satırlar (yatay):')}</strong> ${trText('Цифры от 1 до 9 без повторений.', 'Digits 1 to 9 with no repeats.', 'Tekrarsız 1\'den 9\'a rakamlar.')}</div>
+              <div>• <strong>${trText('Столбцы (вертикаль):', 'Columns (vertical):', 'Sütunlar (dikey):')}</strong> ${trText('Цифры от 1 до 9 без повторений.', 'Digits 1 to 9 with no repeats.', 'Tekrarsız 1\'den 9\'a rakamlar.')}</div>
+              <div>• <strong>${trText('Квадраты 3×3 (жирные рамки):', '3×3 Blocks (bold lines):', '3×3 Bloklar (kalın çizgiler):')}</strong> ${trText('Каждый квадрат 3×3 содержит 1–9 ровно по одному разу.', 'Each block must contain 1 to 9 once.', 'Her blok 1-9 arası rakamları birer kez içermelidir.')}</div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);">
-              <strong>💡 ${isEn ? 'Elimination Method:' : 'Метод исключения:'}</strong> ${isEn ? 'Notice how 1, 2, 3, 5, 6, 7, 8, 9 already exist in the block above. That means the "?" cell MUST be 4!' : 'Посмотрите на блок выше: 1, 2, 3, 5, 6, 7, 8, 9 уже стоят. Значит, на месте «?» обязана быть 4!'}
+              <strong>💡 ${trText('Метод исключения:', 'Elimination Method:', 'Eleme Yöntemi:')}</strong> ${trText('Посмотрите на блок выше: 1, 2, 3, 5, 6, 7, 8, 9 уже стоят. Значит, на месте «?» обязана быть 4!', 'Notice how 1, 2, 3, 5, 6, 7, 8, 9 already exist in the block above. That means the "?" cell MUST be 4!', 'Yukarıdaki bloğa bakın: 1, 2, 3, 5, 6, 7, 8, 9 zaten var. Bu yüzden \"?\" hücresi MUTLAKA 4 olmalıdır!')}
             </div>
           </div>
         `;
@@ -6326,12 +6214,12 @@ export class SudokuUI {
           opt3.onclick = () => {
             soundManager.playError();
             haptics.error();
-            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${isEn ? 'Digit 3 is already in row 1 and this block! Duplicates are forbidden.' : 'Цифра 3 уже есть в первой строке и в этом блоке! Повторять нельзя.'}</span>`;
+            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${trText('Цифра 3 уже есть в первой строке и в этом блоке! Повторять нельзя.', 'Digit 3 is already in row 1 and this block! Duplicates are forbidden.', '3 rakamı 1. satırda ve bu blokta zaten var! Tekrar yasaktır.')}</span>`;
           };
           opt7.onclick = () => {
             soundManager.playError();
             haptics.error();
-            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${isEn ? 'Digit 7 is already in the middle row of this block!' : 'Цифра 7 уже стоит во второй строке этого блока!'}</span>`;
+            feedback.innerHTML = `<span style="color:#ff0055;">❌ ${trText('Цифра 7 уже стоит во второй строке этого блока!', 'Digit 7 is already in the middle row of this block!', '7 rakamı bu bloğun orta satırında zaten yer alıyor!')}</span>`;
           };
           opt4.onclick = () => {
             soundManager.playCorrect(1);
@@ -6340,20 +6228,20 @@ export class SudokuUI {
             target.style.background = 'rgba(16, 185, 129, 0.25)';
             target.style.borderColor = '#10b981';
             target.style.color = '#10b981';
-            feedback.innerHTML = `<span style="color:#10b981;">🎉 ${isEn ? 'Bingo! 1 to 9 cannot repeat, so 4 is the only possibility!' : 'Бинго! 1–9 не повторяются, поэтому здесь может стоять только 4!'}</span>`;
+            feedback.innerHTML = `<span style="color:#10b981;">🎉 ${trText('Бинго! 1–9 не повторяются, поэтому здесь может стоять только 4!', 'Bingo! 1 to 9 cannot repeat, so 4 is the only possibility!', 'Bingo! 1-9 tekrar edemez, bu yüzden tek olasılık 4!')}</span>`;
           };
         }
         break;
       }
       case 1: {
-        this.tutorialTitle.textContent = isEn ? '🧬 Roguelite Perks & Cyber Builds' : '🧬 Перки и Кибер-Билды';
+        this.tutorialTitle.textContent = trText('🧬 Перки и Кибер-Билды', '🧬 Roguelite Perks & Cyber Builds', '🧬 Siber Yetenekler ve Yapılar');
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:8px;">
             <div class="tut-perk-chips">
-              <button id="tut-chip-shield" class="tut-perk-chip active">🛡️ ${isEn ? 'Shield' : 'Щит'}</button>
-              <button id="tut-chip-scanner" class="tut-perk-chip">🧠 ${isEn ? 'Scanner' : 'Сканер'}</button>
-              <button id="tut-chip-emp" class="tut-perk-chip">💥 ${isEn ? 'EMP' : 'ЭМИ'}</button>
-              <button id="tut-chip-heart" class="tut-perk-chip">❤️ ${isEn ? 'Heart' : 'Сердце'}</button>
+              <button id="tut-chip-shield" class="tut-perk-chip active">🛡️ ${trText('Щит', 'Shield', 'Kalkan')}</button>
+              <button id="tut-chip-scanner" class="tut-perk-chip">🧠 ${trText('Сканер', 'Scanner', 'Tarayıcı')}</button>
+              <button id="tut-chip-emp" class="tut-perk-chip">💥 ${trText('ЭМИ', 'EMP', 'EMP')}</button>
+              <button id="tut-chip-heart" class="tut-perk-chip">❤️ ${trText('Сердце', 'Heart', 'Kalp')}</button>
             </div>
             <div id="tut-perk-display" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;">
               <!-- Dynamic sub-showcase -->
@@ -6366,11 +6254,11 @@ export class SudokuUI {
 
         this.tutorialDescription.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div><strong>${isEn ? 'What is a Perk?' : 'Что такое Перки?'}</strong> ${isEn ? 'Perks are passive cyber-superpowers. They bend the rules in your favor, protecting you from mistakes and automating hard deductions!' : 'Перки — это ваши кибер-способности и пассивные усиления. Они меняют правила игры в вашу пользу, прощая ошибки и автоматизируя сложные расчёты!'}</div>
+            <div><strong>${trText('Что такое Перки?', 'What is a Perk?', 'Yetenek Nedir?')}</strong> ${trText('Перки — это ваши кибер-способности и пассивные усиления. Они меняют правила игры в вашу пользу, прощая ошибки и автоматизируя сложные расчёты!', 'Perks are passive cyber-superpowers. They bend the rules in your favor, protecting you from mistakes and automating hard deductions!', 'Yetenekler pasif siber güçlerinizdir. Kuralları lehinize çevirir, hataları bağışlar ve zor çıkarımları otomatikleştirir!')}</div>
             <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
-              <div>• <strong>${isEn ? 'How to get them:' : 'Где их брать:'}</strong> ${isEn ? 'In "Pulse Run", clearing each stage gives a draft of 3 random perks. Pick one for the whole run.' : 'В режиме забега «Pulse Run» после каждого этапа открывается драфт из 3 случайных перков. Вы выбираете один до конца забега.'}</div>
-              <div>• <strong>${isEn ? 'Level Upgrades (I ➔ II ➔ III):' : 'Прокачка уровней (I ➔ II ➔ III):'}</strong> ${isEn ? 'Picking a perk again upgrades it (e.g. Shield I absorbs 1 error ➔ Shield II absorbs 2 errors per stage).' : 'Повторный выбор перка усиливает его (например, Щит I блокирует 1 ошибку ➔ Щит II блокирует 2 ошибки на каждом этапе!).'}</div>
-              <div>• <strong>${isEn ? 'Top Synergies:' : 'Популярные билды:'}</strong> ${isEn ? '🛡️ Defense (Shield + Heart); ⚡ Score (Combo + Overcharge); 🧠 Tactical (Scanner + EMP).' : '🛡️ «Неуязвимость» (Щит + Сердце); ⚡ «Сверхзвук» (Комбо + Оверчардж); 🧠 «Аналитик» (Сканер + ЭМИ).'}</div>
+              <div>• <strong>${trText('Где их брать:', 'How to get them:', 'Nasıl alınır:')}</strong> ${trText('В режиме забега «Pulse Run» после каждого этапа открывается драфт из 3 случайных перков. Вы выбираете один до конца забега.', 'In "Pulse Run", clearing each stage gives a draft of 3 random perks. Pick one for the whole run.', 'Pulse Koşusu modunda her aşamayı tamamladığınızda 3 yetenek arasından seçim yaparsınız.')}</div>
+              <div>• <strong>${trText('Прокачка уровней (I ➔ II ➔ III):', 'Level Upgrades (I ➔ II ➔ III):', 'Seviye Yükseltme (I ➔ II ➔ III):')}</strong> ${trText('Повторный выбор перка усиливает его (например, Щит I блокирует 1 ошибку ➔ Щит II блокирует 2 ошибки на каждом этапе!).', 'Picking a perk again upgrades it (e.g. Shield I absorbs 1 error ➔ Shield II absorbs 2 errors per stage).', 'Bir yeteneği tekrar seçmek onu güçlendirir (örn. Kalkan I: 1 hata ➔ Kalkan II: 2 hata engeller).')}</div>
+              <div>• <strong>${trText('Популярные билды:', 'Top Synergies:', 'En İyi Sinerjiler:')}</strong> ${trText('🛡️ «Неуязвимость» (Щит + Сердце); ⚡ «Сверхзвук» (Комбо + Оверчардж); 🧠 «Аналитик» (Сканер + ЭМИ).', '🛡️ Defense (Shield + Heart); ⚡ Score (Combo + Overcharge); 🧠 Tactical (Scanner + EMP).', '🛡️ Savunma (Kalkan + Kalp); ⚡ Skor (Kombo + Güç Aşımı); 🧠 Taktiksel (Tarayıcı + EMP).')}</div>
             </div>
           </div>
         `;
@@ -6395,22 +6283,23 @@ export class SudokuUI {
           if (type === 'shield') {
             perkDisplay.innerHTML = `
               <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
-                <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(6,182,212,0.15);border:2px solid var(--pulse-cyan);display:flex;align-items:center;justify-content:center;font-size:1.25rem;font-weight:900;color:#00f3ff;box-shadow:0 0 12px rgba(6,182,212,0.4);">🛡️</div>
-                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '❌ Make Wrong Move' : '❌ Нажать неверную цифру'}</button>
+                <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(0,243,255,0.12);border:2px solid var(--pulse-cyan);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🛡️</div>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${trText('💥 Сделать ошибку', '💥 Trigger Error', '💥 Hata Yap')}</button>
               </div>
             `;
-            perkStatus.innerHTML = `<span style="color:var(--pulse-cyan);">${isEn ? '🛡️ Neon Shield is active (1/1 charge). Try triggering a mistake!' : '🛡️ Неоновый щит заряжен (1/1). Нажмите кнопку, чтобы проверить защиту!'}</span>`;
+            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${trText('Щит активен. Нажмите кнопку, чтобы проверить поглощение ошибки!', 'Shield active. Tap to test mistake deflection!', 'Kalkan aktif. Hata saptırmasını test etmek için dokunun!')}</span>`;
 
             const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
             const demoCell = document.getElementById('tut-demo-cell');
             if (actBtn && demoCell) {
               actBtn.onclick = () => {
                 soundManager.playShieldDeflect();
-                haptics.success();
-                demoCell.style.boxShadow = '0 0 24px #00f3ff';
+                haptics.fever();
+                demoCell.style.background = 'rgba(16, 185, 129, 0.2)';
+                demoCell.style.borderColor = '#10b981';
                 demoCell.textContent = '✨';
-                perkStatus.innerHTML = `<span style="color:#00f3ff;">🛡️ ${isEn ? 'SHIELD ABSORBED MISTAKE! Zero lives lost, combo preserved! (Upgrades to 2 blocks on Lvl II)' : 'ЩИТ ПОГЛОТИЛ ОШИБКУ! Жизни целы, комбо сохранено! (На Ур. II блокирует 2 ошибки)'}</span>`;
-                actBtn.textContent = isEn ? '🔄 Reset Shield' : '🔄 Перезарядить щит';
+                perkStatus.innerHTML = `<span style="color:#00f3ff;">🛡️ ${trText('ЩИТ ПОГЛОТИЛ ОШИБКУ! Жизни целы, комбо сохранено! (На Ур. II блокирует 2 ошибки)', 'SHIELD ABSORBED MISTAKE! Zero lives lost, combo preserved! (Upgrades to 2 blocks on Lvl II)', 'KALKAN HATAYI ENGELLEDİ! Can gitmedi, kombo korundu! (Sev. II\'de 2 hata engeller)')}</span>`;
+                actBtn.textContent = trText('🔄 Перезарядить щит', '🔄 Reset Shield', '🔄 Kalkanı Sıfırla');
                 actBtn.onclick = () => updatePerkDemo('shield');
               };
             }
@@ -6418,10 +6307,10 @@ export class SudokuUI {
             perkDisplay.innerHTML = `
               <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
                 <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted);">?</div>
-                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '🧠 Activate Neuro-Scanner' : '🧠 Запустить Нейро-сканер'}</button>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${trText('🧠 Запустить Нейро-сканер', '🧠 Activate Neuro-Scanner', '🧠 Nöro-Tarayıcıyı Başlat')}</button>
               </div>
             `;
-            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${isEn ? 'Empty cell with unknown candidates. Activate scanner to auto-fill!' : 'Пустая клетка. Запустите сканер, чтобы просчитать варианты!'}</span>`;
+            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${trText('Пустая клетка. Запустите сканер, чтобы просчитать варианты!', 'Empty cell with unknown candidates. Activate scanner to auto-fill!', 'Boş hücre. Olasılıkları otomatik hesaplamak için tarayıcıyı başlatın!')}</span>`;
 
             const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
             const demoCell = document.getElementById('tut-demo-cell');
@@ -6432,8 +6321,8 @@ export class SudokuUI {
                 demoCell.style.background = 'rgba(6,182,212,0.15)';
                 demoCell.style.border = '1px solid var(--pulse-cyan)';
                 demoCell.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,11px);gap:2px;font-size:9px;font-weight:800;color:#00f3ff;"><span>1</span><span>·</span><span>·</span><span>·</span><span>5</span><span>·</span><span>·</span><span>·</span><span>9</span></div>`;
-                perkStatus.innerHTML = `<span style="color:#00f3ff;">🧠 ${isEn ? 'CANDIDATES POPULATED! No manual notes needed — system solves candidates instantly!' : 'ЗАМЕТКИ РАССТАВЛЕНЫ! Система сама нашла кандидатов [1, 5, 9] без ручного ввода!'}</span>`;
-                actBtn.textContent = isEn ? '🔄 Reset' : '🔄 Сбросить';
+                perkStatus.innerHTML = `<span style="color:#00f3ff;">🧠 ${trText('ЗАМЕТКИ РАССТАВЛЕНЫ! Система сама нашла кандидатов [1, 5, 9] без ручного ввода!', 'CANDIDATES POPULATED! No manual notes needed — system solves candidates instantly!', 'ADAYLAR DOLDURULDU! Sistem [1, 5, 9] adaylarını anında çözdü!')}</span>`;
+                actBtn.textContent = trText('🔄 Сбросить', '🔄 Reset', '🔄 Sıfırla');
                 actBtn.onclick = () => updatePerkDemo('scanner');
               };
             }
@@ -6441,10 +6330,10 @@ export class SudokuUI {
             perkDisplay.innerHTML = `
               <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
                 <div id="tut-demo-cell" style="width:48px;height:48px;border-radius:10px;background:rgba(255,0,85,0.1);border:1px dashed #ff0055;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#ff0055;">⚡</div>
-                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '💥 Deploy EMP Pulse' : '💥 Запустить импульс ЭМИ'}</button>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${trText('💥 Запустить импульс ЭМИ', '💥 Deploy EMP Pulse', '💥 EMP Dalgası Gönder')}</button>
               </div>
             `;
-            perkStatus.innerHTML = `<span style="color:#ffaa00;">${isEn ? 'Complex locked cell. Fire EMP to crack it automatically!' : 'Заблокированная сложная ячейка. Запустите ЭМИ для взлома!'}</span>`;
+            perkStatus.innerHTML = `<span style="color:#ffaa00;">${trText('Заблокированная сложная ячейка. Запустите ЭМИ для взлома!', 'Complex locked cell. Fire EMP to crack it automatically!', 'Kilitli zor hücre. Otomatik kırmak için EMP gönderin!')}</span>`;
 
             const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
             const demoCell = document.getElementById('tut-demo-cell');
@@ -6456,8 +6345,8 @@ export class SudokuUI {
                 demoCell.style.border = '2px solid #ffe600';
                 demoCell.style.boxShadow = '0 0 16px #ffe600';
                 demoCell.innerHTML = `<span style="font-weight:900;color:#ffe600;font-size:1.3rem;">8</span>`;
-                perkStatus.innerHTML = `<span style="color:#ffe600;">💥 ${isEn ? 'EMP CRACKED CELL! Auto-solves +1 hard cell at every stage start (+2 on Lvl II)!' : 'ЭМИ РАСШИФРОВАЛ КЛЕТКУ! На старте каждого раунда ячейка раскрывается бесплатно!'}</span>`;
-                actBtn.textContent = isEn ? '🔄 Test Again' : '🔄 Повторить';
+                perkStatus.innerHTML = `<span style="color:#ffe600;">💥 ${trText('ЭМИ РАСШИФРОВАЛ КЛЕТКУ! На старте каждого раунда ячейка раскрывается бесплатно!', 'EMP CRACKED CELL! Auto-solves +1 hard cell at every stage start (+2 on Lvl II)!', 'EMP HÜCREYİ ÇÖZDÜ! Her aşama başında +1 zor hücre bedava açılır!')}</span>`;
+                actBtn.textContent = trText('🔄 Повторить', '🔄 Test Again', '🔄 Yeniden Dene');
                 actBtn.onclick = () => updatePerkDemo('emp');
               };
             }
@@ -6465,10 +6354,10 @@ export class SudokuUI {
             perkDisplay.innerHTML = `
               <div style="display:flex;align-items:center;gap:12px;margin:2px 0;">
                 <div id="tut-demo-cell" style="font-size:1.4rem;display:flex;gap:3px;">❤️❤️❤️</div>
-                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${isEn ? '❤️ Equip Heart Perk' : '❤️ Взять Квантовое сердце'}</button>
+                <button id="tut-demo-act-btn" class="btn-primary" style="padding:8px 14px;font-size:0.8rem;border-radius:8px;">${trText('❤️ Взять Квантовое сердце', '❤️ Equip Heart Perk', '❤️ Kuantum Kalbi Tak')}</button>
               </div>
             `;
-            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${isEn ? 'Standard life pool: 3 hearts.' : 'Стандартный запас: 3 сердца.'}</span>`;
+            perkStatus.innerHTML = `<span style="color:var(--text-muted);">${trText('Стандартный запас: 3 сердца.', 'Standard life pool: 3 hearts.', 'Standart can havuzu: 3 kalp.')}</span>`;
 
             const actBtn = document.getElementById('tut-demo-act-btn') as HTMLButtonElement;
             const demoCell = document.getElementById('tut-demo-cell');
@@ -6477,8 +6366,8 @@ export class SudokuUI {
                 soundManager.playCorrect(2);
                 haptics.victory();
                 demoCell.innerHTML = `❤️❤️❤️❤️❤️ <span style="font-size:0.8rem;color:#ff0055;font-weight:900;">(+2)</span>`;
-                perkStatus.innerHTML = `<span style="color:#ff0055;">❤️ ${isEn ? '5 LIVES NOW! Huge buffer for high difficulty runs!' : 'ТЕПЕРЬ 5 ЖИЗНЕЙ! Мощная страховка для сложных этапов!'}</span>`;
-                actBtn.textContent = isEn ? '🔄 Reset' : '🔄 Сбросить';
+                perkStatus.innerHTML = `<span style="color:#ff0055;">❤️ ${trText('ТЕПЕРЬ 5 ЖИЗНЕЙ! Мощная страховка для сложных этапов!', '5 LIVES NOW! Huge buffer for high difficulty runs!', 'ARTIK 5 CAN! Zorlu aşamalar için büyük bir güvence!')}</span>`;
+                actBtn.textContent = trText('🔄 Сбросить', '🔄 Reset', '🔄 Sıfırla');
                 actBtn.onclick = () => updatePerkDemo('heart');
               };
             }
@@ -6494,11 +6383,11 @@ export class SudokuUI {
         break;
       }
       case 2: {
-        this.tutorialTitle.textContent = isEn ? '⚡ Game Modes & Fever Drive' : '⚡ Режимы игры и Драйв Пульса';
+        this.tutorialTitle.textContent = trText('⚡ Режимы игры и Драйв Пульса', '⚡ Game Modes & Fever Drive', '⚡ Oyun Modları ve Ateş Sürüşü');
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
             <div style="display:flex;align-items:center;justify-content:space-between;width:88%;font-size:12px;font-weight:800;">
-              <span id="tut-fever-label" style="color:var(--text-muted);">${isEn ? '⚡ PULSE ACCELERATION:' : '⚡ РАЗГОН ПУЛЬСА:'}</span>
+              <span id="tut-fever-label" style="color:var(--text-muted);">${trText('⚡ РАЗГОН ПУЛЬСА:', '⚡ PULSE ACCELERATION:', '⚡ NABIZ HIZLANDIRMA:')}</span>
               <span id="tut-fever-mult" style="color:var(--pulse-cyan);font-weight:900;">x1.0</span>
             </div>
             <div style="width:88%;height:14px;background:rgba(255,255,255,0.1);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.2);">
@@ -6510,17 +6399,17 @@ export class SudokuUI {
               <button id="tut-btn-3" class="btn-secondary" style="width:42px;height:42px;font-size:1.15rem;font-weight:900;border-radius:10px;padding:0;opacity:0.4;" disabled>9</button>
             </div>
             <div id="tut-feedback" class="tut-feedback-box">
-              <span style="color:#00f3ff;">${isEn ? 'Tap [ 1 ] ➔ [ 5 ] ➔ [ 9 ] to ignite Fever!' : 'Нажмите [ 1 ] ➔ [ 5 ] ➔ [ 9 ], чтобы разжечь Fever!'}</span>
+              <span style="color:#00f3ff;">${trText('Нажмите [ 1 ] ➔ [ 5 ] ➔ [ 9 ], чтобы разжечь Fever!', 'Tap [ 1 ] ➔ [ 5 ] ➔ [ 9 ] to ignite Fever!', 'Fever ateşlemek için [ 1 ] ➔ [ 5 ] ➔ [ 9 ] tuşlarına basın!')}</span>
             </div>
           </div>
         `;
 
         this.tutorialDescription.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:6px;font-size:0.83rem;">
-            <div><strong>⚡ ${isEn ? 'Pulse & Fever Multipliers:' : 'Пульс и режим FEVER:'}</strong> ${isEn ? 'Consecutive swift moves trigger FEVER Mode with up to x20 combo multipliers! Mistakes drain your pulse.' : 'Серия быстрых верных ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо.'}</div>
-            <div><strong>🌑 ${isEn ? 'Dark Sector (Eclipse Zone):' : 'Тёмный сектор (Зона затмения):'}</strong> ${isEn ? 'Grid shrouded in darkness. Tapping reveals a 3s radar echo. Blind deduction earns huge bonus rating!' : 'Поле окутано тьмой! Нажатия и сканер дают 3 секунды света («эхо-след»). Разгадка вслепую приносит рекордный рейтинг.'}</div>
-            <div><strong>🚀 ${isEn ? 'Pulse Run (Roguelite):' : 'Pulse Run (Забег):'}</strong> ${isEn ? 'Conquer consecutive stages and draft perks to build unstoppable combos.' : 'Проходите серию этапов и драфтите перки для создания непобедимого билда.'}</div>
-            <div><strong>🤖 ${isEn ? '1v1 Cyber Duels:' : 'Кибер-дуэли 1v1:'}</strong> ${isEn ? 'Real-time speed battle vs AI bots (4 IQ tiers) or live players with ELO rating.' : 'Битва на скорость на одинаковом поле против ИИ-бота или друга онлайн с ELO-рейтингом.'}</div>
+            <div><strong>⚡ ${trText('Пульс и режим FEVER:', 'Pulse & Fever Multipliers:', 'Nabız ve FEVER Çarpanları:')}</strong> ${trText('Серия быстрых верных ходов активирует Режим FEVER с множителем очков до x20! Ошибки сбрасывают комбо.', 'Consecutive swift moves trigger FEVER Mode with up to x20 combo multipliers! Mistakes drain your pulse.', 'Seri doğru hamleler x20\'ye varan çarpanlarla FEVER modunu başlatır! Hatalar nabzınızı düşürür.')}</div>
+            <div><strong>🌑 ${trText('Тёмный сектор (Зона затмения):', 'Dark Sector (Eclipse Zone):', 'Karanlık Sektör (Tutulma Bölgesi):')}</strong> ${trText('Поле окутано тьмой! Нажатия и сканер дают 3 секунды света («эхо-след»). Разгадка вслепую приносит рекордный рейтинг.', 'Grid shrouded in darkness. Tapping reveals a 3s radar echo. Blind deduction earns huge bonus rating!', 'Tahta karanlığa gömülüdür! Dokunuşlar 3 saniyelik radar yankısı sağlar. Körleme tahmin büyük puan kazandırır.')}</div>
+            <div><strong>🚀 ${trText('Pulse Run (Забег):', 'Pulse Run (Roguelite):', 'Pulse Koşusu (Roguelite):')}</strong> ${trText('Проходите серию этапов и драфтите перки для создания непобедимого билда.', 'Conquer consecutive stages and draft perks to build unstoppable combos.', 'Birbirini izleyen aşamaları geçin ve durdurulamaz kombolar için yetenek seçin.')}</div>
+            <div><strong>🤖 ${trText('Кибер-дуэли 1v1:', '1v1 Cyber Duels:', '1v1 Siber Düellolar:')}</strong> ${trText('Битва на скорость на одинаковом поле против ИИ-бота или друга онлайн с ELO-рейтингом.', 'Real-time speed battle vs AI bots (4 IQ tiers) or live players with ELO rating.', 'ELO puanlı yapay zeka botlarına veya canlı oyunculara karşı hız savaşı.')}</div>
           </div>
         `;
 
@@ -6544,7 +6433,7 @@ export class SudokuUI {
             tutBtn2.disabled = false;
             tutBtn2.className = 'btn-primary';
             tutBtn2.style.opacity = '1';
-            tutFeedback.innerHTML = `<span style="color:#00f3ff;">⚡ ${isEn ? 'Good! Next tap [ 5 ]!' : 'Отлично! Теперь жмите [ 5 ]!'}</span>`;
+            tutFeedback.innerHTML = `<span style="color:#00f3ff;">⚡ ${trText('Отлично! Теперь жмите [ 5 ]!', 'Good! Next tap [ 5 ]!', 'Harika! Şimdi [ 5 ]\'e dokunun!')}</span>`;
           };
 
           tutBtn2.onclick = () => {
@@ -6559,7 +6448,7 @@ export class SudokuUI {
             tutBtn3.disabled = false;
             tutBtn3.className = 'btn-primary';
             tutBtn3.style.opacity = '1';
-            tutFeedback.innerHTML = `<span style="color:#ffaa00;">🔥 ${isEn ? 'Tempo rising! Final tap [ 9 ]!' : 'Темп нарастает! Финальный [ 9 ]!'}</span>`;
+            tutFeedback.innerHTML = `<span style="color:#ffaa00;">🔥 ${trText('Темп нарастает! Финальный [ 9 ]!', 'Tempo rising! Final tap [ 9 ]!', 'Tempo artıyor! Son vuruş: [ 9 ]!')}</span>`;
           };
 
           tutBtn3.onclick = () => {
@@ -6572,13 +6461,13 @@ export class SudokuUI {
             tutFill.style.boxShadow = '0 0 12px #ff0055';
             tutMult.textContent = '🔥 FEVER x4.0!';
             tutMult.style.color = '#ff0055';
-            tutFeedback.innerHTML = `<span style="color:#ff0055;">🚀 ${isEn ? 'FEVER ACTIVATED! Multipliers boost up to x20!' : 'FEVER АКТИВИРОВАН! Множитель комбо взлетел до x20!'}</span>`;
+            tutFeedback.innerHTML = `<span style="color:#ff0055;">🚀 ${trText('FEVER АКТИВИРОВАН! Множитель комбо взлетел до x20!', 'FEVER ACTIVATED! Multipliers boost up to x20!', 'FEVER AKTİF! Kombo çarpanı x20\'ye fırladı!')}</span>`;
           };
         }
         break;
       }
       case 3: {
-        this.tutorialTitle.textContent = isEn ? '🎮 Controls, Notes & Hints' : '🎮 Управление, Заметки и Подсказки';
+        this.tutorialTitle.textContent = trText('🎮 Управление, Заметки и Подсказки', '🎮 Controls, Notes & Hints', '🎮 Kontroller, Notlar ve İpuçları');
         this.tutorialVisualBox.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -6586,23 +6475,23 @@ export class SudokuUI {
                 5
               </div>
               <button id="tut-btn-toggle-notes" class="btn-primary" style="padding:8px 12px;font-size:0.8rem;border-radius:8px;">
-                📝 ${isEn ? 'Mode: Regular (tap to toggle Notes)' : 'Режим: Обычный (нажмите для Заметок)'}
+                📝 ${trText('Режим: Обычный (нажмите для Заметок)', 'Mode: Regular (tap to toggle Notes)', 'Mod: Normal (Notlar için dokun)')}
               </button>
             </div>
             <div id="tut-notes-status" class="tut-feedback-box">
-              <span style="color:#00f3ff;">${isEn ? 'Regular mode enters the final number into the cell.' : 'Обычный ввод ставит итоговую цифру в ячейку.'}</span>
+              <span style="color:#00f3ff;">${trText('Обычный ввод ставит итоговую цифру в ячейку.', 'Regular mode enters the final number into the cell.', 'Normal mod hücreye kesin sayıyı yerleştirir.')}</span>
             </div>
           </div>
         `;
 
         this.tutorialDescription.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div><strong>📝 ${isEn ? 'Pencil Notes — Key to Sudoku Mastery:' : 'Заметки (Карандаш) — Главный инструмент мастера:'}</strong> ${isEn ? 'Never guess blindly! If a cell could be either 2 or 7, toggle Notes (key N or 📝) and mark both. Later, one will be eliminated naturally!' : 'Никогда не гадайте наугад! Если в клетку подходят две цифры (например, 2 или 7), включите режим Заметок (кнопка 📝 или клавиша N) и отметьте обе. Логика сама исключит ложную цифру позже!'}</div>
+            <div><strong>📝 ${trText('Заметки (Карандаш) — Главный инструмент мастера:', 'Pencil Notes — Key to Sudoku Mastery:', 'Kurşun Kalem Notları — Ustalık Anahtarı:')}</strong> ${trText('Никогда не гадайте наугад! Если в клетку подходят две цифры (например, 2 или 7), включите режим Заметок (кнопка 📝 или клавиша N) и отметьте обе. Логика сама исключит ложную цифру позже!', 'Never guess blindly! If a cell could be either 2 or 7, toggle Notes (key N or 📝) and mark both. Later, one will be eliminated naturally!', 'Asla rastgele tahmin yürütmeyin! Bir hücreye iki sayı uyuyorsa (ör. 2 veya 7), Not modunu açıp ikisini de yazın.')}</div>
             <div style="padding-left:6px;border-left:2px solid var(--pulse-cyan);display:flex;flex-direction:column;gap:4px;font-size:0.83rem;">
-              <div>• <strong>✨ ${isEn ? 'Auto-Notes:' : 'Автозаметки:'}</strong> ${isEn ? 'Instantly calculates and populates candidate digits for all empty cells.' : 'Мгновенно просчитывает и расставляет кандидатов по всей доске одним нажатием.'}</div>
-              <div>• <strong>💡 ${isEn ? 'Smart Hint (H):' : 'Подсказка (клавиша H):'}</strong> ${isEn ? 'Stuck? Hit Hint to reveal the cell and learn deduction logic.' : 'Зашли в тупик? Нажмите подсказку — она откроет ячейку и объяснит ход мысли.'}</div>
-              <div>• <strong>⌫ ${isEn ? 'Erase / Undo:' : 'Стереть / Undo:'}</strong> ${isEn ? 'Easily fix misclicks and undo moves.' : 'Исправляйте опечатки и отменяйте неверные ходы.'}</div>
-              <div>• <strong>⌨️ ${isEn ? 'Hotkeys (PC):' : 'Горячие клавиши (ПК):'}</strong> ${isEn ? '1–9 to place, Space/N for notes, Backspace to clear, Arrows to navigate.' : '1–9 для ввода, Пробел/N — заметки, Backspace — стереть, Стрелки — выбор клетки.'}</div>
+              <div>• <strong>✨ ${trText('Автозаметки:', 'Auto-Notes:', 'Otomatik Notlar:')}</strong> ${trText('Мгновенно просчитывает и расставляет кандидатов по всей доске одним нажатием.', 'Instantly calculates and populates candidate digits for all empty cells.', 'Tüm boş hücrelerdeki adayları tek tıkla hesaplar ve doldurur.')}</div>
+              <div>• <strong>💡 ${trText('Подсказка (клавиша H):', 'Smart Hint (H):', 'Akıllı İpucu (H):')}</strong> ${trText('Зашли в тупик? Нажмите подсказку — она откроет ячейку и объяснит ход мысли.', 'Stuck? Hit Hint to reveal the cell and learn deduction logic.', 'Tıkandınız mı? İpucuna basarak hücreyi açın ve mantığını öğrenin.')}</div>
+              <div>• <strong>⌫ ${trText('Стереть / Undo:', 'Erase / Undo:', 'Sil / Geri Al:')}</strong> ${trText('Исправляйте опечатки и отменяйте неверные ходы.', 'Easily fix misclicks and undo moves.', 'Hatalı tıklamaları düzeltin ve hamleleri geri alın.')}</div>
+              <div>• <strong>⌨️ ${trText('Горячие клавиши (ПК):', 'Hotkeys (PC):', 'Kısayol Tuşları (PC):')}</strong> ${trText('1–9 для ввода, Пробел/N — заметки, Backspace — стереть, Стрелки — выбор клетки.', '1–9 to place, Space/N for notes, Backspace to clear, Arrows to navigate.', 'Giriş için 1-9, notlar için Boşluk/N, silmek için Backspace, yön tuşları.')}</div>
             </div>
           </div>
         `;
@@ -6619,14 +6508,14 @@ export class SudokuUI {
             haptics.selection();
             if (isNotesActive) {
               btnToggleNotes.className = 'btn-secondary';
-              btnToggleNotes.innerHTML = `📝 ${isEn ? 'Mode: NOTES (Active)' : 'Режим: ЗАМЕТКИ (Активен)'}`;
+              btnToggleNotes.innerHTML = `📝 ${trText('Режим: ЗАМЕТКИ (Активен)', 'Mode: NOTES (Active)', 'Mod: NOTLAR (Aktif)')}`;
               notesDemoCell.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,11px);gap:2px;font-size:9px;font-weight:800;color:#00f3ff;"><span>·</span><span>2</span><span>·</span><span>·</span><span>·</span><span>·</span><span>7</span><span>·</span><span>·</span></div>`;
-              notesStatus.innerHTML = `<span style="color:#00f3ff;">${isEn ? '📝 Notes mark potential candidates [2, 7] with zero risk of making a mistake!' : '📝 В режиме заметок вы отмечаете кандидатов [2, 7] без риска ошибиться!'}</span>`;
+              notesStatus.innerHTML = `<span style="color:#00f3ff;">${trText('📝 В режиме заметок вы отмечаете кандидатов [2, 7] без риска ошибиться!', '📝 Notes mark potential candidates [2, 7] with zero risk of making a mistake!', '📝 Notlar modunda hata riski olmadan potansiyel adayları [2, 7] işaretlersiniz!')}</span>`;
             } else {
               btnToggleNotes.className = 'btn-primary';
-              btnToggleNotes.innerHTML = `📝 ${isEn ? 'Mode: Regular (tap for Notes)' : 'Режим: Обычный (нажмите для Заметок)'}`;
+              btnToggleNotes.innerHTML = `📝 ${trText('Режим: Обычный (нажмите для Заметок)', 'Mode: Regular (tap for Notes)', 'Mod: Normal (Notlar için dokun)')}`;
               notesDemoCell.innerHTML = `5`;
-              notesStatus.innerHTML = `<span style="color:#00f3ff;">${isEn ? 'Regular mode enters the final number into the cell.' : 'Обычный ввод ставит итоговую цифру в ячейку.'}</span>`;
+              notesStatus.innerHTML = `<span style="color:#00f3ff;">${trText('Обычный ввод ставит итоговую цифру в ячейку.', 'Regular mode enters the final number into the cell.', 'Normal mod hücreye nihai sayıyı yerleştirir.')}</span>`;
             }
           };
         }
@@ -6753,7 +6642,7 @@ export class SudokuUI {
     const toastMsg = t('live_ai_matched_toast', isEn ? '🤖 AI challenger matched: ' : '🤖 К дуэли подключился AI-соперник: ');
     this.showToast(`${toastMsg}${botName} (${botElo} ELO)`);
 
-    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || (isEn ? 'Player' : 'Игрок')).replace(/[@_\s]/g, '') || (isEn ? 'Player' : 'Игрок');
+    const playerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).replace(/[@_\s]/g, '') || t('player_label');
     const seed = Date.now();
 
     this.startLiveCountdown(playerName, `${botName} [AI]`, seed, botDiff);
@@ -6766,15 +6655,14 @@ export class SudokuUI {
     this.game.startNewGame({ difficulty, mode: 'ai_duel', perks: [], seed });
     this.showScreen('game');
 
-    const isEn = i18n.getLanguage() === 'en';
-    this.showToast(isEn ? `⚔️ 1v1 Battle vs ${this.liveOpponentName} (${this.currentOpponentElo} ELO)!` : `⚔️ 1v1 Битва против ${this.liveOpponentName} (${this.currentOpponentElo} ELO)!`);
+    this.showToast(t('btn_battle_vs', { opp: this.liveOpponentName, elo: this.currentOpponentElo }));
 
     if (this.aiDuelHud) this.aiDuelHud.classList.remove('hidden');
     if (this.aiBotName) this.aiBotName.textContent = `${this.liveOpponentName} [${this.currentOpponentElo} ELO]`;
 
     // Render Avatars
     const userProfile = yandexBridge.getPlayerProfile();
-    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || (isEn ? 'You' : 'Вы');
+    const myName = userProfile.name || localStorage.getItem('sudoku_player_name') || t('player_you');
     const myAvatar = userProfile.avatarUrl || null;
     if (this.playerDuelAvatar) {
       this.renderMiniAvatar(this.playerDuelAvatar, false, myName, myAvatar);
@@ -6819,14 +6707,21 @@ export class SudokuUI {
   // 7-DAY DAILY LOGIN REWARDS SYSTEM
   // ==========================================
   private readonly DAILY_REWARDS_CONFIG = [
-    { day: 1, icon: '💡', titleRu: '+1 Подсказка', titleEn: '+1 Hint', type: 'hint', count: 1 },
-    { day: 2, icon: '⚡', titleRu: '+150 Pulse очков', titleEn: '+150 Pulse Score', type: 'score', count: 150 },
-    { day: 3, icon: '🛡️', titleRu: 'Щит от ошибок (+1 жизнь)', titleEn: 'Mistake Shield (+1 Life)', type: 'shield', count: 1 },
-    { day: 4, icon: '💡💡', titleRu: '+2 Подсказки', titleEn: '+2 Hints', type: 'hint', count: 2 },
-    { day: 5, icon: '⚡⚡', titleRu: '+300 Pulse очков', titleEn: '+300 Pulse Score', type: 'score', count: 300 },
-    { day: 6, icon: '🛡️⚡', titleRu: 'Щит + 200 очков', titleEn: 'Shield + 200 Score', type: 'combo', count: 200 },
-    { day: 7, icon: '👑', titleRu: 'Трофей + 500 очков + 3 подсказки', titleEn: 'Grand Trophy + 500 Score + 3 Hints', type: 'grand', count: 500 },
+    { day: 1, icon: '💡', titleRu: '+1 Подсказка', titleEn: '+1 Hint', titleTr: '+1 İpucu', type: 'hint', count: 1 },
+    { day: 2, icon: '⚡', titleRu: '+150 Pulse очков', titleEn: '+150 Pulse Score', titleTr: '+150 Pulse Puanı', type: 'score', count: 150 },
+    { day: 3, icon: '🛡️', titleRu: 'Щит от ошибок (+1 жизнь)', titleEn: 'Mistake Shield (+1 Life)', titleTr: 'Hata Kalkanı (+1 Can)', type: 'shield', count: 1 },
+    { day: 4, icon: '💡💡', titleRu: '+2 Подсказки', titleEn: '+2 Hints', titleTr: '+2 İpucu', type: 'hint', count: 2 },
+    { day: 5, icon: '⚡⚡', titleRu: '+300 Pulse очков', titleEn: '+300 Pulse Score', titleTr: '+300 Pulse Puanı', type: 'score', count: 300 },
+    { day: 6, icon: '🛡️⚡', titleRu: 'Щит + 200 очков', titleEn: 'Shield + 200 Score', titleTr: 'Kalkan + 200 Puan', type: 'combo', count: 200 },
+    { day: 7, icon: '👑', titleRu: 'Трофей + 500 очков + 3 подсказки', titleEn: 'Grand Trophy + 500 Score + 3 Hints', titleTr: 'Büyük Kupa + 500 Puan + 3 İpucu', type: 'grand', count: 500 },
   ];
+
+  private getDailyRewardTitle(cfg: { titleRu: string; titleEn: string; titleTr?: string }): string {
+    const lang = i18n.getLanguage();
+    if (lang === 'en') return cfg.titleEn;
+    if (lang === 'tr') return cfg.titleTr || cfg.titleEn;
+    return cfg.titleRu;
+  }
 
   private updateDailyRewardBadge() {
     const stats = SudokuGame.getPlayerStats();
@@ -6895,7 +6790,7 @@ export class SudokuUI {
     this.dailyRewardGrid.innerHTML = this.DAILY_REWARDS_CONFIG.map((cfg) => {
       const isPast = cfg.day < activeDay || (cfg.day === activeDay && alreadyClaimedToday);
       const isCurrent = cfg.day === activeDay && !alreadyClaimedToday;
-      const title = isEn ? cfg.titleEn : cfg.titleRu;
+      const title = this.getDailyRewardTitle(cfg);
 
       let borderStyle = 'border: 1px solid var(--surface-border); background: var(--surface-bg);';
       let statusBadge = `<span style="font-size: 0.68rem; color: var(--text-muted);">🔒</span>`;
@@ -6965,9 +6860,7 @@ export class SudokuUI {
     soundManager.playVictory();
     haptics.victory();
 
-    const isEn = i18n.getLanguage() === 'en';
-    const rewardTitle = isEn ? cfg.titleEn : cfg.titleRu;
-    this.showToast((isEn ? '🎁 Claimed: ' : '🎁 Получено: ') + rewardTitle);
+    this.showToast(t('toast_claimed_fmt', { title: this.getDailyRewardTitle(cfg) }));
 
     this.renderDailyRewardGrid();
     this.updateDailyRewardBadge();
@@ -6981,7 +6874,7 @@ export class SudokuUI {
       stats.dailyLoginLastClaimDate = yesterday;
       SudokuGame.savePlayerStats(stats);
 
-      this.showToast(isEn ? '🔥 Streak restored! Claim your daily reward!' : '🔥 Стрик восстановлен! Заберите награду!');
+      this.showToast(t('streak_restored'));
       soundManager.playCorrect();
       haptics.success();
       this.renderDailyRewardGrid();
@@ -7009,17 +6902,16 @@ export class SudokuUI {
   }
 
   private updateShopButtons() {
-    const isEn = i18n.getLanguage() === 'en';
     const hasNoAds = yandexBridge.hasNoAds();
     const isVip = yandexBridge.isVip();
 
     if (this.btnBuyNoAds) {
       if (hasNoAds) {
-        this.btnBuyNoAds.textContent = isEn ? 'Owned ✅' : 'Куплено ✅';
+        this.btnBuyNoAds.textContent = t('btn_owned');
         this.btnBuyNoAds.classList.add('owned');
         this.btnBuyNoAds.disabled = true;
       } else {
-        this.btnBuyNoAds.textContent = isEn ? 'Buy' : 'Купить';
+        this.btnBuyNoAds.textContent = t('btn_buy');
         this.btnBuyNoAds.classList.remove('owned');
         this.btnBuyNoAds.disabled = false;
       }
@@ -7027,11 +6919,11 @@ export class SudokuUI {
 
     if (this.btnBuyVip) {
       if (isVip) {
-        this.btnBuyVip.textContent = isEn ? 'Owned ✅' : 'Куплено ✅';
+        this.btnBuyVip.textContent = t('btn_owned');
         this.btnBuyVip.classList.add('owned');
         this.btnBuyVip.disabled = true;
       } else {
-        this.btnBuyVip.textContent = isEn ? 'Buy' : 'Купить';
+        this.btnBuyVip.textContent = t('btn_buy');
         this.btnBuyVip.classList.remove('owned');
         this.btnBuyVip.disabled = false;
       }
@@ -7039,7 +6931,7 @@ export class SudokuUI {
   }
 
   private async handleBuyProduct(productId: string) {
-    const isEn = i18n.getLanguage() === 'en';
+
     soundManager.playSelect();
     haptics.light();
 
@@ -7067,30 +6959,31 @@ export class SudokuUI {
 
       this.updateShopButtons();
       this.updateBoardSkinButtons();
-      this.showToast(isEn ? '🎉 Purchase successful! Thank you for supporting the game!' : '🎉 Покупка успешно совершена! Спасибо за поддержку!');
+      this.showToast(t('toast_purchase_success'));
     } else if (res.error) {
       haptics.error();
       if (!res.error.includes('cancel')) {
-        this.showToast((isEn ? '⚠️ Payment error: ' : '⚠️ Ошибка оплаты: ') + res.error);
+        this.showToast(t('toast_payment_error', { error: res.error }));
       }
     }
   }
 
   private async handleRestorePurchases() {
-    const isEn = i18n.getLanguage() === 'en';
+
     soundManager.playSelect();
     await yandexBridge.restorePurchases();
     this.updateShopButtons();
     this.updateBoardSkinButtons();
     this.updateTgMenuPill();
-    this.showToast(isEn ? '✨ Purchases restored successfully!' : '✨ Покупки успешно восстановлены!');
+    this.showToast(t('toast_purchases_restored'));
   }
 
   private handleDoubleWinScore(score: number) {
     if (this.hasDoubledCurrentWinScore || score <= 0) return;
-    const isEn = i18n.getLanguage() === 'en';
+    const lang = i18n.getLanguage();
+    const dLocale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
-    this.showMockAd(isEn ? '🎁 Double Score' : '🎁 Удвоение очков', () => {
+    this.showMockAd(t('ad_double_score'), () => {
       this.hasDoubledCurrentWinScore = true;
       const playerStats = SudokuGame.getPlayerStats();
       playerStats.totalScore = (playerStats.totalScore || 0) + score;
@@ -7105,11 +6998,11 @@ export class SudokuUI {
         this.btnDoubleWinScore.disabled = true;
         this.btnDoubleWinScore.style.opacity = '0.6';
         const lbl = document.getElementById('btn-double-win-score-label');
-        if (lbl) lbl.textContent = isEn ? '✅ Score Doubled!' : '✅ Очки удвоены!';
+        if (lbl) lbl.textContent = t('toast_score_doubled_label');
       }
 
-      this.modalScore.textContent = (score * 2).toLocaleString(isEn ? 'en-US' : 'ru-RU');
-      this.showToast(isEn ? `🎉 Victory score doubled! (+${score.toLocaleString('en-US')})` : `🎉 Очки победы удвоены! (+${score.toLocaleString('ru-RU')})`);
+      this.modalScore.textContent = (score * 2).toLocaleString(dLocale);
+      this.showToast(t('toast_score_doubled', { pts: score.toLocaleString(dLocale) }));
       this.updateDailyInfoOnMenu();
 
       if (yandexBridge.isYandex()) {
@@ -7124,16 +7017,15 @@ export class SudokuUI {
   private openSkinTrialModal(skinKey: string) {
     this.pendingTrialSkinKey = skinKey;
     const req = BOARD_SKINS_CONFIG[skinKey];
-    const isEn = i18n.getLanguage() === 'en';
     const titleEl = document.getElementById('skin-trial-title');
     const descEl = document.getElementById('skin-trial-desc');
+    const skinName = getSkinName(skinKey);
+    const leagueName = getSkinLeague(skinKey);
     if (titleEl && req) {
-      titleEl.textContent = isEn ? `Try ${req.nameEn}` : `Примерить стиль: ${req.nameRu}`;
+      titleEl.textContent = t('skin_trial_title_fmt', { name: skinName });
     }
     if (descEl && req) {
-      descEl.textContent = isEn
-        ? `The "${req.nameEn}" grid skin is locked. Would you like to try it for this session by watching a short video?`
-        : `Стиль "${req.nameRu}" закрыт. Хотите примерить его на текущую сессию за просмотр короткого рекламного ролика?`;
+      descEl.textContent = t('skin_trial_desc_fmt', { name: skinName, league: leagueName });
     }
     if (this.skinTrialModal) {
       this.skinTrialModal.classList.remove('hidden');
@@ -7155,14 +7047,13 @@ export class SudokuUI {
     const key = this.pendingTrialSkinKey;
     if (!key) return;
     this.closeSkinTrialModal();
-    const isEn = i18n.getLanguage() === 'en';
 
-    this.showMockAd(isEn ? '🎨 Skin Trial' : '🎨 Примерка стиля', () => {
+    this.showMockAd(t('ad_skin_trial'), () => {
       this.activeTrialSkinKey = key;
       this.setBoardSkin(key);
       soundManager.playCorrect(2);
       haptics.success();
-      this.showToast(isEn ? '🎨 Grid skin temporarily unlocked for this game!' : '🎨 Стиль ячеек временно разблокирован на текущую игру!');
+      this.showToast(t('toast_skin_trial_active'));
       this.updateBoardSkinButtons();
     });
   }

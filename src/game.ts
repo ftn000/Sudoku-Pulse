@@ -12,7 +12,7 @@ import {
 } from './types';
 import { generatePuzzle, hashDateStringToSeed } from './generator';
 import { evaluateNewAchievements, evaluateAllAchievements } from './achievements';
-import { i18n } from './i18n';
+import { i18n, t } from './i18n';
 
 const STORAGE_KEY = 'sudoku_pulse_saved_game_v3';
 const STATS_KEY = 'sudoku_pulse_player_stats_v1';
@@ -356,24 +356,17 @@ export class SudokuGame {
 
   public getRunModifierDescription(): string {
     if (this.mode !== 'run') return '';
-    const isEn = i18n.getLanguage() === 'en';
     switch (this.runStage) {
       case 1:
-        return isEn ? 'Base Sector (Normal conditions)' : 'Базовый сектор (Обычные условия)';
+        return t('run_mod_base');
       case 2:
-        return isEn ? '🌌 Anomaly: Dark Sector!' : '🌌 Аномалия: Тёмный сектор!';
+        return t('run_mod_dark');
       case 3:
-        return isEn
-          ? '☀️ Solar Storm (Surges ⚡ 2x more frequent and give +1,500 pts!)'
-          : '☀️ Солнечный шторм (Вспышки ⚡ в 2 раза чаще и дают +1500 очков!)';
+        return t('run_mod_solar');
       case 4:
-        return isEn
-          ? '🧊 Cryo Leak (Pulse cools faster, but base points x2!)'
-          : '🧊 Крио-утечка (Пульс остывает быстрее, но базовые очки x2!)';
+        return t('run_mod_cryo');
       default:
-        return isEn
-          ? `💀 Supernova — Sector ${this.runStage} (Dark Sector + Storm + Points x2!)`
-          : `💀 Сверхновая — Сектор ${this.runStage} (Тёмный сектор + Шторм + Очки x2!)`;
+        return t('run_mod_supernova', { stage: this.runStage });
     }
   }
 
