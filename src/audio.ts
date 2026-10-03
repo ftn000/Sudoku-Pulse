@@ -791,6 +791,91 @@ export class SoundManager {
       osc.stop(now + idx * 0.07 + 0.17);
     });
   }
+
+  public playHallOfFameOpen() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 1. Digital resonance pulse blip
+    const blip = ctx.createOscillator();
+    const blipGain = ctx.createGain();
+    blip.type = 'sine';
+    blip.frequency.setValueAtTime(2200, now);
+    blip.frequency.exponentialRampToValueAtTime(1400, now + 0.05);
+    blipGain.gain.setValueAtTime(0.04, now);
+    blipGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    blip.connect(blipGain);
+    blipGain.connect(this.getSfxDestination());
+    blip.start(now);
+    blip.stop(now + 0.055);
+
+    // 2. Sub-bass atmospheric swell (D2 -> A2 -> F#2)
+    const sub = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(73.42, now);
+    sub.frequency.exponentialRampToValueAtTime(110.0, now + 0.25);
+    sub.frequency.exponentialRampToValueAtTime(92.5, now + 0.7);
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.08, now + 0.12);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+    sub.connect(subGain);
+    subGain.connect(this.getSfxDestination());
+    sub.start(now);
+    sub.stop(now + 0.78);
+
+    // 3. Ethereal crystal cyberpunk shimmer arpeggio
+    // Cyberpunk scale: F#4, A4, C#5, E5, F#5, C#6
+    const arpeggio = [369.99, 440.0, 554.37, 659.25, 739.99, 1108.73];
+    arpeggio.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq, now + 0.04 + idx * 0.055);
+      gain.gain.setValueAtTime(0.001, now + 0.04 + idx * 0.055);
+      gain.gain.linearRampToValueAtTime(0.06, now + 0.04 + idx * 0.055 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04 + idx * 0.055 + 0.42);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(now + 0.04 + idx * 0.055);
+      osc.stop(now + 0.04 + idx * 0.055 + 0.45);
+    });
+
+    // 4. Warm sustained neon triad pad resolving into silence
+    const padTime = now + 0.28;
+    [554.37, 739.99, 880.0].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, padTime);
+      gain.gain.setValueAtTime(0.001, padTime);
+      gain.gain.linearRampToValueAtTime(0.045, padTime + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, padTime + 0.85);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(padTime);
+      osc.stop(padTime + 0.88);
+    });
+  }
+
+  public playCyberCardInspect() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [1046.5, 1567.98].forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.035);
+      gain.gain.setValueAtTime(0.05, now + idx * 0.035);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.035 + 0.08);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(now + idx * 0.035);
+      osc.stop(now + idx * 0.035 + 0.09);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

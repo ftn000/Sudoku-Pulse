@@ -293,11 +293,20 @@ export class SudokuUI {
     duelWins?: number;
     duelLosses?: number;
     isMeta?: boolean;
+    isSeasonMaster?: boolean;
     modesCount?: number;
     pulsePoints?: number;
     breakdown?: Record<string, number>;
+    [key: string]: any;
   }> = [];
   private cachedMyRank: { rank: number; entry: any } | null = null;
+  private cachedTopEntries: any[] = [];
+  private lbPlayerTooltip: HTMLElement | null = null;
+  private lbTooltipCloseBtn: HTMLButtonElement | null = null;
+  private profileAvatarDisplay: HTMLElement | null = null;
+  private profileAvatarName: HTMLElement | null = null;
+  private profileAvatarBadgeText: HTMLElement | null = null;
+  private btnToggleSeasonAvatar: HTMLButtonElement | null = null;
   private statPlayed!: HTMLElement;
   private statWon!: HTMLElement;
   private statCombo!: HTMLElement;
@@ -748,6 +757,12 @@ export class SudokuUI {
     this.duelHistorySummary = document.getElementById('duel-history-summary')!;
     this.duelHistoryList = document.getElementById('duel-history-list')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
+    this.lbPlayerTooltip = document.getElementById('lb-player-tooltip');
+    this.lbTooltipCloseBtn = document.getElementById('lb-tooltip-close-btn') as HTMLButtonElement | null;
+    this.profileAvatarDisplay = document.getElementById('profile-avatar-display');
+    this.profileAvatarName = document.getElementById('profile-avatar-name');
+    this.profileAvatarBadgeText = document.getElementById('profile-avatar-badge-text');
+    this.btnToggleSeasonAvatar = document.getElementById('btn-toggle-season-avatar') as HTMLButtonElement | null;
     this.leaderboardFilterTabs = Array.from(document.querySelectorAll('.lb-tab'));
     this.lbTimeframeAll = document.getElementById('lb-timeframe-all') as HTMLButtonElement;
     this.lbTimeframeSeason = document.getElementById('lb-timeframe-season') as HTMLButtonElement;
@@ -1223,7 +1238,7 @@ export class SudokuUI {
     });
 
     this.btnMenuStats.addEventListener('click', () => {
-      soundManager.playSelect();
+      haptics.selection();
       if (this.playerNameInput) {
         const saved = localStorage.getItem('sudoku_player_name');
         if (saved) this.playerNameInput.value = saved;
@@ -1528,6 +1543,69 @@ export class SudokuUI {
         this.lbTimeframeSeason.classList.add('active');
         this.lbTimeframeAll?.classList.remove('active');
         this.fetchAndRenderLeaderboard();
+      });
+    }
+
+    // Leaderboard Row Click Delegation (Player Card Tooltip)
+    if (this.leaderboardList) {
+      this.leaderboardList.addEventListener('click', (e) => {
+        const row = (e.target as HTMLElement).closest('.lb-player-row') as HTMLElement | null;
+        if (!row) return;
+        const idxStr = row.getAttribute('data-entry-idx');
+        const isPinned = row.getAttribute('data-is-pinned') === 'true';
+        const rank = row.getAttribute('data-entry-rank') || '1';
+
+        let item: any = null;
+        if (isPinned) {
+          item = this.cachedMyRank?.entry || this.cachedLeaderboardEntries.find(
+            (x) => x.playerId === SudokuGame.getOrCreatePlayerId() || (x.name && x.name.toLowerCase() === (localStorage.getItem('sudoku_player_name') || '').toLowerCase())
+          );
+        } else if (idxStr !== null) {
+          const idx = parseInt(idxStr, 10);
+          item = this.cachedTopEntries[idx];
+        }
+
+        if (item) {
+          this.showPlayerCardTooltip(item, rank);
+        }
+      });
+    }
+
+    if (this.lbTooltipCloseBtn) {
+      this.lbTooltipCloseBtn.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.hidePlayerCardTooltip();
+      });
+    }
+
+    if (this.lbPlayerTooltip) {
+      this.lbPlayerTooltip.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement) === this.lbPlayerTooltip) {
+          this.hidePlayerCardTooltip();
+        }
+      });
+    }
+
+    if (this.btnToggleSeasonAvatar) {
+      this.btnToggleSeasonAvatar.addEventListener('click', () => {
+        const unlocked = this.getUnlockedAvatars();
+        if (!unlocked.includes('season_master')) {
+          soundManager.playError();
+          haptics.error();
+          this.showToast(t('avatar_season_master_locked'));
+          return;
+        }
+        soundManager.playSelect();
+        haptics.selection();
+        const current = this.getPlayerAvatar();
+        const next = current === 'season_master' ? 'default' : 'season_master';
+        this.setPlayerAvatar(next);
+        this.renderPlayerAvatarElements();
+        const isEn = i18n.getLanguage() === 'en';
+        this.showToast(next === 'season_master'
+          ? (isEn ? '👑 Season Master avatar equipped!' : '👑 Аватар «Мастер сезона» экипирован!')
+          : (isEn ? '⚡ Default Cyber avatar equipped!' : '⚡ Стандартный кибер-аватар экипирован!')
+        );
       });
     }
 
@@ -3765,6 +3843,7 @@ export class SudokuUI {
     }
 
     const topEntries = entries.slice(0, 30);
+    this.cachedTopEntries = topEntries;
     const isUserInTop = topEntries.some((item) => (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase()));
 
     const listHtml = topEntries.map((item, idx) => {
@@ -3772,6 +3851,8 @@ export class SudokuUI {
       const isMe = (item.playerId && item.playerId === myPlayerId) || (item.name && item.name.toLowerCase() === myPlayerName.toLowerCase());
       const rowBg = isMe ? 'rgba(99, 102, 241, 0.16)' : 'rgba(255,255,255,0.03)';
       const rowBorder = isMe ? 'var(--primary)' : 'var(--border-subtle)';
+      const isSeasonMaster = Boolean(item.isSeasonMaster || (this.currentLeaderboardTimeframe === 'season' && idx < 3));
+      const crownTag = isSeasonMaster ? ` <span class="season-master-tag" title="${t('season_badge_master_title')}">👑</span>` : '';
 
       if (isPvpMode || item.mode === 'pvp_duel') {
         const elo = item.duelElo || item.score || 1000;
@@ -3782,13 +3863,13 @@ export class SudokuUI {
           ? `<span style="font-size:0.75rem; color:var(--text-muted); margin-left:4px;">(${wins}W - ${losses}L)</span>`
           : '';
         return `
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
+          <div class="lb-player-row" data-entry-idx="${idx}" data-entry-rank="${idx + 1}" style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
             <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
               <span style="font-weight:700; min-width:24px;">${medal}</span>
               <span style="font-size:0.95rem;">⚔️</span>
               <div style="display:flex; flex-direction:column; min-width:0;">
                 <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                  <span style="font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
+                  <span style="font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${crownTag}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
                   ${recordStr}
                 </div>
                 <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
@@ -3814,11 +3895,11 @@ export class SudokuUI {
 
       const league = getLeagueForScore(item.score);
       return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
+        <div class="lb-player-row" data-entry-idx="${idx}" data-entry-rank="${idx + 1}" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-weight:700; min-width:24px;">${medal}</span>
             <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
+            <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${crownTag}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
             ${badgeHtml}
           </div>
           ${scoreHtml}
@@ -3843,6 +3924,13 @@ export class SudokuUI {
       }
 
       if (myRank && item) {
+        if (this.currentLeaderboardTimeframe === 'season' && this.currentLeaderboardModeFilter === 'all') {
+          localStorage.setItem('sudoku_last_season_pp_rank', String(myRank));
+        }
+
+        const isPinnedSeasonMaster = Boolean(item.isSeasonMaster || (this.currentLeaderboardTimeframe === 'season' && myRank <= 3));
+        const pinnedCrownTag = isPinnedSeasonMaster ? ` <span class="season-master-tag" title="${t('season_badge_master_title')}">👑</span>` : '';
+
         if (isPvpMode || item.mode === 'pvp_duel') {
           const elo = item.duelElo || item.score || 1000;
           const rankTitle = this.getDuelRankName(elo);
@@ -3855,13 +3943,13 @@ export class SudokuUI {
             <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
               <span>•••••••••••••</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+            <div class="lb-player-row" data-is-pinned="true" data-entry-rank="${myRank}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
               <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
                 <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
                 <span style="font-size:0.95rem;">⚔️</span>
                 <div style="display:flex; flex-direction:column; min-width:0;">
                   <div style="display:flex; align-items:center; gap:4px; overflow:hidden;">
-                    <span style="font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">(${t('player_you')})</span></span>
+                    <span style="font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name.replace(/</g, '&lt;')}${pinnedCrownTag} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">(${t('player_you')})</span></span>
                     ${recordStr}
                   </div>
                   <span style="font-size:0.72rem; color:#a78bfa; font-weight:600;">${rankTitle}</span>
@@ -3888,11 +3976,11 @@ export class SudokuUI {
             <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
               <span>•••••••••••••</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
+            <div class="lb-player-row" data-is-pinned="true" data-entry-rank="${myRank}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; background:rgba(99, 102, 241, 0.22); border:1px solid var(--pulse-cyan); box-shadow:0 0 10px rgba(0,243,255,0.18); font-size:0.85rem;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
                 <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
-                <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${t('player_you')}</span></span>
+                <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${pinnedCrownTag} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${t('player_you')}</span></span>
                 ${pinnedBadgeHtml}
               </div>
               ${pinnedScoreHtml}
@@ -3903,6 +3991,7 @@ export class SudokuUI {
     }
 
     this.leaderboardList.innerHTML = seasonHeader + listHtml + pinnedUserHtml;
+    this.hidePlayerCardTooltip();
   }
 
   private showAchievementsModal() {
@@ -4485,6 +4574,8 @@ export class SudokuUI {
   }
 
   private showStatsModal() {
+    soundManager.playHallOfFameOpen();
+    this.hidePlayerCardTooltip();
     const stats = SudokuGame.getPlayerStats();
     const lang = i18n.getLanguage();
     const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
@@ -4500,6 +4591,7 @@ export class SudokuUI {
       : '—';
     this.updateLeagueViews();
     this.renderPlayerSeasonMedals();
+    this.renderPlayerAvatarElements();
     this.renderSeasonArchive();
     this.renderDuelHistory();
     this.renderProfilePastSeasons();
@@ -4708,6 +4800,12 @@ export class SudokuUI {
       this.updateLobbyEloDisplay();
       this.submitDuelScoreToLeaderboard(1000, 0, 0);
 
+      // Top PP Season Master award (Top 3 in Hall of Fame for the ended week)
+      const lastPpRank = Number(localStorage.getItem('sudoku_last_season_pp_rank')) || (this.cachedMyRank ? this.cachedMyRank.rank : null);
+      if (lastPpRank && lastPpRank <= 3) {
+        this.awardSeasonMaster(lastSeason);
+      }
+
       localStorage.setItem('sudoku_last_season_id', currentSeason);
 
       setTimeout(() => {
@@ -4767,12 +4865,15 @@ export class SudokuUI {
       return;
     }
     this.playerSeasonMedals.classList.remove('hidden');
-    this.playerSeasonMedals.innerHTML = badges.map((b) => `
-      <span class="player-medal-chip ${b.tier}" title="${t('season_badge_reward_for')} ${b.title}">
-        <span>${b.icon}</span>
-        <span>${b.title}</span>
-      </span>
-    `).join('');
+    this.playerSeasonMedals.innerHTML = badges.map((b) => {
+      const extraClass = b.id.startsWith('badge_season_master') ? 'season-master-chip' : '';
+      return `
+        <span class="player-medal-chip ${b.tier} ${extraClass}" title="${t('season_badge_reward_for')} ${b.title}">
+          <span>${b.icon}</span>
+          <span>${b.title}</span>
+        </span>
+      `;
+    }).join('');
   }
 
   private setAiBotEmotion(emotion: 'idle' | 'speaking' | 'smug' | 'fever' | 'glitch', durationMs?: number) {
@@ -4861,12 +4962,20 @@ export class SudokuUI {
         const data = await res.json();
         if (data && Array.isArray(data.history) && data.history.length > 0) {
           const items = data.history;
+          for (const s of items) {
+            if (!s.isCurrent && (s.isSeasonMaster || (s.ppRank && s.ppRank <= 3))) {
+              this.awardSeasonMaster(s.seasonId);
+            }
+          }
           if (this.profilePastSeasonsCount) {
             this.profilePastSeasonsCount.textContent = t('season_count_fmt', { count: items.length });
           }
           this.profilePastSeasonsList.innerHTML = items.map((s: any) => {
             const medal = s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : s.rank === 3 ? '🥉' : `#${s.rank}`;
             const rankColor = s.rank === 1 ? '#fbbf24' : s.rank === 2 ? '#94a3b8' : s.rank === 3 ? '#b45309' : 'var(--pulse-cyan)';
+            const isMaster = Boolean(s.isSeasonMaster || (s.ppRank && s.ppRank <= 3));
+            const masterTag = isMaster ? ` <span class="season-master-tag" title="${t('season_badge_master_title')}">👑</span>` : '';
+            const ppInfo = s.pulsePoints ? ` • ${s.pulsePoints} PP` : '';
             const activeTag = s.isCurrent
               ? `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--pulse-cyan); font-weight:700;">${t('season_status_active')}</span>`
               : `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(34,197,94,0.15); color:#34d399; font-weight:700;">${t('season_status_ended')}</span>`;
@@ -4877,9 +4986,9 @@ export class SudokuUI {
                   <span style="font-size:1.1rem;">${medal}</span>
                   <div>
                     <div style="font-weight:700; color:var(--text-main); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
-                      ${t('season_title_prefix')} ${s.seasonId} ${activeTag}
+                      ${t('season_title_prefix')} ${s.seasonId}${masterTag} ${activeTag}
                     </div>
-                    <div style="font-size:0.73rem; color:var(--text-muted);">${s.duelElo || 1000} ELO • ${s.duelWins || 0}W - ${s.duelLosses || 0}L</div>
+                    <div style="font-size:0.73rem; color:var(--text-muted);">${s.duelElo || 1000} ELO • ${s.duelWins || 0}W - ${s.duelLosses || 0}L${ppInfo}</div>
                   </div>
                 </div>
                 <div style="text-align:right;">
@@ -4988,7 +5097,13 @@ export class SudokuUI {
     }
   }
 
-  private renderCyberAvatarBadge(container: HTMLElement, name: string) {
+  private renderCyberAvatarBadge(container: HTMLElement, name: string, forcedAvatar?: string) {
+    const isSeasonMaster = forcedAvatar === 'season_master' || (!forcedAvatar && this.isPlayerNameOrMe(name) && this.getPlayerAvatar() === 'season_master');
+    if (isSeasonMaster) {
+      container.innerHTML = `<div class="cyber-avatar-badge season-master-avatar" title="${t('season_badge_master_title')}"><span style="font-size: 1.25rem; filter: drop-shadow(0 0 4px #ffd700);">👑</span></div>`;
+      return;
+    }
+
     const colors = [
       'linear-gradient(135deg, #00f3ff, #3b82f6)',
       'linear-gradient(135deg, #ec4899, #8b5cf6)',
@@ -5005,6 +5120,274 @@ export class SudokuUI {
     const initial = (name || 'P').trim().charAt(0).toUpperCase();
 
     container.innerHTML = `<div class="cyber-avatar-badge" style="background: ${bg}; color: #050811;">${initial}</div>`;
+  }
+
+  private isPlayerNameOrMe(name: string): boolean {
+    const myName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).trim().toLowerCase();
+    return (name || '').trim().toLowerCase() === myName;
+  }
+
+  public getUnlockedAvatars(): string[] {
+    try {
+      const raw = localStorage.getItem('sudoku_unlocked_avatars');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return ['default'];
+  }
+
+  public getPlayerAvatar(): string {
+    return localStorage.getItem('sudoku_player_avatar') || 'default';
+  }
+
+  public setPlayerAvatar(avatar: string) {
+    localStorage.setItem('sudoku_player_avatar', avatar);
+    this.renderPlayerAvatarElements();
+  }
+
+  public awardSeasonMaster(seasonId: string) {
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
+    const badgeId = 'badge_season_master_' + seasonId;
+    const badges = this.getSeasonBadges();
+
+    let isNew = false;
+    if (!badges.some((b) => b.id === badgeId)) {
+      const badge: SeasonBadge = {
+        id: badgeId,
+        seasonId: seasonId,
+        title: `👑 ${t('season_badge_master_title')}`,
+        icon: '👑',
+        tier: 'champion',
+        dateAwarded: new Date().toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+      };
+      this.addSeasonBadge(badge);
+      isNew = true;
+    }
+
+    const unlocked = this.getUnlockedAvatars();
+    if (!unlocked.includes('season_master')) {
+      unlocked.push('season_master');
+      localStorage.setItem('sudoku_unlocked_avatars', JSON.stringify(unlocked));
+      isNew = true;
+    }
+
+    if (isNew) {
+      this.setPlayerAvatar('season_master');
+      this.showToast(t('season_badge_master_toast'));
+      soundManager.playVictory();
+      haptics.victory();
+    }
+
+    this.renderPlayerSeasonMedals();
+    this.renderPlayerAvatarElements();
+  }
+
+  private renderPlayerAvatarElements() {
+    const avatar = this.getPlayerAvatar();
+    const unlocked = this.getUnlockedAvatars();
+    const hasMaster = unlocked.includes('season_master');
+    const myName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).trim();
+
+    if (this.profileAvatarDisplay) {
+      this.renderCyberAvatarBadge(this.profileAvatarDisplay, myName, avatar);
+    }
+    if (this.profileAvatarName) {
+      this.profileAvatarName.textContent = myName;
+    }
+    if (this.profileAvatarBadgeText) {
+      if (avatar === 'season_master') {
+        this.profileAvatarBadgeText.textContent = `👑 ${t('season_badge_master_title')}`;
+        this.profileAvatarBadgeText.style.color = '#fbbf24';
+      } else {
+        const stats = SudokuGame.getPlayerStats();
+        const league = getLeagueForScore(stats.totalScore);
+        this.profileAvatarBadgeText.textContent = `${league.icon} ${league.name}`;
+        this.profileAvatarBadgeText.style.color = 'var(--accent)';
+      }
+    }
+
+    if (this.btnToggleSeasonAvatar) {
+      if (hasMaster) {
+        this.btnToggleSeasonAvatar.classList.remove('locked');
+        if (avatar === 'season_master') {
+          this.btnToggleSeasonAvatar.classList.add('active');
+          this.btnToggleSeasonAvatar.textContent = `✅ ${t('avatar_equipped_label')}`;
+          this.btnToggleSeasonAvatar.title = t('avatar_season_master_desc');
+        } else {
+          this.btnToggleSeasonAvatar.classList.remove('active');
+          this.btnToggleSeasonAvatar.textContent = `👑 ${t('avatar_equip_btn')}`;
+          this.btnToggleSeasonAvatar.title = t('avatar_season_master_desc');
+        }
+      } else {
+        this.btnToggleSeasonAvatar.classList.add('locked');
+        this.btnToggleSeasonAvatar.classList.remove('active');
+        this.btnToggleSeasonAvatar.textContent = `🔒 👑 ${t('season_badge_master_title')}`;
+        this.btnToggleSeasonAvatar.title = t('avatar_season_master_locked');
+      }
+    }
+
+    if (this.playerDuelAvatar) {
+      this.renderCyberAvatarBadge(this.playerDuelAvatar, myName, avatar);
+    }
+  }
+
+  private getPlayerBreakdown(item: any): Record<string, number> {
+    const breakdown: Record<string, number> = { ...(item.breakdown || {}) };
+    const nameKey = String(item.name || '').toLowerCase().trim();
+    const idKey = String(item.playerId || '').trim();
+
+    // Check cached leaderboard entries for all modes of this player
+    for (const e of this.cachedLeaderboardEntries) {
+      const eName = String(e.name || '').toLowerCase().trim();
+      const eId = String(e.playerId || '').trim();
+      if ((idKey && eId === idKey) || (nameKey && eName === nameKey)) {
+        const m = e.mode || 'classic';
+        if (breakdown[m] === undefined || breakdown[m] === 0) {
+          const raw = e.score || 0;
+          let pts = 0;
+          if (m === 'classic') pts = Math.min(1000, Math.round(raw / 250));
+          else if (m === 'run') pts = Math.min(1000, Math.round((e.runStage || 1) * 45 + raw / 70000));
+          else if (m === 'fog') pts = Math.min(1000, Math.round(raw / 300));
+          else if (m === 'daily') pts = Math.min(1000, Math.round(raw / 300));
+          else if (m === 'ai_duel') pts = Math.min(1000, Math.round(raw / 300));
+          else pts = Math.min(1000, Math.round(raw / 300));
+          breakdown[m] = pts;
+        }
+      }
+    }
+
+    // If local player, complement with local stats
+    const myPlayerId = SudokuGame.getOrCreatePlayerId();
+    const myPlayerName = (yandexBridge.getPlayerName() || localStorage.getItem('sudoku_player_name') || t('player_label')).trim().toLowerCase();
+    if ((idKey && idKey === myPlayerId) || (nameKey && nameKey === myPlayerName)) {
+      const stats = SudokuGame.getPlayerStats();
+      if (!breakdown['classic'] && stats.totalScore) {
+        breakdown['classic'] = Math.min(1000, Math.round(stats.totalScore / 250));
+      }
+      if (!breakdown['run'] && (stats.bestRunStage || stats.bestRunScore)) {
+        breakdown['run'] = Math.min(1000, Math.round((stats.bestRunStage || 1) * 45 + (stats.bestRunScore || 0) / 70000));
+      }
+      if (!breakdown['fog'] && stats.darkSectorWins) {
+        breakdown['fog'] = Math.min(1000, Math.round((stats.darkSectorWins * 800) / 300));
+      }
+      if (!breakdown['ai_duel'] && stats.aiDuelWins) {
+        breakdown['ai_duel'] = Math.min(1000, Math.round((stats.aiDuelWins * 500) / 300));
+      }
+      if (!breakdown['daily'] && stats.dailyStreak) {
+        breakdown['daily'] = Math.min(1000, Math.round(stats.dailyStreak * 60));
+      }
+    }
+
+    if (!breakdown['classic'] && item.mode === 'classic') {
+      breakdown['classic'] = Math.min(1000, Math.round((item.score || 0) / 250));
+    }
+    if (!breakdown['run'] && item.mode === 'run') {
+      breakdown['run'] = Math.min(1000, Math.round((item.runStage || 1) * 45 + (item.score || 0) / 70000));
+    }
+    if (!breakdown['fog'] && item.mode === 'fog') {
+      breakdown['fog'] = Math.min(1000, Math.round((item.score || 0) / 300));
+    }
+
+    return breakdown;
+  }
+
+  private showPlayerCardTooltip(item: any, rank: number | string) {
+    if (!this.lbPlayerTooltip) return;
+    soundManager.playCyberCardInspect();
+    haptics.selection();
+
+    const lang = i18n.getLanguage();
+    const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
+
+    const nameEl = document.getElementById('lb-tooltip-name');
+    const avatarEl = document.getElementById('lb-tooltip-avatar');
+    const masterBadgeEl = document.getElementById('lb-tooltip-master-badge');
+    const rankEl = document.getElementById('lb-tooltip-rank');
+    const leagueEl = document.getElementById('lb-tooltip-league');
+    const ppValEl = document.getElementById('lb-tooltip-pp-val');
+    const listEl = document.getElementById('lb-tooltip-breakdown-list');
+
+    const name = item.name || t('player_label');
+    if (nameEl) nameEl.textContent = name;
+
+    const rankNum = typeof rank === 'number' ? rank : parseInt(String(rank), 10) || 1;
+    const medal = rankNum === 1 ? '🥇 #1' : rankNum === 2 ? '🥈 #2' : rankNum === 3 ? '🥉 #3' : `#${rankNum}`;
+    if (rankEl) rankEl.textContent = medal;
+
+    const league = getLeagueForScore(item.score || 0);
+    if (leagueEl) leagueEl.textContent = `${league.icon} ${league.name}`;
+
+    const isSeasonMaster = Boolean(item.isSeasonMaster || (this.currentLeaderboardTimeframe === 'season' && rankNum <= 3));
+    if (masterBadgeEl) {
+      masterBadgeEl.classList.toggle('hidden', !isSeasonMaster);
+      if (isSeasonMaster) {
+        masterBadgeEl.title = t('season_badge_master_title');
+      }
+    }
+
+    if (avatarEl) {
+      this.renderCyberAvatarBadge(avatarEl, name, isSeasonMaster ? 'season_master' : undefined);
+    }
+
+    const breakdown = this.getPlayerBreakdown(item);
+    const totalPp = Object.values(breakdown).reduce((sum, v) => sum + (v || 0), 0) || item.score || 0;
+    if (ppValEl) {
+      ppValEl.textContent = Number(totalPp).toLocaleString(locale);
+    }
+
+    if (listEl) {
+      const modeConfigs: Array<{ key: string; name: string; icon: string; max: number }> = [
+        { key: 'classic', name: t('mode_classic'), icon: '⚡', max: 1000 },
+        { key: 'run', name: t('mode_run'), icon: '🚀', max: 1000 },
+        { key: 'fog', name: t('mode_fog'), icon: '🌌', max: 1000 },
+        { key: 'daily', name: t('mode_daily'), icon: '📅', max: 1000 },
+        { key: 'ai_duel', name: t('mode_duels'), icon: '🤖', max: 1000 },
+      ];
+
+      const rowsHtml = modeConfigs.map((cfg) => {
+        const pts = breakdown[cfg.key] || 0;
+        const pct = Math.min(100, Math.max(0, Math.round((pts / cfg.max) * 100)));
+        return `
+          <div class="lb-breakdown-row">
+            <div class="lb-breakdown-mode-info">
+              <span class="lb-breakdown-icon">${cfg.icon}</span>
+              <span class="lb-breakdown-name">${cfg.name}</span>
+            </div>
+            <div class="lb-breakdown-bar-wrap">
+              <div class="lb-breakdown-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+            <div class="lb-breakdown-pts">${pts.toLocaleString(locale)} <span>PP</span></div>
+          </div>
+        `;
+      }).join('');
+
+      let pvpRow = '';
+      if (item.duelElo || item.mode === 'pvp_duel' || breakdown['pvp_duel']) {
+        const elo = item.duelElo || 1000;
+        const wins = item.duelWins || 0;
+        const losses = item.duelLosses || 0;
+        pvpRow = `
+          <div class="lb-breakdown-row" style="border-color: rgba(56, 189, 248, 0.25);">
+            <div class="lb-breakdown-mode-info">
+              <span class="lb-breakdown-icon">⚔️</span>
+              <span class="lb-breakdown-name">${t('mode_pvp_duel')}</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${wins}W - ${losses}L</div>
+            <div class="lb-breakdown-pts" style="color: #38bdf8;">${elo} <span>ELO</span></div>
+          </div>
+        `;
+      }
+
+      listEl.innerHTML = rowsHtml + pvpRow;
+    }
+
+    this.lbPlayerTooltip.classList.remove('hidden');
+  }
+
+  private hidePlayerCardTooltip() {
+    if (this.lbPlayerTooltip) {
+      this.lbPlayerTooltip.classList.add('hidden');
+    }
   }
 
   public handlePauseToggle() {

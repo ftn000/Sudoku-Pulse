@@ -572,11 +572,60 @@
         <div id="leaderboard-list" class="modal-stats" style="max-height: min(250px, 38vh); overflow-y: auto; font-size: 0.85rem; padding: 6px 8px;">
           <div style="text-align: center; color: var(--text-muted); padding: 12px 0;">Загрузка рекордов сервера...</div>
         </div>
+
+        <!-- Player Card Detail Tooltip / Modal Popover -->
+        <div id="lb-player-tooltip" class="lb-player-tooltip hidden">
+          <div class="lb-tooltip-card">
+            <button id="lb-tooltip-close-btn" class="lb-tooltip-close" title="Закрыть">✕</button>
+            <div class="lb-tooltip-header">
+              <div id="lb-tooltip-avatar" class="lb-tooltip-avatar"></div>
+              <div class="lb-tooltip-player-meta">
+                <div class="lb-tooltip-name-row">
+                  <span id="lb-tooltip-name" class="lb-tooltip-name">Player</span>
+                  <span id="lb-tooltip-master-badge" class="lb-tooltip-master-badge hidden" title="Мастер сезона">👑</span>
+                </div>
+                <div class="lb-tooltip-rank-row">
+                  <span id="lb-tooltip-rank" class="lb-tooltip-rank">#1</span>
+                  <span id="lb-tooltip-league" class="lb-tooltip-league">🥉 Bronze</span>
+                </div>
+              </div>
+              <div class="lb-tooltip-total-pp">
+                <span id="lb-tooltip-pp-val" class="lb-tooltip-pp-num">0</span>
+                <span class="lb-tooltip-pp-label">PP</span>
+              </div>
+            </div>
+
+            <div class="lb-tooltip-divider"></div>
+
+            <div class="lb-tooltip-section-title" data-i18n="lb_pp_breakdown">Разбивка PP по режимам:</div>
+            <div id="lb-tooltip-breakdown-list" class="lb-tooltip-breakdown-list">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <div class="lb-tooltip-footer" data-i18n="lb_pp_hint">
+              💡 PP суммируются из лучших результатов по режимам матрицы
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- PANE 2: Мой профиль -->
       <div id="stats-pane-profile" class="stats-pane hidden">
-        <div style="display: flex; gap: 8px; align-items: center; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 12px; padding: 8px 12px;">
+        <!-- Player Avatar & Title Showcase -->
+        <div id="profile-avatar-card" class="profile-avatar-card">
+          <div class="profile-avatar-left">
+            <div id="profile-avatar-display" class="profile-avatar-display"></div>
+            <div class="profile-avatar-meta">
+              <div id="profile-avatar-name" class="profile-avatar-name">CyberPulse</div>
+              <div id="profile-avatar-badge-text" class="profile-avatar-badge-text">⚡ Pulse Player</div>
+            </div>
+          </div>
+          <button id="btn-toggle-season-avatar" class="btn-season-avatar-action" type="button" data-i18n="avatar_equip_btn">
+            👑 Мастер сезона
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; background: var(--surface-bg); border: 1px solid var(--surface-border); border-radius: 12px; padding: 8px 12px; margin-top: 8px;">
           <span style="font-size: 0.85rem; color: var(--text-muted);" data-i18n="profile_nickname">Никнейм:</span>
           <input id="player-name-input" type="text" maxlength="18" placeholder="CyberPlayer" style="flex: 1; background: transparent; border: none; color: var(--text-main); font-weight: 700; font-size: 0.95rem; outline: none;">
           <span style="font-size: 0.9rem; opacity: 0.6;">✏️</span>

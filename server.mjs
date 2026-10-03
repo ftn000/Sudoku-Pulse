@@ -257,16 +257,62 @@ const server = http.createServer((req, res) => {
         (playerId && e.playerId === playerId) ||
         (playerName && e.name && e.name.toLowerCase() === playerName)
       );
-      if (myIdx !== -1) {
-        const item = deduped[myIdx];
+
+      // Compute PP meta ranking for Hall of Fame (Top PP)
+      const playerMap = new Map();
+      for (const e of sEntries) {
+        if (e.mode === 'pvp_duel') continue;
+        const key = (e.playerId && String(e.playerId).trim()) || (e.name && String(e.name).toLowerCase().trim()) || 'unknown';
+        if (!playerMap.has(key)) {
+          playerMap.set(key, { playerId: e.playerId, name: e.name, modes: {} });
+        }
+        const p = playerMap.get(key);
+        const m = e.mode || 'classic';
+        if (!p.modes[m] || (e.score || 0) > (p.modes[m].score || 0)) {
+          p.modes[m] = e;
+        }
+      }
+      const metaList = [];
+      for (const p of playerMap.values()) {
+        let pp = 0;
+        const breakdown = {};
+        for (const [m, rec] of Object.entries(p.modes)) {
+          const raw = rec.score || 0;
+          let pts = 0;
+          if (m === 'classic') pts = Math.min(1000, Math.round(raw / 250));
+          else if (m === 'run') pts = Math.min(1000, Math.round((rec.runStage || 1) * 45 + raw / 70000));
+          else if (m === 'fog') pts = Math.min(1000, Math.round(raw / 300));
+          else if (m === 'daily') pts = Math.min(1000, Math.round(raw / 300));
+          else if (m === 'ai_duel') pts = Math.min(1000, Math.round(raw / 300));
+          else pts = Math.min(1000, Math.round(raw / 300));
+          pp += pts;
+          breakdown[m] = pts;
+        }
+        metaList.push({ playerId: p.playerId, name: p.name, pp, breakdown, modesCount: Object.keys(breakdown).length });
+      }
+      metaList.sort((a, b) => b.pp - a.pp || b.modesCount - a.modesCount);
+      const ppIdx = metaList.findIndex(e =>
+        (playerId && e.playerId === playerId) ||
+        (playerName && e.name && e.name.toLowerCase() === playerName)
+      );
+      const ppRank = ppIdx !== -1 ? ppIdx + 1 : null;
+      const myMeta = ppIdx !== -1 ? metaList[ppIdx] : null;
+      const isSeasonMaster = Boolean(ppRank && ppRank <= 3 && sId !== currentSeason);
+
+      if (myIdx !== -1 || ppIdx !== -1) {
+        const item = myIdx !== -1 ? deduped[myIdx] : null;
         history.push({
           seasonId: sId,
-          rank: myIdx + 1,
-          totalInSeason: deduped.length,
-          score: item.score,
-          duelElo: item.duelElo || item.score,
-          duelWins: item.duelWins || 0,
-          duelLosses: item.duelLosses || 0,
+          rank: myIdx !== -1 ? myIdx + 1 : (ppRank || 1),
+          ppRank,
+          pulsePoints: myMeta ? myMeta.pp : 0,
+          ppBreakdown: myMeta ? myMeta.breakdown : null,
+          isSeasonMaster,
+          totalInSeason: Math.max(deduped.length, metaList.length),
+          score: item ? item.score : (myMeta ? myMeta.pp : 0),
+          duelElo: item ? (item.duelElo || item.score) : 1000,
+          duelWins: item ? (item.duelWins || 0) : 0,
+          duelLosses: item ? (item.duelLosses || 0) : 0,
           isCurrent: sId === currentSeason,
         });
       }
