@@ -37,4 +37,8 @@ android/
 *.env
 !.env.example
 !.env.template
+*.pem
+*.key
+id_rsa*
+credentials.json
 

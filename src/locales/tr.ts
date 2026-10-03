@@ -192,6 +192,8 @@ export const tr: LocaleDefinition = {
   "lb_period": "Dönem:",
   "lb_tf_all": "Tüm Zamanlar",
   "lb_tf_season": "⏳ Sezon",
+  "lb_modes_label": "Oyun Modları:",
+  "lb_modes_hint": "Moda göre liderlik tablosu",
   "lb_mode_all": "Tümü",
   "lb_mode_run": "🚀 Koşu",
   "lb_mode_daily": "📅 Günlük",

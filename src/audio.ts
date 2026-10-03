@@ -117,9 +117,13 @@ export class SoundManager {
 
   private wasMutedByAd: boolean = false;
   private wasMutedByFocus: boolean = false;
+  private adMuteDepth: number = 0;
 
   public muteForAd() {
-    this.wasMutedByAd = this.enabled;
+    if (this.adMuteDepth === 0) {
+      this.wasMutedByAd = this.enabled;
+    }
+    this.adMuteDepth++;
     this.enabled = false;
     this.stopFeverTrack();
     if (this.ctx && this.ctx.state === 'running') {
@@ -128,13 +132,33 @@ export class SoundManager {
   }
 
   public unmuteAfterAd() {
-    if (this.wasMutedByAd) {
-      this.enabled = true;
-      this.wasMutedByAd = false;
-      if (this.ctx && this.ctx.state === 'suspended') {
-        try { this.ctx.resume(); } catch {}
+    if (this.adMuteDepth > 0) {
+      this.adMuteDepth--;
+    }
+    if (this.adMuteDepth === 0) {
+      if (this.wasMutedByAd) {
+        this.enabled = true;
+        this.wasMutedByAd = false;
+        if (this.ctx && this.ctx.state === 'suspended') {
+          try { this.ctx.resume(); } catch {}
+        }
       }
     }
+  }
+
+  public ensureContextActive() {
+    const saved = localStorage.getItem('sudoku_sound_enabled');
+    const userWantsSound = saved !== null ? saved === 'true' : true;
+    if (userWantsSound && this.adMuteDepth === 0 && !this.wasMutedByFocus) {
+      this.enabled = true;
+    }
+    try {
+      if (!this.ctx) {
+        this.getContext();
+      } else if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    } catch {}
   }
 
   public pauseAll() {

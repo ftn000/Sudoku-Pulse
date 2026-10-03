@@ -543,23 +543,30 @@
 
       <!-- PANE 1: Лидерборд (Default) -->
       <div id="stats-pane-lb" class="stats-pane active">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-          <span style="font-size: 0.82rem; color: var(--text-muted);" data-i18n="lb_period">Период:</span>
-          <div class="lb-timeframe-bar" style="display: flex; gap: 4px;">
-            <button id="lb-timeframe-all" class="diff-pill lb-tf-btn active" style="font-size: 0.76rem; padding: 4px 10px;" data-i18n="lb_tf_all">All-Time</button>
-            <button id="lb-timeframe-season" class="diff-pill lb-tf-btn" style="font-size: 0.76rem; padding: 4px 10px;" data-i18n="lb_tf_season">⏳ Сезон</button>
+        <!-- Period Filter -->
+        <div class="lb-filter-section lb-timeframe-section">
+          <span class="lb-section-label" data-i18n="lb_period">Период:</span>
+          <div class="lb-timeframe-bar">
+            <button id="lb-timeframe-all" class="diff-pill lb-tf-btn active" data-i18n="lb_tf_all">All-Time</button>
+            <button id="lb-timeframe-season" class="diff-pill lb-tf-btn" data-i18n="lb_tf_season">⏳ Сезон</button>
           </div>
         </div>
 
-        <!-- Mode Chips: Smooth horizontal scrollable track on mobile -->
-        <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
-          <button class="lb-tab active" data-lb-mode="all" data-i18n="lb_mode_all">Все</button>
-          <button class="lb-tab" data-lb-mode="pvp_duel" data-i18n="lb_mode_pvp_duel">⚔️ 1v1 PvP</button>
-          <button class="lb-tab" data-lb-mode="run" data-i18n="lb_mode_run">🚀 Забег</button>
-          <button class="lb-tab" data-lb-mode="daily" data-i18n="lb_mode_daily">📅 Daily</button>
-          <button class="lb-tab" data-lb-mode="fog" data-i18n="lb_mode_fog">🌌 Сектор</button>
-          <button class="lb-tab" data-lb-mode="ai_duel" data-i18n="lb_mode_duels">🤖 ИИ-Дуэли</button>
-          <button class="lb-tab" data-lb-mode="classic" data-i18n="lb_mode_classic">⚡ Классика</button>
+        <!-- Mode Filter (Clean 2-row static grid) -->
+        <div class="lb-filter-section lb-modes-section">
+          <div class="lb-section-header-row">
+            <span class="lb-section-label" data-i18n="lb_modes_label">Режимы игры:</span>
+            <span class="lb-section-hint" data-i18n="lb_modes_hint">Топ рекордов по каждому режиму</span>
+          </div>
+          <div class="lb-filter-tabs" id="leaderboard-filter-tabs">
+            <button class="lb-tab active" data-lb-mode="all" data-i18n="lb_mode_all">Все</button>
+            <button class="lb-tab" data-lb-mode="run" data-i18n="lb_mode_run">🚀 Забег</button>
+            <button class="lb-tab" data-lb-mode="classic" data-i18n="lb_mode_classic">⚡ Классика</button>
+            <button class="lb-tab" data-lb-mode="fog" data-i18n="lb_mode_fog">🌌 Сектор</button>
+            <button class="lb-tab" data-lb-mode="pvp_duel" data-i18n="lb_mode_pvp_duel">⚔️ 1v1 PvP</button>
+            <button class="lb-tab" data-lb-mode="ai_duel" data-i18n="lb_mode_duels">🤖 ИИ-Дуэли</button>
+            <button class="lb-tab" data-lb-mode="daily" data-i18n="lb_mode_daily">📅 Daily</button>
+          </div>
         </div>
 
         <div id="leaderboard-list" class="modal-stats" style="max-height: min(290px, 48vh); overflow-y: auto; font-size: 0.85rem; padding: 10px;">

@@ -214,6 +214,8 @@ export const ru: LocaleDefinition = {
   lb_period: 'Период:',
   lb_tf_all: 'All-Time',
   lb_tf_season: '⏳ Сезон',
+  lb_modes_label: 'Режимы игры:',
+  lb_modes_hint: 'Топ рекордов по каждому режиму',
   lb_mode_all: 'Все',
   lb_mode_run: '🚀 Забег',
   lb_mode_daily: '📅 Daily',

@@ -215,6 +215,8 @@ export const en: LocaleDefinition = {
   lb_period: 'Period:',
   lb_tf_all: 'All-Time',
   lb_tf_season: '⏳ Season',
+  lb_modes_label: 'Game Modes:',
+  lb_modes_hint: 'Top records by individual game mode',
   lb_mode_all: 'All',
   lb_mode_run: '🚀 Run',
   lb_mode_daily: '📅 Daily',

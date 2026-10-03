@@ -1979,11 +1979,15 @@ export class SudokuUI {
     });
 
     this.newGameBtn.addEventListener('click', () => {
+      soundManager.ensureContextActive();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
         mode: this.selectedMode,
         perks: this.game.activePerks,
       });
+      if (this.game.mode === 'ai_duel') {
+        this.startAiBotDuel();
+      }
     });
 
     // Numpad clicks & Long-press for Pin Mode (~380ms)
@@ -2037,6 +2041,7 @@ export class SudokuUI {
       this.currentLiveLobbyId = null;
       this.isLiveDuelActive = false;
       this.stopConfetti();
+      soundManager.ensureContextActive();
       this.triggerInterstitialAd();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
@@ -2343,6 +2348,7 @@ export class SudokuUI {
       this.stopLiveLobbyPolling();
       this.currentLiveLobbyId = null;
       this.isLiveDuelActive = false;
+      soundManager.ensureContextActive();
       this.triggerInterstitialAd();
       this.game.startNewGame({
         difficulty: this.selectedDifficulty,
@@ -4127,7 +4133,6 @@ export class SudokuUI {
 
   private triggerInterstitialAd(onDone?: () => void) {
     if (yandexBridge.isYandex()) {
-      soundManager.muteForAd();
       const wasPlaying = this.currentScreen === 'game' && this.game.status === 'playing';
       if (wasPlaying) this.game.pauseTimer();
 
@@ -5701,7 +5706,14 @@ export class SudokuUI {
         this.winModal.classList.add('hidden');
         this.gameOverModal.classList.add('hidden');
         this.stopConfetti();
+        soundManager.ensureContextActive();
+        this.game.startNewGame({
+          difficulty: this.selectedDifficulty,
+          mode: 'ai_duel',
+          perks: this.game.activePerks,
+        });
         this.startAiBotDuel();
+        this.showScreen('game');
       }
       return;
     }
