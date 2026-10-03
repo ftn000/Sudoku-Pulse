@@ -97,10 +97,21 @@ export function getSkinLeague(skinKey: string): string {
 
 export function getSeasonRemainingText(): string {
   const now = new Date();
-  const currentDay = now.getUTCDay();
-  const daysUntilMonday = ((8 - currentDay) % 7) || 7;
-  const nextMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday, 0, 0, 0));
-  const diffMs = Math.max(0, nextMonday.getTime() - now.getTime());
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+
+  // 4-week season cycle (28 days, always resets on Monday 00:00 UTC)
+  const weekInCycle = (weekNo - 1) % 4; // 0, 1, 2, 3
+  const currentDay = now.getUTCDay(); // 0 is Sun, 1 is Mon...
+  const daysUntilNextMonday = ((8 - currentDay) % 7) || 7;
+  const nextMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilNextMonday, 0, 0, 0));
+  
+  const weeksRemainingAfterNextMonday = 3 - weekInCycle;
+  const seasonEndMs = nextMonday.getTime() + (weeksRemainingAfterNextMonday * 7 * 86400000);
+  const diffMs = Math.max(0, seasonEndMs - now.getTime());
   const diffHoursTotal = Math.floor(diffMs / (1000 * 3600));
   const days = Math.floor(diffHoursTotal / 24);
   const hours = diffHoursTotal % 24;
@@ -127,7 +138,8 @@ export function getCurrentSeasonId(): string {
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+  const seasonNo = Math.min(13, Math.ceil(weekNo / 4));
+  return `${d.getUTCFullYear()}-S${String(seasonNo).padStart(2, '0')}`;
 }
 
 export class SudokuUI {
@@ -3821,11 +3833,17 @@ export class SudokuUI {
 
     let seasonHeader = '';
     if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
-      const parts = this.currentSeasonId.split('-W');
-      const weekLabel = parts.length === 2 ? `${t('season_header_active')} ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
+      let seasonLabel = this.currentSeasonId;
+      if (this.currentSeasonId.includes('-S')) {
+        const parts = this.currentSeasonId.split('-S');
+        seasonLabel = `${t('season_title_prefix')} ${Number(parts[1]) || parts[1]}, ${parts[0]}`;
+      } else if (this.currentSeasonId.includes('-W')) {
+        const parts = this.currentSeasonId.split('-W');
+        seasonLabel = parts.length === 2 ? `${t('season_header_active')} ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
+      }
       seasonHeader = `
         <div style="font-size:0.75rem; color:var(--accent); font-weight:600; text-align:center; margin-bottom:8px; padding:4px 8px; background:rgba(99,102,241,0.12); border-radius:6px; border:1px solid rgba(99,102,241,0.25);">
-          ⏳ ${t('season_status_active')}: ${weekLabel}
+          ⏳ ${t('season_status_active')}: ${seasonLabel} (${getSeasonRemainingText()})
         </div>
       `;
     }
@@ -4740,9 +4758,14 @@ export class SudokuUI {
 
     if (lastSeason !== currentSeason || (stats.duelSeasonId && stats.duelSeasonId !== currentSeason)) {
       const finalLeague = getLeagueForScore(stats.totalScore);
+      let formattedSeasonName = `${t('season_title_prefix')} ${lastSeason.replace('-', ' ')}`;
+      if (lastSeason.includes('-S')) {
+        const parts = lastSeason.split('-S');
+        formattedSeasonName = `${t('season_title_prefix')} ${Number(parts[1]) || parts[1]} (${parts[0]})`;
+      }
       const trophy: SeasonTrophy = {
         seasonId: lastSeason,
-        seasonName: `${t('season_title_prefix')} ${lastSeason.replace('-', ' ')}`,
+        seasonName: formattedSeasonName,
         leagueId: finalLeague.id,
         leagueName: finalLeague.name,
         icon: finalLeague.icon,
@@ -4907,12 +4930,18 @@ export class SudokuUI {
     const lang = i18n.getLanguage();
     const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
+    let displayCurrentSeason = currentSeason;
+    if (currentSeason.includes('-S')) {
+      const parts = currentSeason.split('-S');
+      displayCurrentSeason = `${Number(parts[1]) || parts[1]} (${parts[0]})`;
+    }
+
     const currentCard = `
       <div class="season-trophy-card" style="border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.06); margin-bottom: 6px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:1.1rem;">⏳</span>
           <div>
-            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t('season_title_prefix')} ${currentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">(${t('season_status_active')})</span></div>
+            <div style="font-weight:700; color:var(--text-main); font-size:0.82rem;">${t('season_title_prefix')} ${displayCurrentSeason} <span style="font-size:0.7rem; color:var(--pulse-cyan);">(${t('season_status_active')})</span></div>
             <div style="font-size:0.75rem; color:var(--text-muted);">${t('season_qualification_label')}: <strong>${currentLeague.name}</strong> (${stats.totalScore.toLocaleString(locale)} ${t('season_pts_unit')})</div>
           </div>
         </div>
@@ -4980,13 +5009,19 @@ export class SudokuUI {
               ? `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--pulse-cyan); font-weight:700;">${t('season_status_active')}</span>`
               : `<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:rgba(34,197,94,0.15); color:#34d399; font-weight:700;">${t('season_status_ended')}</span>`;
 
+            let displaySeason = String(s.seasonId || '');
+            if (displaySeason.includes('-S')) {
+              const parts = displaySeason.split('-S');
+              displaySeason = `${Number(parts[1]) || parts[1]} (${parts[0]})`;
+            }
+
             return `
               <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); border:1px solid var(--surface-border); border-radius:8px; padding:6px 10px; font-size:0.8rem;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span style="font-size:1.1rem;">${medal}</span>
                   <div>
                     <div style="font-weight:700; color:var(--text-main); font-size:0.82rem; display:flex; align-items:center; gap:6px;">
-                      ${t('season_title_prefix')} ${s.seasonId}${masterTag} ${activeTag}
+                      ${t('season_title_prefix')} ${displaySeason}${masterTag} ${activeTag}
                     </div>
                     <div style="font-size:0.73rem; color:var(--text-muted);">${s.duelElo || 1000} ELO • ${s.duelWins || 0}W - ${s.duelLosses || 0}L${ppInfo}</div>
                   </div>
