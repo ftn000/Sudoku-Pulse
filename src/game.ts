@@ -1531,6 +1531,12 @@ export class SudokuGame {
         ...(current.unlockedAchievements || []),
         ...(incoming.unlockedAchievements || []),
       ])),
+      seasonScore: Math.max(current.seasonScore || 0, incoming.seasonScore || 0),
+      seasonFlawlessWins: Math.max(current.seasonFlawlessWins || 0, incoming.seasonFlawlessWins || 0),
+      claimedSeasonMissions: Array.from(new Set([
+        ...(current.claimedSeasonMissions || []),
+        ...(incoming.claimedSeasonMissions || []),
+      ])),
     };
     evaluateAllAchievements(merged);
     SudokuGame.savePlayerStats(merged);
@@ -1567,6 +1573,7 @@ export class SudokuGame {
         stats.gamesPlayed = stats.gamesWon;
       }
       stats.totalScore = (stats.totalScore || 0) + this.score;
+      stats.seasonScore = (stats.seasonScore || 0) + this.score;
       stats.maxCombo = Math.max(stats.maxCombo || 0, this.maxComboAchieved);
 
       stats.highScore = Math.max(stats.highScore || 0, this.score);
@@ -1583,6 +1590,10 @@ export class SudokuGame {
 
       if (this.hintsUsed === 0) {
         stats.noHintsWins = (stats.noHintsWins || 0) + 1;
+      }
+
+      if (this.mistakesCount === 0 && this.hintsUsed === 0) {
+        stats.seasonFlawlessWins = (stats.seasonFlawlessWins || 0) + 1;
       }
 
       if (this.mode === 'ai_duel') {

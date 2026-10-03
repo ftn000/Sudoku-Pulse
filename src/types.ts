@@ -156,6 +156,8 @@ export interface PlayerStats {
   unlockedAchievements?: string[];
   seasonBadges?: SeasonBadge[];
   claimedSeasonMilestones?: string[];
+  seasonFlawlessWins?: number;
+  claimedSeasonMissions?: string[];
 }
 
 export interface SeasonThemeConfig {
@@ -181,6 +183,22 @@ export interface SeasonMilestone {
   points: number;
   icon: string;
   badge?: string;
+}
+
+export interface SeasonMission {
+  id: string;
+  icon: string;
+  titleKey: string;
+  defaultTitleRu: string;
+  defaultTitleEn: string;
+  defaultTitleTr: string;
+  descKey: string;
+  defaultDescRu: string;
+  defaultDescEn: string;
+  defaultDescTr: string;
+  target: number;
+  rewardHints: number;
+  rewardPoints: number;
 }
 
 export interface Achievement {

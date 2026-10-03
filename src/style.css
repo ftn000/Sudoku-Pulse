@@ -4681,3 +4681,173 @@ body.platform-yandex .yandex-hidden {
   background: var(--season-accent, var(--accent));
   transition: width 0.3s ease;
 }
+
+/* Season Missions */
+.season-missions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.season-mission-card {
+  background: var(--season-surface, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--season-border, rgba(255, 255, 255, 0.1));
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.season-mission-card.completed {
+  border-color: var(--season-border, rgba(56, 189, 248, 0.45));
+}
+
+.season-mission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.season-mission-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.season-mission-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.season-mission-texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.season-mission-title {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-mission-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.season-mission-rewards {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--season-cyan, var(--pulse-cyan));
+  white-space: nowrap;
+}
+
+.season-mission-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.season-mission-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--season-accent, var(--pulse-cyan)), var(--season-cyan, #38bdf8));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.season-mission-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.btn-claim-mission {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+.btn-claim-mission.available {
+  background: var(--season-accent, var(--pulse-cyan));
+  color: #fff;
+  box-shadow: 0 0 10px var(--season-glow, rgba(56, 189, 248, 0.4));
+  animation: pulseMilestoneBtn 2s infinite ease-in-out;
+}
+
+.btn-claim-mission.available:hover {
+  transform: scale(1.03);
+  filter: brightness(1.1);
+}
+
+.btn-claim-mission.claimed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  cursor: default;
+}
+
+.btn-claim-mission.in-progress {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* Season Transition Modal */
+.season-trans-recap-box,
+.season-trans-next-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.season-trans-box-title {
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.season-trans-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.season-trans-stat-row:last-child {
+  border-bottom: none;
+}
+
+.season-trans-stat-val {
+  font-weight: 700;
+  color: var(--season-cyan, var(--pulse-cyan));
+}
+

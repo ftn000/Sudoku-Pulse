@@ -547,6 +547,55 @@ export class SoundManager {
     });
   }
 
+  public playSeasonChestOpen() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // 1. Sci-fi charge up / energy surge sweep
+    const sweepOsc = ctx.createOscillator();
+    const sweepGain = ctx.createGain();
+    sweepOsc.type = 'sine';
+    sweepOsc.frequency.setValueAtTime(140, now);
+    sweepOsc.frequency.exponentialRampToValueAtTime(720, now + 0.22);
+    sweepGain.gain.setValueAtTime(0.01, now);
+    sweepGain.gain.linearRampToValueAtTime(0.12, now + 0.18);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    sweepOsc.connect(sweepGain);
+    sweepGain.connect(this.getSfxDestination());
+    sweepOsc.start(now);
+    sweepOsc.stop(now + 0.26);
+
+    // 2. Cyber-Latch mechanical unlock click
+    const clickOsc = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    clickOsc.type = 'square';
+    clickOsc.frequency.setValueAtTime(1800, now + 0.2);
+    clickOsc.frequency.exponentialRampToValueAtTime(320, now + 0.26);
+    clickGain.gain.setValueAtTime(0.14, now + 0.2);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    clickOsc.connect(clickGain);
+    clickGain.connect(this.getSfxDestination());
+    clickOsc.start(now + 0.2);
+    clickOsc.stop(now + 0.29);
+
+    // 3. Shimmering reward bell arpeggio: C5, E5, G5, B5, D6, G6
+    const notes = [523.25, 659.25, 783.99, 987.77, 1174.66, 1567.98];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      const noteTime = now + 0.26 + idx * 0.055;
+      osc.frequency.setValueAtTime(freq, noteTime);
+      gain.gain.setValueAtTime(0.09, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.45);
+      osc.connect(gain);
+      gain.connect(this.getSfxDestination());
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.48);
+    });
+  }
+
   public playCountdownTick(step: number = 3) {
     const ctx = this.getContext();
     if (!ctx) return;

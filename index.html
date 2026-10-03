@@ -706,6 +706,15 @@
           <!-- Populated by JS -->
         </div>
 
+        <!-- Season Missions Section -->
+        <div class="section-title" style="margin-top: 10px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <span data-i18n="season_missions_title">🎯 Сезонные миссии</span>
+          <span id="season-missions-claimed-counter" style="font-size: 0.72rem; color: var(--season-accent, var(--pulse-cyan)); font-weight: 700;">0/3 выполнено</span>
+        </div>
+        <div id="season-missions-list" class="season-missions-list">
+          <!-- Populated by JS -->
+        </div>
+
         <div id="player-season-medals" class="player-medals-bar hidden"></div>
 
         <div class="section-title" style="margin-top: 10px; margin-bottom: 2px;" data-i18n="season_archive_title">🏆 Архив трофеев и сезонов</div>
@@ -1263,6 +1272,30 @@
           Отмена
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SEASON TRANSITION & RECAP           -->
+  <!-- ========================================== -->
+  <div id="season-transition-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 400px; text-align: center;">
+      <button id="btn-close-season-transition-x" class="modal-close-icon-btn" title="Закрыть">✕</button>
+      <div id="season-trans-icon" class="modal-icon" style="font-size: 2.2rem; margin-bottom: 2px;">🏆</div>
+      <h2 id="season-trans-title" class="modal-title" style="font-size: 1.25rem;" data-i18n="season_trans_title">Сезон завершен!</h2>
+      <p id="season-trans-sub" style="color: var(--text-muted); font-size: 0.85rem; margin-top: -4px; margin-bottom: 12px;" data-i18n="season_trans_sub">Итоги 4-недельного цикла</p>
+
+      <div id="season-trans-recap" class="season-trans-recap-box">
+        <!-- Filled by JS -->
+      </div>
+
+      <div id="season-trans-next" class="season-trans-next-box" style="margin: 10px 0;">
+        <!-- Filled by JS -->
+      </div>
+
+      <button id="btn-season-transition-ok" class="btn-primary btn-block" style="padding: 10px; font-weight: 800; font-size: 0.95rem;" data-i18n="season_trans_btn_ok">
+        ⚡ Вперёд к победам!
+      </button>
     </div>
   </div>
 

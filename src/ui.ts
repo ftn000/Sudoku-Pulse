@@ -1,5 +1,5 @@
 import { SudokuGame } from './game';
-import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge, SeasonThemeConfig, SeasonMilestone } from './types';
+import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge, SeasonThemeConfig, SeasonMilestone, SeasonMission } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
@@ -390,6 +390,54 @@ export const SEASON_MILESTONES: SeasonMilestone[] = [
   },
 ];
 
+export const SEASON_MISSIONS: SeasonMission[] = [
+  {
+    id: 'mission_duels',
+    icon: '⚔️',
+    titleKey: 'season_mission_duels',
+    defaultTitleRu: 'Мастер Дуэлей',
+    defaultTitleEn: 'Duel Master',
+    defaultTitleTr: 'Düello Ustası',
+    descKey: 'season_mission_duels_desc',
+    defaultDescRu: 'Одержите 5 побед в дуэлях (ИИ или PvP)',
+    defaultDescEn: 'Win 5 duels against AI or PvP rivals',
+    defaultDescTr: 'Yapay zeka veya PvP rakiplerine karşı 5 düello kazan',
+    target: 5,
+    rewardHints: 2,
+    rewardPoints: 300,
+  },
+  {
+    id: 'mission_flawless',
+    icon: '💎',
+    titleKey: 'season_mission_flawless',
+    defaultTitleRu: 'Идеальный Разум',
+    defaultTitleEn: 'Flawless Mind',
+    defaultTitleTr: 'Kusursuz Akıl',
+    descKey: 'season_mission_flawless_desc',
+    defaultDescRu: 'Пройдите 3 партии без ошибок и подсказок',
+    defaultDescEn: 'Complete 3 games with zero mistakes and hints',
+    defaultDescTr: 'Hatasız ve ipucusuz 3 oyun tamamla',
+    target: 3,
+    rewardHints: 3,
+    rewardPoints: 500,
+  },
+  {
+    id: 'mission_score',
+    icon: '⚡',
+    titleKey: 'season_mission_score',
+    defaultTitleRu: 'Накопитель Энергии',
+    defaultTitleEn: 'Energy Battery',
+    defaultTitleTr: 'Enerji Deposu',
+    descKey: 'season_mission_score_desc',
+    defaultDescRu: 'Заработайте 5 000 очков в сезонном зачёте',
+    defaultDescEn: 'Earn 5,000 points in the active season',
+    defaultDescTr: 'Aktif sezonda 5.000 puan kazan',
+    target: 5000,
+    rewardHints: 4,
+    rewardPoints: 800,
+  },
+];
+
 export class SudokuUI {
   public getDifficultyLabel(diff: Difficulty): string {
     switch (diff) {
@@ -540,6 +588,13 @@ export class SudokuUI {
   private seasonProgressFill!: HTMLElement | null;
   private seasonMilestonesGrid!: HTMLElement | null;
   private seasonRewardsClaimedCounter!: HTMLElement | null;
+  private seasonMissionsList!: HTMLElement | null;
+  private seasonMissionsClaimedCounter!: HTMLElement | null;
+  private seasonTransitionModal!: HTMLElement | null;
+  private btnCloseSeasonTransitionX!: HTMLButtonElement | null;
+  private btnSeasonTransitionOk!: HTMLButtonElement | null;
+  private seasonTransRecap!: HTMLElement | null;
+  private seasonTransNext!: HTMLElement | null;
   private duelHistorySummary!: HTMLElement;
   private duelHistoryList!: HTMLElement;
   private leaderboardList!: HTMLElement;
@@ -1042,6 +1097,29 @@ export class SudokuUI {
           this.claimSeasonMilestone(stage);
         }
       });
+    }
+
+    this.seasonMissionsList = document.getElementById('season-missions-list');
+    this.seasonMissionsClaimedCounter = document.getElementById('season-missions-claimed-counter');
+    if (this.seasonMissionsList) {
+      this.seasonMissionsList.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.btn-claim-mission') as HTMLElement;
+        if (!btn || !btn.dataset.missionId) return;
+        this.claimSeasonMission(btn.dataset.missionId);
+      });
+    }
+
+    this.seasonTransitionModal = document.getElementById('season-transition-modal');
+    this.btnCloseSeasonTransitionX = document.getElementById('btn-close-season-transition-x') as HTMLButtonElement | null;
+    this.btnSeasonTransitionOk = document.getElementById('btn-season-transition-ok') as HTMLButtonElement | null;
+    this.seasonTransRecap = document.getElementById('season-trans-recap');
+    this.seasonTransNext = document.getElementById('season-trans-next');
+
+    if (this.btnCloseSeasonTransitionX) {
+      this.btnCloseSeasonTransitionX.addEventListener('click', () => this.hideSeasonTransitionModal());
+    }
+    if (this.btnSeasonTransitionOk) {
+      this.btnSeasonTransitionOk.addEventListener('click', () => this.hideSeasonTransitionModal());
     }
     this.duelHistorySummary = document.getElementById('duel-history-summary')!;
     this.duelHistoryList = document.getElementById('duel-history-list')!;
@@ -5050,7 +5128,6 @@ export class SudokuUI {
     const currentSeason = getCurrentSeasonId();
     const lastSeason = localStorage.getItem('sudoku_last_season_id');
     const stats = SudokuGame.getPlayerStats();
-    const isEn = i18n.getLanguage() === 'en';
     const lang = i18n.getLanguage();
     const locale = lang === 'en' ? 'en-US' : (lang === 'tr' ? 'tr-TR' : 'ru-RU');
 
@@ -5123,10 +5200,12 @@ export class SudokuUI {
         this.addSeasonBadge(duelBadge);
       }
 
-      // Reset ELO and season duel stats for the new season
+      // Reset ELO, season duel stats, season score, and season flawless wins for the new season
       stats.duelElo = 1000;
       stats.seasonDuelWins = 0;
       stats.seasonDuelLosses = 0;
+      stats.seasonScore = 0;
+      stats.seasonFlawlessWins = 0;
       stats.duelSeasonId = currentSeason;
       SudokuGame.savePlayerStats(stats);
       this.updateLobbyEloDisplay();
@@ -5141,14 +5220,8 @@ export class SudokuUI {
       localStorage.setItem('sudoku_last_season_id', currentSeason);
 
       setTimeout(() => {
-        this.showToast(
-          isEn
-            ? `🏆 Season ${lastSeason} results! Trophy: ${finalLeague.icon} ${finalLeague.name}. ELO reset to 1000.`
-            : `🏆 Итоги сезона ${lastSeason}! Трофей: ${finalLeague.icon} ${finalLeague.name}. Рейтинг ELO сброшен до 1000.`
-        );
-        soundManager.playVictory();
-        haptics.victory();
-      }, 1200);
+        this.showSeasonTransitionModal(lastSeason, finalLeague, stats, duelWins, duelLosses, finalElo);
+      }, 700);
     }
   }
 
@@ -5278,12 +5351,212 @@ export class SudokuUI {
 
     SudokuGame.savePlayerStats(stats);
     this.updateLeagueViews();
-    soundManager.playVictory();
+    soundManager.playSeasonChestOpen();
     haptics.victory();
 
     this.showToast(t('season_ms_toast_claimed', { stage, hints: milestone.hints, points: milestone.points }));
 
     this.renderSeasonDashboard();
+  }
+
+  public getClaimedSeasonMissions(): string[] {
+    try {
+      const raw = localStorage.getItem('sudoku_season_missions_claimed');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  }
+
+  public claimSeasonMission(missionId: string) {
+    const seasonInfo = getSeasonWeekInfo();
+    const mission = SEASON_MISSIONS.find((m) => m.id === missionId);
+    if (!mission) return;
+
+    const stats = SudokuGame.getPlayerStats();
+    let currentVal = 0;
+    if (mission.id === 'mission_duels') {
+      currentVal = stats.seasonDuelWins ?? stats.duelWins ?? 0;
+    } else if (mission.id === 'mission_flawless') {
+      currentVal = stats.seasonFlawlessWins || 0;
+    } else if (mission.id === 'mission_score') {
+      currentVal = stats.seasonScore || 0;
+    }
+
+    if (currentVal < mission.target) {
+      this.showToast(t('season_mission_in_progress'));
+      return;
+    }
+
+    const claimKey = `${seasonInfo.seasonId}_${mission.id}`;
+    const claimed = this.getClaimedSeasonMissions();
+    if (claimed.includes(claimKey)) {
+      this.showToast(t('season_mission_claimed_btn'));
+      return;
+    }
+
+    claimed.push(claimKey);
+    localStorage.setItem('sudoku_season_missions_claimed', JSON.stringify(claimed));
+
+    stats.claimedSeasonMissions = claimed;
+    stats.bonusHints = (stats.bonusHints || 0) + mission.rewardHints;
+    this.game.hintsRemaining += mission.rewardHints;
+    stats.totalScore += mission.rewardPoints;
+    stats.seasonScore = (stats.seasonScore || 0) + mission.rewardPoints;
+    SudokuGame.savePlayerStats(stats);
+
+    this.updateLeagueViews();
+    soundManager.playSeasonChestOpen();
+    haptics.victory();
+    this.startConfetti();
+    setTimeout(() => this.stopConfetti(), 3000);
+
+    const lang = i18n.getLanguage();
+    const isEn = lang === 'en';
+    const isTr = lang === 'tr';
+    const title = isEn ? mission.defaultTitleEn : (isTr ? mission.defaultTitleTr : mission.defaultTitleRu);
+
+    this.showToast(t('season_mission_toast_claimed', {
+      title,
+      hints: mission.rewardHints,
+      points: mission.rewardPoints,
+    }));
+
+    this.renderSeasonDashboard();
+  }
+
+  private renderSeasonMissions(): boolean {
+    if (!this.seasonMissionsList) return false;
+    const seasonInfo = getSeasonWeekInfo();
+    const stats = SudokuGame.getPlayerStats();
+    const claimed = this.getClaimedSeasonMissions();
+    const lang = i18n.getLanguage();
+    const isEn = lang === 'en';
+    const isTr = lang === 'tr';
+
+    let completedCount = 0;
+    let hasAvailableMission = false;
+
+    this.seasonMissionsList.innerHTML = SEASON_MISSIONS.map((m) => {
+      const claimKey = `${seasonInfo.seasonId}_${m.id}`;
+      const isClaimed = claimed.includes(claimKey);
+
+      let currentVal = 0;
+      if (m.id === 'mission_duels') {
+        currentVal = stats.seasonDuelWins ?? stats.duelWins ?? 0;
+      } else if (m.id === 'mission_flawless') {
+        currentVal = stats.seasonFlawlessWins || 0;
+      } else if (m.id === 'mission_score') {
+        currentVal = stats.seasonScore || 0;
+      }
+
+      const progressPercent = Math.min(100, Math.floor((currentVal / m.target) * 100));
+      const isReadyToClaim = currentVal >= m.target && !isClaimed;
+      if (isClaimed) completedCount++;
+      if (isReadyToClaim) hasAvailableMission = true;
+
+      const title = isEn ? m.defaultTitleEn : (isTr ? m.defaultTitleTr : m.defaultTitleRu);
+      const desc = isEn ? m.defaultDescEn : (isTr ? m.defaultDescTr : m.defaultDescRu);
+
+      let btnHtml = '';
+      if (isClaimed) {
+        btnHtml = `<button class="btn-claim-mission claimed" disabled>${t('season_mission_claimed_btn')}</button>`;
+      } else if (isReadyToClaim) {
+        btnHtml = `<button class="btn-claim-mission available" data-mission-id="${m.id}">🎁 ${t('season_mission_claim_btn')}</button>`;
+      } else {
+        btnHtml = `<span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">${currentVal.toLocaleString()} / ${m.target.toLocaleString()}</span>`;
+      }
+
+      const cardClass = `season-mission-card ${isClaimed ? 'completed' : ''}`;
+
+      return `
+        <div class="${cardClass}">
+          <div class="season-mission-header">
+            <div class="season-mission-info">
+              <span class="season-mission-icon">${m.icon}</span>
+              <div class="season-mission-texts">
+                <span class="season-mission-title">${title}</span>
+                <span class="season-mission-desc">${desc}</span>
+              </div>
+            </div>
+            <div class="season-mission-rewards">
+              +${m.rewardHints} 💡 • +${m.rewardPoints} PP
+            </div>
+          </div>
+          <div class="season-mission-track">
+            <div class="season-mission-fill" style="width: ${progressPercent}%;"></div>
+          </div>
+          <div class="season-mission-footer">
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${progressPercent}%</span>
+            ${btnHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (this.seasonMissionsClaimedCounter) {
+      this.seasonMissionsClaimedCounter.textContent = t('season_missions_claimed_fmt', { claimed: completedCount });
+    }
+
+    return hasAvailableMission;
+  }
+
+  private showSeasonTransitionModal(lastSeason: string, finalLeague: any, stats: any, duelWins: number, duelLosses: number, finalElo: number) {
+    if (!this.seasonTransitionModal) return;
+    const currentSeason = getCurrentSeasonId();
+    const currentTheme = getSeasonTheme(currentSeason);
+    const currentThemeName = getSeasonThemeName(currentTheme);
+
+    const claimedMissions = this.getClaimedSeasonMissions().filter((k) => k.startsWith(lastSeason)).length;
+
+    if (this.seasonTransRecap) {
+      this.seasonTransRecap.innerHTML = `
+        <div class="season-trans-box-title" data-i18n="season_trans_recap_title">${t('season_trans_recap_title')}</div>
+        <div class="season-trans-stat-row">
+          <span>Сезон:</span>
+          <span class="season-trans-stat-val">${lastSeason}</span>
+        </div>
+        <div class="season-trans-stat-row">
+          <span data-i18n="season_trans_stat_tier">${t('season_trans_stat_tier')}</span>
+          <span class="season-trans-stat-val">${finalLeague.icon} ${finalLeague.name}</span>
+        </div>
+        <div class="season-trans-stat-row">
+          <span data-i18n="season_trans_stat_points">${t('season_trans_stat_points')}</span>
+          <span class="season-trans-stat-val">${stats.totalScore.toLocaleString()} PP</span>
+        </div>
+        <div class="season-trans-stat-row">
+          <span>Дуэли (W/L / ELO):</span>
+          <span class="season-trans-stat-val">${duelWins}W-${duelLosses}L • ${finalElo} ELO</span>
+        </div>
+        <div class="season-trans-stat-row">
+          <span data-i18n="season_trans_stat_missions">${t('season_trans_stat_missions')}</span>
+          <span class="season-trans-stat-val">${claimedMissions}/3</span>
+        </div>
+      `;
+    }
+
+    if (this.seasonTransNext) {
+      this.seasonTransNext.innerHTML = `
+        <div class="season-trans-box-title" data-i18n="season_trans_next_title">${t('season_trans_next_title')}</div>
+        <div style="font-size: 1.05rem; font-weight: 800; margin: 4px 0; color: var(--season-accent, var(--pulse-cyan));">
+          ${currentTheme.icon} ${currentSeason}: ${currentThemeName}
+        </div>
+        <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;" data-i18n="season_trans_reset_elo_notice">
+          ${t('season_trans_reset_elo_notice')}
+        </div>
+      `;
+    }
+
+    this.seasonTransitionModal.classList.remove('hidden');
+    soundManager.playVictory();
+    haptics.victory();
+    this.startConfetti();
+  }
+
+  private hideSeasonTransitionModal() {
+    if (this.seasonTransitionModal) {
+      this.seasonTransitionModal.classList.add('hidden');
+    }
+    this.stopConfetti();
   }
 
   private renderSeasonDashboard() {
@@ -5384,11 +5657,17 @@ export class SudokuUI {
         this.seasonRewardsClaimedCounter.textContent = `${claimedCount}/4 ${t('season_rewards_open_count', { current: claimedCount })}`;
       }
 
+      // 4. Render Season Missions
+      const hasAvailableMissionReward = this.renderSeasonMissions();
+
       // Update badge on Seasons tab button
       const seasonsTabBtn = document.getElementById('tab-stats-btn-seasons');
       if (seasonsTabBtn) {
-        seasonsTabBtn.textContent = hasAvailableReward ? `🏆 ${t('stats_tab_seasons', 'Сезоны')} 🔴` : `🏆 ${t('stats_tab_seasons', 'Сезоны')}`;
+        const hasAnyReward = hasAvailableReward || hasAvailableMissionReward;
+        seasonsTabBtn.textContent = hasAnyReward ? `🏆 ${t('stats_tab_seasons', 'Сезоны')} 🔴` : `🏆 ${t('stats_tab_seasons', 'Сезоны')}`;
       }
+    } else {
+      this.renderSeasonMissions();
     }
   }
 
