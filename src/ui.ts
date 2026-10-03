@@ -1,5 +1,5 @@
 import { SudokuGame } from './game';
-import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge } from './types';
+import { Difficulty, GameMode, GameStats, AppScreen, SeasonBadge, SeasonThemeConfig, SeasonMilestone } from './types';
 import { soundManager } from './audio';
 import { getRandomPerks, formatRomanLevel } from './perks';
 import { ACHIEVEMENTS, evaluateAllAchievements } from './achievements';
@@ -142,6 +142,254 @@ export function getCurrentSeasonId(): string {
   return `${d.getUTCFullYear()}-S${String(seasonNo).padStart(2, '0')}`;
 }
 
+export function getSeasonWeekInfo(): { seasonId: string; seasonNo: number; weekInSeason: number; totalWeeks: number; progressPercent: number } {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const seasonNo = Math.min(13, Math.max(1, Math.ceil(weekNo / 4)));
+  const weekInSeason = Math.min(4, Math.max(1, ((weekNo - 1) % 4) + 1));
+  const progressPercent = Math.round((weekInSeason / 4) * 100);
+  return {
+    seasonId: `${d.getUTCFullYear()}-S${String(seasonNo).padStart(2, '0')}`,
+    seasonNo,
+    weekInSeason,
+    totalWeeks: 4,
+    progressPercent,
+  };
+}
+
+export const SEASON_THEMES_CONFIG: Record<string, SeasonThemeConfig> = {
+  S01: {
+    id: 'S01',
+    icon: '❄️',
+    nameKey: 'season_theme_s01',
+    defaultNameRu: 'Зимний Прорыв',
+    defaultNameEn: 'Winter Breach',
+    defaultNameTr: 'Kış Atılımı',
+    accent: '#00f0ff',
+    cyan: '#38bdf8',
+    glow: 'rgba(0, 240, 255, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #02121e 0%, #06263f 50%, #02101b 100%)',
+  },
+  S02: {
+    id: 'S02',
+    icon: '🌌',
+    nameKey: 'season_theme_s02',
+    defaultNameRu: 'Северное Сияние',
+    defaultNameEn: 'Aurora Neon',
+    defaultNameTr: 'Kuzey Işıkları',
+    accent: '#10b981',
+    cyan: '#34d399',
+    glow: 'rgba(16, 185, 129, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #021a12 0%, #063827 50%, #02140e 100%)',
+  },
+  S03: {
+    id: 'S03',
+    icon: '🌸',
+    nameKey: 'season_theme_s03',
+    defaultNameRu: 'Кибер-Сакура',
+    defaultNameEn: 'Cyber Bloom',
+    defaultNameTr: 'Siber Çiçek',
+    accent: '#ec4899',
+    cyan: '#f472b6',
+    glow: 'rgba(236, 72, 153, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #1c0516 0%, #3d0c30 50%, #170412 100%)',
+  },
+  S04: {
+    id: 'S04',
+    icon: '⚡',
+    nameKey: 'season_theme_s04',
+    defaultNameRu: 'Ионовый Шторм',
+    defaultNameEn: 'Ion Storm',
+    defaultNameTr: 'İyon Fırtınası',
+    accent: '#8b5cf6',
+    cyan: '#a855f7',
+    glow: 'rgba(139, 92, 246, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #0f0923 0%, #251252 50%, #0a0618 100%)',
+  },
+  S05: {
+    id: 'S05',
+    icon: '💠',
+    nameKey: 'season_theme_s05',
+    defaultNameRu: 'Квантовый Всплеск',
+    defaultNameEn: 'Quantum Surge',
+    defaultNameTr: 'Kuantum Dalgası',
+    accent: '#0284c7',
+    cyan: '#38bdf8',
+    glow: 'rgba(2, 132, 199, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #041426 0%, #0b2b4f 50%, #03101f 100%)',
+  },
+  S06: {
+    id: 'S06',
+    icon: '☀️',
+    nameKey: 'season_theme_s06',
+    defaultNameRu: 'Солнечный Пульс',
+    defaultNameEn: 'Solar Flare',
+    defaultNameTr: 'Güneş Patlaması',
+    accent: '#f97316',
+    cyan: '#fbbf24',
+    glow: 'rgba(249, 115, 22, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #210d02 0%, #471e06 50%, #1a0a01 100%)',
+  },
+  S07: {
+    id: 'S07',
+    icon: '🌆',
+    nameKey: 'season_theme_s07',
+    defaultNameRu: 'Неоновый Закат',
+    defaultNameEn: 'Synthwave Sunset',
+    defaultNameTr: 'Neon Günbatımı',
+    accent: '#f43f5e',
+    cyan: '#fb7185',
+    glow: 'rgba(244, 63, 94, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #1f0418 0%, #470c36 50%, #190313 100%)',
+  },
+  S08: {
+    id: 'S08',
+    icon: '🏎️',
+    nameKey: 'season_theme_s08',
+    defaultNameRu: 'Гипердрайв',
+    defaultNameEn: 'Hyperdrive Matrix',
+    defaultNameTr: 'Hiper-Sürüş',
+    accent: '#84cc16',
+    cyan: '#a3e635',
+    glow: 'rgba(132, 204, 22, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #0f1c04 0%, #233f0b 50%, #0c1703 100%)',
+  },
+  S09: {
+    id: 'S09',
+    icon: '👑',
+    nameKey: 'season_theme_s09',
+    defaultNameRu: 'Кибер-Золото',
+    defaultNameEn: 'Cyber Gold',
+    defaultNameTr: 'Siber Altın',
+    accent: '#eab308',
+    cyan: '#fde047',
+    glow: 'rgba(234, 179, 8, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #1c1402 0%, #423006 50%, #161001 100%)',
+  },
+  S10: {
+    id: 'S10',
+    icon: '🔥',
+    nameKey: 'season_theme_s10',
+    defaultNameRu: 'Багровый Овердрайв',
+    defaultNameEn: 'Crimson Overdrive',
+    defaultNameTr: 'Kızıl Aşırı Yük',
+    accent: '#ef4444',
+    cyan: '#f87171',
+    glow: 'rgba(239, 68, 68, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #1f0505 0%, #450c0c 50%, #1a0303 100%)',
+  },
+  S11: {
+    id: 'S11',
+    icon: '🔮',
+    nameKey: 'season_theme_s11',
+    defaultNameRu: 'Теневой Протокол',
+    defaultNameEn: 'Shadow Protocol',
+    defaultNameTr: 'Gölge Protokolü',
+    accent: '#9333ea',
+    cyan: '#c084fc',
+    glow: 'rgba(147, 51, 234, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #130324 0%, #2f0c54 50%, #0e021a 100%)',
+  },
+  S12: {
+    id: 'S12',
+    icon: '⚡',
+    nameKey: 'season_theme_s12',
+    defaultNameRu: 'Плазменный Шторм',
+    defaultNameEn: 'Plasma Arc',
+    defaultNameTr: 'Plazma Fırtınası',
+    accent: '#d946ef',
+    cyan: '#f0abfc',
+    glow: 'rgba(217, 70, 239, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #1e0324 0%, #450c52 50%, #17021c 100%)',
+  },
+  S13: {
+    id: 'S13',
+    icon: '⏳',
+    nameKey: 'season_theme_s13',
+    defaultNameRu: 'Хронос Финал',
+    defaultNameEn: 'Chrono Finale',
+    defaultNameTr: 'Zaman Finali',
+    accent: '#14b8a6',
+    cyan: '#5eead4',
+    glow: 'rgba(20, 184, 166, 0.45)',
+    bgGradient: 'linear-gradient(135deg, #021a18 0%, #063c37 50%, #021413 100%)',
+  },
+};
+
+export function getSeasonTheme(seasonId?: string): SeasonThemeConfig {
+  const sId = seasonId || getCurrentSeasonId();
+  const match = sId.match(/-S(\d{2})/);
+  const key = match ? `S${match[1]}` : 'S10';
+  return SEASON_THEMES_CONFIG[key] || SEASON_THEMES_CONFIG.S10;
+}
+
+export function getSeasonThemeName(theme: SeasonThemeConfig): string {
+  const lang = i18n.getLanguage();
+  if (lang === 'en') return theme.defaultNameEn;
+  if (lang === 'tr') return theme.defaultNameTr;
+  return theme.defaultNameRu;
+}
+
+export function applySeasonThemeStyles(theme: SeasonThemeConfig) {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.style.setProperty('--season-accent', theme.accent);
+  root.style.setProperty('--season-cyan', theme.cyan);
+  root.style.setProperty('--season-glow', theme.glow);
+  root.style.setProperty('--season-bg', theme.bgGradient);
+  root.style.setProperty('--season-surface', `${theme.accent}14`);
+  root.style.setProperty('--season-border', `${theme.accent}44`);
+  root.setAttribute('data-season-theme', theme.id);
+}
+
+export const SEASON_MILESTONES: SeasonMilestone[] = [
+  {
+    stage: 1,
+    titleKey: 'season_ms_1',
+    defaultTitleRu: 'Разведывательный кейс',
+    defaultTitleEn: 'Scout Cyber Case',
+    defaultTitleTr: 'Keşif Siber Sandığı',
+    hints: 3,
+    points: 250,
+    icon: '📦',
+  },
+  {
+    stage: 2,
+    titleKey: 'season_ms_2',
+    defaultTitleRu: 'Тактический контейнер',
+    defaultTitleEn: 'Tactical Cache',
+    defaultTitleTr: 'Taktik Konteyner',
+    hints: 5,
+    points: 500,
+    icon: '⚡',
+  },
+  {
+    stage: 3,
+    titleKey: 'season_ms_3',
+    defaultTitleRu: 'Кибер-Ядро',
+    defaultTitleEn: 'Cyber Core Vault',
+    defaultTitleTr: 'Siber Çekirdek Kasası',
+    hints: 7,
+    points: 750,
+    icon: '🧬',
+  },
+  {
+    stage: 4,
+    titleKey: 'season_ms_4',
+    defaultTitleRu: 'Гранд-Сундук Финала',
+    defaultTitleEn: 'Grand Finale Chest',
+    defaultTitleTr: 'Büyük Final Sandığı',
+    hints: 10,
+    points: 1500,
+    icon: '👑',
+    badge: 'season_finalist',
+  },
+];
+
 export class SudokuUI {
   public getDifficultyLabel(diff: Difficulty): string {
     switch (diff) {
@@ -283,6 +531,15 @@ export class SudokuUI {
   private statLeagueBadge!: HTMLElement;
   private statSeasonTimer!: HTMLElement;
   private seasonArchiveList!: HTMLElement;
+  private seasonThemeCard!: HTMLElement | null;
+  private seasonThemeIcon!: HTMLElement | null;
+  private seasonThemeTitle!: HTMLElement | null;
+  private seasonThemeSub!: HTMLElement | null;
+  private seasonWeekCurrentLabel!: HTMLElement | null;
+  private seasonProgressPercentLabel!: HTMLElement | null;
+  private seasonProgressFill!: HTMLElement | null;
+  private seasonMilestonesGrid!: HTMLElement | null;
+  private seasonRewardsClaimedCounter!: HTMLElement | null;
   private duelHistorySummary!: HTMLElement;
   private duelHistoryList!: HTMLElement;
   private leaderboardList!: HTMLElement;
@@ -766,6 +1023,26 @@ export class SudokuUI {
     this.statLeagueBadge = document.getElementById('stat-league-badge')!;
     this.statSeasonTimer = document.getElementById('stat-season-timer')!;
     this.seasonArchiveList = document.getElementById('season-archive-list')!;
+    this.seasonThemeCard = document.getElementById('season-theme-card');
+    this.seasonThemeIcon = document.getElementById('season-theme-icon');
+    this.seasonThemeTitle = document.getElementById('season-theme-title');
+    this.seasonThemeSub = document.getElementById('season-theme-sub');
+    this.seasonWeekCurrentLabel = document.getElementById('season-week-current-label');
+    this.seasonProgressPercentLabel = document.getElementById('season-progress-percent-label');
+    this.seasonProgressFill = document.getElementById('season-progress-fill');
+    this.seasonMilestonesGrid = document.getElementById('season-milestones-grid');
+    this.seasonRewardsClaimedCounter = document.getElementById('season-rewards-claimed-counter');
+
+    if (this.seasonMilestonesGrid) {
+      this.seasonMilestonesGrid.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.btn-claim-milestone') as HTMLElement;
+        if (!btn || !btn.dataset.stage) return;
+        const stage = parseInt(btn.dataset.stage, 10);
+        if (stage >= 1 && stage <= 4) {
+          this.claimSeasonMilestone(stage);
+        }
+      });
+    }
     this.duelHistorySummary = document.getElementById('duel-history-summary')!;
     this.duelHistoryList = document.getElementById('duel-history-list')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
@@ -930,6 +1207,8 @@ export class SudokuUI {
     this.playerNameInput.value = savedName;
     localStorage.setItem('sudoku_player_name', savedName);
 
+    const seasonTheme = getSeasonTheme();
+    applySeasonThemeStyles(seasonTheme);
     const savedTheme = localStorage.getItem('sudoku_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     this.updateThemeButtons(savedTheme);
@@ -2768,6 +3047,7 @@ export class SudokuUI {
   }
 
   private isThemeUnlocked(skin: string): boolean {
+    if (skin === 'season') return true;
     if (skin === 'crimson_sector') {
       const stats = SudokuGame.getPlayerStats();
       const elo = stats.duelElo || 1000;
@@ -2784,11 +3064,13 @@ export class SudokuUI {
   private setTheme(theme: string) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('sudoku_theme', theme);
+    const seasonTheme = getSeasonTheme();
+    applySeasonThemeStyles(seasonTheme);
     this.updateThemeButtons(theme);
   }
 
   private toggleTheme() {
-    const allSkins = ['dark', 'synthwave', 'matrix', 'oled', 'light', 'crimson_sector', 'grandmaster'];
+    const allSkins = ['dark', 'synthwave', 'matrix', 'oled', 'light', 'crimson_sector', 'grandmaster', 'season'];
     const unlockedSkins = allSkins.filter((s) => this.isThemeUnlocked(s));
     const current = document.documentElement.getAttribute('data-theme') || 'dark';
     const idx = unlockedSkins.indexOf(current);
@@ -2797,6 +3079,7 @@ export class SudokuUI {
   }
 
   private updateThemeButtons(theme: string) {
+    const seasonTheme = getSeasonTheme();
     const icons: Record<string, string> = {
       dark: '⚡',
       synthwave: '🌆',
@@ -2805,11 +3088,14 @@ export class SudokuUI {
       light: '☀️',
       crimson_sector: '🩸',
       grandmaster: '👑',
+      season: seasonTheme.icon,
     };
 
     const icon = icons[theme] || icons.dark;
     this.themeToggleBtn.textContent = icon;
-    const themeName = t(`theme_${theme}`, t('theme_dark'));
+    const themeName = theme === 'season'
+      ? `${t('theme_season')} (${getSeasonThemeName(seasonTheme)})`
+      : t(`theme_${theme}`, t('theme_dark'));
     this.settingThemeBtn.textContent = `${icon} ${themeName}`;
 
     this.themeSkinPills.forEach((pill) => {
@@ -2817,8 +3103,12 @@ export class SudokuUI {
       const isUnlocked = this.isThemeUnlocked(skinKey);
       pill.classList.toggle('active', skinKey === theme);
       pill.style.opacity = isUnlocked ? '1' : '0.55';
-      const text = t(`theme_pill_${skinKey}`, skinKey);
-      pill.textContent = isUnlocked ? text : `🔒 ${text}`;
+      if (skinKey === 'season') {
+        pill.textContent = `${seasonTheme.icon} ${t('theme_pill_season', 'Сезон')}`;
+      } else {
+        const text = t(`theme_pill_${skinKey}`, skinKey);
+        pill.textContent = isUnlocked ? text : `🔒 ${text}`;
+      }
     });
 
     this.updateVictoryEffectButtons();
@@ -3833,17 +4123,35 @@ export class SudokuUI {
 
     let seasonHeader = '';
     if (this.currentLeaderboardTimeframe === 'season' && this.currentSeasonId) {
+      const seasonInfo = getSeasonWeekInfo();
+      const theme = getSeasonTheme(this.currentSeasonId);
+      const themeName = getSeasonThemeName(theme);
       let seasonLabel = this.currentSeasonId;
       if (this.currentSeasonId.includes('-S')) {
         const parts = this.currentSeasonId.split('-S');
-        seasonLabel = `${t('season_title_prefix')} ${Number(parts[1]) || parts[1]}, ${parts[0]}`;
+        seasonLabel = `${t('season_title_prefix')} ${Number(parts[1]) || parts[1]}`;
       } else if (this.currentSeasonId.includes('-W')) {
         const parts = this.currentSeasonId.split('-W');
-        seasonLabel = parts.length === 2 ? `${t('season_header_active')} ${parts[1]}, ${parts[0]}` : this.currentSeasonId;
+        seasonLabel = `${t('season_title_prefix')} W${parts[1]}`;
       }
+
       seasonHeader = `
-        <div style="font-size:0.75rem; color:var(--accent); font-weight:600; text-align:center; margin-bottom:8px; padding:4px 8px; background:rgba(99,102,241,0.12); border-radius:6px; border:1px solid rgba(99,102,241,0.25);">
-          ⏳ ${t('season_status_active')}: ${seasonLabel} (${getSeasonRemainingText()})
+        <div class="season-leaderboard-banner">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-weight:700; color:var(--season-accent, var(--accent)); font-size:0.82rem;">
+              ${theme.icon} ${seasonLabel}: ${themeName}
+            </span>
+            <span style="font-size:0.72rem; color:var(--text-muted); font-weight:600;">
+              ⏳ ${getSeasonRemainingText()}
+            </span>
+          </div>
+          <div class="season-lb-bar-track">
+            <div class="season-lb-bar-fill" style="width: ${seasonInfo.progressPercent}%;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.68rem; color:var(--text-muted); margin-top:2px;">
+            <span>${t('season_week_label', 'Неделя')} ${seasonInfo.weekInSeason}/4</span>
+            <span>${seasonInfo.progressPercent}% ${t('season_progress_completed', 'сезона')}</span>
+          </div>
         </div>
       `;
     }
@@ -4610,6 +4918,7 @@ export class SudokuUI {
     this.updateLeagueViews();
     this.renderPlayerSeasonMedals();
     this.renderPlayerAvatarElements();
+    this.renderSeasonDashboard();
     this.renderSeasonArchive();
     this.renderDuelHistory();
     this.renderProfilePastSeasons();
@@ -4917,6 +5226,169 @@ export class SudokuUI {
         }
         this.aiBotEmotionTimeout = undefined;
       }, durationMs);
+    }
+  }
+
+  public getClaimedSeasonMilestones(): string[] {
+    try {
+      const raw = localStorage.getItem('sudoku_season_milestones_claimed');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  }
+
+  public claimSeasonMilestone(stage: number) {
+    const seasonInfo = getSeasonWeekInfo();
+    const milestone = SEASON_MILESTONES.find((m) => m.stage === stage);
+    if (!milestone) return;
+
+    if (seasonInfo.weekInSeason < stage) {
+      this.showToast(t('season_ms_locked_fmt', { stage }));
+      return;
+    }
+
+    const claimKey = `${seasonInfo.seasonId}_w${stage}`;
+    const claimed = this.getClaimedSeasonMilestones();
+    if (claimed.includes(claimKey)) {
+      this.showToast(t('season_ms_claimed_btn'));
+      return;
+    }
+
+    claimed.push(claimKey);
+    localStorage.setItem('sudoku_season_milestones_claimed', JSON.stringify(claimed));
+
+    const stats = SudokuGame.getPlayerStats();
+    stats.claimedSeasonMilestones = claimed;
+    stats.bonusHints = (stats.bonusHints || 0) + milestone.hints;
+    this.game.hintsRemaining += milestone.hints;
+    stats.totalScore += milestone.points;
+    stats.seasonScore = (stats.seasonScore || 0) + milestone.points;
+
+    if (milestone.badge) {
+      const badge: SeasonBadge = {
+        id: `badge_${milestone.badge}_${seasonInfo.seasonId}`,
+        seasonId: seasonInfo.seasonId,
+        title: `🎖️ ${t(milestone.titleKey)}`,
+        icon: milestone.icon,
+        tier: 'champion',
+        dateAwarded: new Date().toLocaleDateString(),
+      };
+      this.addSeasonBadge(badge);
+    }
+
+    SudokuGame.savePlayerStats(stats);
+    this.updateLeagueViews();
+    soundManager.playVictory();
+    haptics.victory();
+
+    this.showToast(t('season_ms_toast_claimed', { stage, hints: milestone.hints, points: milestone.points }));
+
+    this.renderSeasonDashboard();
+  }
+
+  private renderSeasonDashboard() {
+    const seasonInfo = getSeasonWeekInfo();
+    const theme = getSeasonTheme(seasonInfo.seasonId);
+    const themeName = getSeasonThemeName(theme);
+    const lang = i18n.getLanguage();
+
+    if (this.seasonThemeCard) {
+      this.seasonThemeCard.setAttribute('data-season-id', seasonInfo.seasonId);
+    }
+
+    // 1. Update theme card elements
+    if (this.seasonThemeIcon) this.seasonThemeIcon.textContent = theme.icon;
+    if (this.seasonThemeTitle) {
+      this.seasonThemeTitle.textContent = `${t('season_title_prefix')} ${seasonInfo.seasonNo}: ${themeName}`;
+    }
+    if (this.seasonThemeSub) {
+      this.seasonThemeSub.textContent = t('season_theme_sub');
+    }
+    if (this.statSeasonTimer) {
+      this.statSeasonTimer.textContent = getSeasonRemainingText();
+    }
+
+    // 2. Update 4-week progress bar
+    if (this.seasonWeekCurrentLabel) {
+      this.seasonWeekCurrentLabel.textContent = t('season_week_current_fmt', { week: seasonInfo.weekInSeason });
+    }
+    if (this.seasonProgressPercentLabel) {
+      this.seasonProgressPercentLabel.textContent = t('season_progress_percent_fmt', { percent: seasonInfo.progressPercent });
+    }
+    if (this.seasonProgressFill) {
+      this.seasonProgressFill.style.width = `${seasonInfo.progressPercent}%`;
+    }
+
+    for (let step = 1; step <= 4; step++) {
+      const stepEl = document.getElementById(`season-step-${step}`);
+      if (stepEl) {
+        stepEl.classList.toggle('completed', step < seasonInfo.weekInSeason);
+        stepEl.classList.toggle('active', step === seasonInfo.weekInSeason);
+        const dot = stepEl.querySelector('.season-step-dot');
+        if (dot) {
+          dot.textContent = step < seasonInfo.weekInSeason ? '✓' : String(step);
+        }
+      }
+    }
+
+    // 3. Render Milestones Grid
+    if (this.seasonMilestonesGrid) {
+      const claimed = this.getClaimedSeasonMilestones();
+      let claimedCount = 0;
+      let hasAvailableReward = false;
+
+      this.seasonMilestonesGrid.innerHTML = SEASON_MILESTONES.map((ms) => {
+        const claimKey = `${seasonInfo.seasonId}_w${ms.stage}`;
+        const isClaimed = claimed.includes(claimKey);
+        const isUnlocked = seasonInfo.weekInSeason >= ms.stage;
+        if (isClaimed) claimedCount++;
+        if (isUnlocked && !isClaimed) hasAvailableReward = true;
+
+        const isEn = lang === 'en';
+        const isTr = lang === 'tr';
+        const name = isEn ? ms.defaultTitleEn : (isTr ? ms.defaultTitleTr : ms.defaultTitleRu);
+
+        let btnClass = 'btn-claim-milestone locked';
+        let btnText = t('season_ms_locked_fmt', { stage: ms.stage });
+        let btnDisabled = 'disabled';
+
+        if (isClaimed) {
+          btnClass = 'btn-claim-milestone claimed';
+          btnText = t('season_ms_claimed_btn');
+        } else if (isUnlocked) {
+          btnClass = 'btn-claim-milestone available';
+          btnText = `🎁 ${t('season_ms_claim_btn')}`;
+          btnDisabled = '';
+        }
+
+        const cardClass = `season-milestone-card ${isClaimed ? 'claimed' : isUnlocked ? 'unlocked' : ''}`;
+
+        return `
+          <div class="${cardClass}">
+            <div class="season-milestone-header">
+              <div class="season-milestone-title-row">
+                <span class="season-milestone-icon">${ms.icon}</span>
+                <span class="season-milestone-name">${name}</span>
+              </div>
+              <span class="season-milestone-stage-tag">W${ms.stage}</span>
+            </div>
+            <div class="season-milestone-reward-text">
+              +${ms.hints} ${t('bonus_hints_unit', 'hints')} • +${ms.points} PP
+            </div>
+            <button class="${btnClass}" data-stage="${ms.stage}" ${btnDisabled}>${btnText}</button>
+          </div>
+        `;
+      }).join('');
+
+      if (this.seasonRewardsClaimedCounter) {
+        this.seasonRewardsClaimedCounter.textContent = `${claimedCount}/4 ${t('season_rewards_open_count', { current: claimedCount })}`;
+      }
+
+      // Update badge on Seasons tab button
+      const seasonsTabBtn = document.getElementById('tab-stats-btn-seasons');
+      if (seasonsTabBtn) {
+        seasonsTabBtn.textContent = hasAvailableReward ? `🏆 ${t('stats_tab_seasons', 'Сезоны')} 🔴` : `🏆 ${t('stats_tab_seasons', 'Сезоны')}`;
+      }
     }
   }
 
@@ -6352,6 +6824,7 @@ export class SudokuUI {
     } else if (tabName === 'profile') {
       this.renderProfilePastSeasons();
     } else if (tabName === 'seasons') {
+      this.renderSeasonDashboard();
       this.renderSeasonArchive();
     } else if (tabName === 'duels') {
       this.renderDuelHistory();

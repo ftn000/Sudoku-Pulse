@@ -155,6 +155,32 @@ export interface PlayerStats {
   seasonScore?: number;
   unlockedAchievements?: string[];
   seasonBadges?: SeasonBadge[];
+  claimedSeasonMilestones?: string[];
+}
+
+export interface SeasonThemeConfig {
+  id: string;
+  icon: string;
+  nameKey: string;
+  defaultNameRu: string;
+  defaultNameEn: string;
+  defaultNameTr: string;
+  accent: string;
+  cyan: string;
+  glow: string;
+  bgGradient: string;
+}
+
+export interface SeasonMilestone {
+  stage: number;
+  titleKey: string;
+  defaultTitleRu: string;
+  defaultTitleEn: string;
+  defaultTitleTr: string;
+  hints: number;
+  points: number;
+  icon: string;
+  badge?: string;
 }
 
 export interface Achievement {

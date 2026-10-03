@@ -4392,3 +4392,292 @@ body.platform-yandex .yandex-hidden {
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
   font-weight: 800;
 }
+
+/* ========================================================
+   SEASON 4-WEEK DASHBOARD, PROGRESS & THEMES
+   ======================================================== */
+:root {
+  --season-accent: #ef4444;
+  --season-cyan: #f87171;
+  --season-glow: rgba(239, 68, 68, 0.45);
+  --season-bg: linear-gradient(135deg, #1f0505 0%, #450c0c 50%, #1a0303 100%);
+  --season-surface: rgba(45, 6, 15, 0.85);
+  --season-border: rgba(239, 68, 68, 0.25);
+}
+
+[data-theme="season"] {
+  --bg-gradient: var(--season-bg);
+  --surface-bg: var(--season-surface);
+  --surface-border: var(--season-border);
+  --cell-user-color: var(--season-cyan);
+  --cell-locked-color: var(--season-accent);
+  --cell-selected: var(--season-accent);
+  --cell-highlight-area: rgba(239, 68, 68, 0.16);
+  --cell-highlight-same: rgba(239, 68, 68, 0.35);
+  --accent: var(--season-accent);
+  --accent-hover: var(--season-accent);
+  --pulse-cyan: var(--season-cyan);
+  --pulse-glow: var(--season-glow);
+  --grid-thick-border: var(--season-accent);
+}
+
+.season-theme-card {
+  background: var(--season-surface, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--season-border, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 16px -2px var(--season-glow, rgba(0, 0, 0, 0.3));
+}
+
+.season-theme-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.season-theme-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.season-theme-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 6px var(--season-glow, rgba(239, 68, 68, 0.5)));
+}
+
+.season-theme-title {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.season-theme-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.season-countdown-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--season-border, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--season-cyan, var(--pulse-cyan));
+  white-space: nowrap;
+}
+
+.season-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.season-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.season-progress-track {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 8px;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.season-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), var(--season-glow, rgba(239, 68, 68, 0.35)));
+  border-radius: 7px;
+  z-index: 1;
+  pointer-events: none;
+  transition: width 0.4s ease;
+}
+
+.season-progress-step {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.season-progress-step.active {
+  color: var(--text-main);
+}
+
+.season-progress-step.completed .season-step-dot {
+  background: var(--season-accent, var(--pulse-cyan));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 6px var(--season-glow, rgba(56, 189, 248, 0.6));
+}
+
+.season-step-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-muted);
+}
+
+/* Season Milestone Rewards Grid */
+.season-milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.season-milestone-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.season-milestone-card.unlocked {
+  border-color: var(--season-border, rgba(239, 68, 68, 0.4));
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.season-milestone-card.claimed {
+  opacity: 0.72;
+}
+
+.season-milestone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.season-milestone-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.season-milestone-icon {
+  font-size: 1.15rem;
+}
+
+.season-milestone-name {
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: var(--text-main);
+  line-height: 1.15;
+}
+
+.season-milestone-stage-tag {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.season-milestone-reward-text {
+  font-size: 0.7rem;
+  color: var(--season-cyan, var(--pulse-cyan));
+  font-weight: 600;
+}
+
+.btn-claim-milestone {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-claim-milestone.available {
+  background: var(--season-accent, var(--accent));
+  color: #fff;
+  box-shadow: 0 0 10px var(--season-glow, rgba(99, 102, 241, 0.5));
+  animation: pulseMilestoneBtn 2s infinite ease-in-out;
+}
+
+.btn-claim-milestone.available:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.btn-claim-milestone.claimed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  cursor: default;
+}
+
+.btn-claim-milestone.locked {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: not-allowed;
+}
+
+@keyframes pulseMilestoneBtn {
+  0%, 100% { box-shadow: 0 0 6px var(--season-glow, rgba(239, 68, 68, 0.4)); }
+  50% { box-shadow: 0 0 14px var(--season-glow, rgba(239, 68, 68, 0.8)); }
+}
+
+.season-leaderboard-banner {
+  background: var(--season-surface, rgba(99, 102, 241, 0.12));
+  border: 1px solid var(--season-border, rgba(99, 102, 241, 0.25));
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.season-lb-bar-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 4px 0 2px 0;
+}
+
+.season-lb-bar-fill {
+  height: 100%;
+  background: var(--season-accent, var(--accent));
+  transition: width 0.3s ease;
+}
