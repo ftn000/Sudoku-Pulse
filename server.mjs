@@ -344,16 +344,75 @@ const server = http.createServer((req, res) => {
           return sId === requestedSeason;
         });
       }
+      let deduplicated;
       if (requestedMode === 'all') {
         filtered = filtered.filter((e) => e.mode !== 'pvp_duel');
-      } else if (requestedMode) {
-        filtered = filtered.filter((e) => (e.mode || 'classic') === requestedMode);
+        // Group by player across modes and compute Meta-Rating (Pulse Points)
+        const playerMap = new Map();
+        for (const e of filtered) {
+          const key = (e.playerId && String(e.playerId).trim()) || (e.name && String(e.name).toLowerCase().trim()) || 'unknown';
+          if (!playerMap.has(key)) {
+            playerMap.set(key, {
+              playerId: e.playerId,
+              name: e.name,
+              modes: {},
+              latestDate: e.date,
+            });
+          }
+          const p = playerMap.get(key);
+          const m = e.mode || 'classic';
+          if (!p.modes[m] || (e.score || 0) > (p.modes[m].score || 0)) {
+            p.modes[m] = e;
+          }
+        }
+
+        const metaEntries = [];
+        for (const p of playerMap.values()) {
+          let pp = 0;
+          const breakdown = {};
+          for (const [m, rec] of Object.entries(p.modes)) {
+            const raw = rec.score || 0;
+            let pts = 0;
+            if (m === 'classic') {
+              pts = Math.min(1000, Math.round(raw / 250));
+            } else if (m === 'run') {
+              const st = rec.runStage || 1;
+              pts = Math.min(1000, Math.round(st * 45 + raw / 70000));
+            } else if (m === 'fog') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else if (m === 'daily') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else if (m === 'ai_duel') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else {
+              pts = Math.min(1000, Math.round(raw / 300));
+            }
+            pp += pts;
+            breakdown[m] = pts;
+          }
+          const modesCount = Object.keys(breakdown).length;
+          metaEntries.push({
+            playerId: p.playerId,
+            name: p.name,
+            score: pp,
+            pulsePoints: pp,
+            isMeta: true,
+            modesCount,
+            breakdown,
+            mode: 'all',
+            date: p.latestDate,
+          });
+        }
+        metaEntries.sort((a, b) => (b.score || 0) - (a.score || 0) || (b.modesCount || 0) - (a.modesCount || 0));
+        deduplicated = metaEntries;
+      } else {
+        if (requestedMode) {
+          filtered = filtered.filter((e) => (e.mode || 'classic') === requestedMode);
+        }
+        const sorted = filtered
+          .sort((a, b) => b.score - a.score || (a.timeSeconds || 0) - (b.timeSeconds || 0));
+        deduplicated = deduplicateLeaderboardEntries(sorted);
       }
-
-      const sorted = filtered
-        .sort((a, b) => b.score - a.score || (a.timeSeconds || 0) - (b.timeSeconds || 0));
-
-      const deduplicated = deduplicateLeaderboardEntries(sorted);
 
       let myRankInfo = null;
       if (myPlayerId) {

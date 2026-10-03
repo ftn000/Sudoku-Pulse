@@ -276,7 +276,7 @@ export class SudokuUI {
   private leaderboardList!: HTMLElement;
   private leaderboardFilterTabs: HTMLButtonElement[] = [];
   private currentLeaderboardModeFilter: string = 'all';
-  private currentLeaderboardTimeframe: 'all' | 'season' = 'all';
+  private currentLeaderboardTimeframe: 'all' | 'season' = 'season';
   private currentSeasonId: string = '';
   private lbTimeframeAll!: HTMLButtonElement;
   private lbTimeframeSeason!: HTMLButtonElement;
@@ -292,6 +292,10 @@ export class SudokuUI {
     duelElo?: number;
     duelWins?: number;
     duelLosses?: number;
+    isMeta?: boolean;
+    modesCount?: number;
+    pulsePoints?: number;
+    breakdown?: Record<string, number>;
   }> = [];
   private cachedMyRank: { rank: number; entry: any } | null = null;
   private statPlayed!: HTMLElement;
@@ -3633,8 +3637,74 @@ export class SudokuUI {
       }
     }
 
-    if (this.currentLeaderboardModeFilter === 'all') {
+    const isMetaAllMode = this.currentLeaderboardModeFilter === 'all';
+    if (isMetaAllMode) {
       entries = entries.filter((e) => e.mode !== 'pvp_duel');
+      // If entries are not pre-aggregated by the server with isMeta
+      if (!entries.some((e) => e.isMeta)) {
+        const playerMap = new Map<string, {
+          playerId?: string;
+          name: string;
+          modes: Record<string, any>;
+          latestDate?: string;
+        }>();
+
+        for (const e of entries) {
+          const key = (e.playerId && String(e.playerId).trim()) || (e.name && String(e.name).toLowerCase().trim()) || 'unknown';
+          if (!playerMap.has(key)) {
+            playerMap.set(key, {
+              playerId: e.playerId,
+              name: e.name,
+              modes: {},
+              latestDate: e.date,
+            });
+          }
+          const p = playerMap.get(key)!;
+          const m = e.mode || 'classic';
+          if (!p.modes[m] || (e.score || 0) > (p.modes[m].score || 0)) {
+            p.modes[m] = e;
+          }
+        }
+
+        const metaEntries: any[] = [];
+        for (const p of playerMap.values()) {
+          let pp = 0;
+          const breakdown: Record<string, number> = {};
+          for (const [m, rec] of Object.entries(p.modes)) {
+            const raw = rec.score || 0;
+            let pts = 0;
+            if (m === 'classic') {
+              pts = Math.min(1000, Math.round(raw / 250));
+            } else if (m === 'run') {
+              const st = rec.runStage || 1;
+              pts = Math.min(1000, Math.round(st * 45 + raw / 70000));
+            } else if (m === 'fog') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else if (m === 'daily') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else if (m === 'ai_duel') {
+              pts = Math.min(1000, Math.round(raw / 300));
+            } else {
+              pts = Math.min(1000, Math.round(raw / 300));
+            }
+            pp += pts;
+            breakdown[m] = pts;
+          }
+          const modesCount = Object.keys(breakdown).length;
+          metaEntries.push({
+            playerId: p.playerId,
+            name: p.name,
+            score: pp,
+            pulsePoints: pp,
+            isMeta: true,
+            modesCount,
+            breakdown,
+            mode: 'all',
+            date: p.latestDate,
+          });
+        }
+        entries = metaEntries;
+      }
     } else if (this.currentLeaderboardModeFilter) {
       entries = entries.filter((e) => e.mode === this.currentLeaderboardModeFilter);
     }
@@ -3642,6 +3712,9 @@ export class SudokuUI {
     if (isPvpMode) {
       // Sort descending by ELO, then wins
       entries.sort((a, b) => (b.duelElo || b.score || 0) - (a.duelElo || a.score || 0) || ((b.duelWins || 0) - (a.duelWins || 0)));
+    } else if (isMetaAllMode) {
+      // Sort descending by Pulse Points, then number of mastered modes
+      entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((b.modesCount || 0) - (a.modesCount || 0)));
     } else {
       // Sort descending by score, then ascending by time
       entries.sort((a, b) => (b.score || 0) - (a.score || 0) || ((a.timeSeconds || 0) - (b.timeSeconds || 0)));
@@ -3679,9 +3752,15 @@ export class SudokuUI {
       `;
     }
 
+    const metaBanner = isMetaAllMode ? `
+      <div style="font-size:0.72rem; color:var(--pulse-cyan); text-align:center; padding:4px 8px; margin-bottom:8px; background:rgba(0,243,255,0.08); border-radius:6px; border:1px solid rgba(0,243,255,0.22);">
+        ${t('lb_meta_banner_desc')}
+      </div>
+    ` : '';
+
     if (entries.length === 0) {
       const emptyMsg = isPvpMode ? t('season_empty_pvp') : t('season_empty_category');
-      this.leaderboardList.innerHTML = seasonHeader + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${emptyMsg}</div>`;
+      this.leaderboardList.innerHTML = seasonHeader + metaBanner + `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; padding:8px;">${emptyMsg}</div>`;
       return;
     }
 
@@ -3720,7 +3799,19 @@ export class SudokuUI {
         `;
       }
 
-      const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
+      let badgeHtml: string;
+      let scoreHtml: string;
+      if (isMetaAllMode || item.isMeta) {
+        const count = item.modesCount || 1;
+        const disciplineLabel = count === 1 ? t('mode_single_label') : `${count} ${t('modes_multi_label')}`;
+        badgeHtml = `<span style="font-size:0.73rem; color:#a78bfa; font-weight:600; white-space:nowrap;">🏆 ${disciplineLabel}</span>`;
+        scoreHtml = `<span style="font-weight:800; color:#fbbf24; white-space:nowrap; padding-left:8px; font-size:0.92rem;">${Number(item.score).toLocaleString(locale)} <span style="font-size:0.74rem; color:#00f3ff; font-weight:700;">PP</span></span>`;
+      } else {
+        const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
+        badgeHtml = `<span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">${badge}</span>`;
+        scoreHtml = `<span style="font-weight:700; color:var(--accent); white-space:nowrap; padding-left:8px;">${Number(item.score).toLocaleString(locale)}</span>`;
+      }
+
       const league = getLeagueForScore(item.score);
       return `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; background:${rowBg}; border:1px solid ${rowBorder}; font-size:0.85rem;">
@@ -3728,9 +3819,9 @@ export class SudokuUI {
             <span style="font-weight:700; min-width:24px;">${medal}</span>
             <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
             <span style="font-weight:600; color:var(--text-main);">${item.name.replace(/</g, '&lt;')}${isMe ? ` <span style="color:var(--accent); font-size:0.75rem;">(${t('player_you')})</span>` : ''}</span>
-            <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+            ${badgeHtml}
           </div>
-          <span style="font-weight:700; color:var(--accent);">${Number(item.score).toLocaleString(locale)}</span>
+          ${scoreHtml}
         </div>
       `;
     }).join('');
@@ -3780,7 +3871,18 @@ export class SudokuUI {
             </div>
           `;
         } else {
-          const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
+          let pinnedBadgeHtml: string;
+          let pinnedScoreHtml: string;
+          if (isMetaAllMode || item.isMeta) {
+            const count = item.modesCount || 1;
+            const disciplineLabel = count === 1 ? t('mode_single_label') : `${count} ${t('modes_multi_label')}`;
+            pinnedBadgeHtml = `<span style="font-size:0.73rem; color:#a78bfa; font-weight:600; white-space:nowrap;">🏆 ${disciplineLabel}</span>`;
+            pinnedScoreHtml = `<span style="font-weight:800; color:#fbbf24; white-space:nowrap; padding-left:8px; font-size:0.95rem;">${Number(item.score).toLocaleString(locale)} <span style="font-size:0.75rem; color:#00f3ff; font-weight:700;">PP</span></span>`;
+          } else {
+            const badge = item.mode === 'run' ? `🚀 ${t('stage_fmt', { stage: item.runStage || 1 })}` : item.mode === 'daily' ? `📅 ${t('mode_daily')}` : item.mode === 'fog' ? `🌌 ${t('mode_fog')}` : item.mode === 'ai_duel' ? `🤖 ${t('mode_ai_duel')}` : `⚡ ${t('mode_classic')}`;
+            pinnedBadgeHtml = `<span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>`;
+            pinnedScoreHtml = `<span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>`;
+          }
           const league = getLeagueForScore(item.score);
           pinnedUserHtml = `
             <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; color:var(--text-muted); font-size:0.75rem; letter-spacing:3px;">
@@ -3791,9 +3893,9 @@ export class SudokuUI {
                 <span style="font-weight:800; min-width:32px; color:var(--pulse-cyan);">#${myRank}</span>
                 <span title="${t('profile_cyber_league')}: ${league.name}" style="font-size:0.9rem;">${league.icon}</span>
                 <span style="font-weight:700; color:var(--text-main);">${item.name.replace(/</g, '&lt;')} <span style="color:var(--pulse-cyan); font-size:0.75rem; font-weight:800;">${t('player_you')}</span></span>
-                <span style="font-size:0.75rem; color:var(--text-muted);">${badge}</span>
+                ${pinnedBadgeHtml}
               </div>
-              <span style="font-weight:800; color:var(--pulse-cyan);">${Number(item.score).toLocaleString(locale)}</span>
+              ${pinnedScoreHtml}
             </div>
           `;
         }
@@ -6168,7 +6270,7 @@ export class SudokuUI {
     });
 
     if (this.tutorialStepBadge) {
-      this.tutorialStepBadge.textContent = t('tut_step_badge', { current: this.currentTutorialStep + 1, total: 4 });
+      this.tutorialStepBadge.textContent = t('tut_step_badge', { cur: this.currentTutorialStep + 1, current: this.currentTutorialStep + 1, total: 4 });
     }
 
     if (this.tutorialDots) {

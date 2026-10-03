@@ -3332,12 +3332,17 @@ body.platform-yandex .yandex-hidden {
 .stats-modal-card {
   max-width: 440px;
   width: 100%;
-  padding: 18px 14px;
-  gap: 10px;
+  max-height: min(94dvh, 94vh, 720px);
+  padding: 16px 14px;
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
 .stats-nav-tabs {
   display: flex;
+  flex-shrink: 0;
+  min-height: 42px;
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--surface-border);
   border-radius: 12px;
@@ -3353,9 +3358,13 @@ body.platform-yandex .yandex-hidden {
 }
 
 .stats-nav-tab {
-  flex: 1;
-  min-width: 68px;
-  padding: 8px 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
   border-radius: 9px;
   background: transparent;
   border: none;
@@ -3366,6 +3375,7 @@ body.platform-yandex .yandex-hidden {
   white-space: nowrap;
   transition: all 0.2s ease;
   text-align: center;
+  user-select: none;
 }
 
 .stats-nav-tab:hover {
@@ -3557,13 +3567,18 @@ body.platform-yandex .yandex-hidden {
 
 @media (max-width: 480px) {
   .stats-modal-card {
-    padding: 14px 10px;
-    max-height: calc(100dvh - 16px);
+    padding: 12px 10px;
+    max-height: calc(100dvh - 12px);
+    gap: 6px;
+  }
+  .stats-nav-tabs {
+    min-height: 38px;
+    flex-shrink: 0;
   }
   .stats-nav-tab {
-    padding: 6px 2px;
+    padding: 5px 2px;
     font-size: 0.72rem;
-    min-width: 60px;
+    min-width: 0;
   }
   .lb-tab {
     padding: 5px 3px;
