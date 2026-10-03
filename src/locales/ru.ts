@@ -275,6 +275,7 @@ export const ru: LocaleDefinition = {
   // Tutorial
   tutorial_prev: '◀ Назад',
   tutorial_next: 'Далее ▶',
+  tutorial_skip: 'Пропустить и играть ⚡',
 
   // Cyber Shop & Monetization
   menu_shop_title: 'Кибер-Маркет',

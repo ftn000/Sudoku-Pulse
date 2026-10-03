@@ -1,4 +1,4 @@
-import { Perk } from './types';
+import { Perk, GameMode } from './types';
 
 export const ALL_PERKS: Perk[] = [
   {
@@ -95,13 +95,18 @@ export function formatRomanLevel(level: number = 1): string {
 }
 
 /**
- * Returns random perks for the drafting screen.
+ * Returns random perks for the drafting screen with mode-aware filtering.
  * If the player already owns a perk at level < 3, it can appear as an upgrade (Level II / III).
  */
-export function getRandomPerks(count: number = 3, ownedPerks: Perk[] = []): Perk[] {
+export function getRandomPerks(count: number = 3, ownedPerks: Perk[] = [], mode?: GameMode): Perk[] {
   const candidates: Perk[] = [];
 
   for (const base of ALL_PERKS) {
+    // Mode-aware filter: 'keen_eye' (scanner radar) only works in Dark Sector (fog) or roguelite Run
+    if (base.id === 'keen_eye' && mode && mode !== 'fog' && mode !== 'run') {
+      continue;
+    }
+
     const existing = ownedPerks.find((p) => p.id === base.id);
     if (!existing) {
       candidates.push({ ...base, level: 1 });
@@ -116,7 +121,24 @@ export function getRandomPerks(count: number = 3, ownedPerks: Perk[] = []): Perk
     }
   }
 
-  const source = candidates.length >= count ? candidates : ALL_PERKS.map((p) => ({ ...p, level: 1 }));
+  const safePool = ALL_PERKS.filter(
+    (p) => !(p.id === 'keen_eye' && mode && mode !== 'fog' && mode !== 'run')
+  ).map((p) => ({ ...p, level: 1 }));
+
+  const source = candidates.length >= count ? candidates : safePool;
   const shuffled = [...source].sort(() => 0.5 - Math.random());
+
+  // Guarantee 'neon_shield' in the very first game draft for soft onboarding
+  if (ownedPerks.length === 0) {
+    const hasShield = shuffled.slice(0, count).some((p) => p.id === 'neon_shield');
+    if (!hasShield) {
+      const shieldIdx = shuffled.findIndex((p) => p.id === 'neon_shield');
+      if (shieldIdx !== -1) {
+        const swapIdx = Math.floor(Math.random() * count);
+        [shuffled[swapIdx], shuffled[shieldIdx]] = [shuffled[shieldIdx], shuffled[swapIdx]];
+      }
+    }
+  }
+
   return shuffled.slice(0, count);
 }

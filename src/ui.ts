@@ -45,7 +45,7 @@ export interface DuelRecord {
 }
 
 export interface LeagueInfo {
-  id: 'bronze' | 'silver' | 'gold' | 'platinum' | 'grandmaster';
+  id: 'bronze' | 'silver' | 'gold' | 'platinum' | 'grandmaster' | 'titan' | 'apex';
   name: string;
   icon: string;
   badgeClass: string;
@@ -55,22 +55,25 @@ export interface LeagueInfo {
 
 export function getLeagueForScore(totalScore: number): LeagueInfo {
   const lang = i18n.getLanguage();
-  if (totalScore >= 150000) return { id: 'grandmaster', name: lang === 'en' ? 'Cyber Master' : (lang === 'tr' ? 'Siber Büyük Usta' : 'Кибер-Мастер'), icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 150000 };
-  if (totalScore >= 75000) return { id: 'platinum', name: lang === 'en' ? 'Platinum' : (lang === 'tr' ? 'Platin' : 'Платиновая'), icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 75000 };
-  if (totalScore >= 30000) return { id: 'gold', name: lang === 'en' ? 'Gold' : (lang === 'tr' ? 'Altın' : 'Золотая'), icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 30000 };
-  if (totalScore >= 10000) return { id: 'silver', name: lang === 'en' ? 'Silver' : (lang === 'tr' ? 'Gümüş' : 'Серебряная'), icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 10000 };
+  if (totalScore >= 500000) return { id: 'apex', name: lang === 'en' ? 'Apex Overlord' : (lang === 'tr' ? 'Apex Hükümdar' : 'Апекс-Оверлорд'), icon: '🌌', badgeClass: 'league-badge apex', frameClass: 'avatar-frame-apex', minScore: 500000 };
+  if (totalScore >= 250000) return { id: 'titan', name: lang === 'en' ? 'Matrix Titan' : (lang === 'tr' ? 'Matris Titanı' : 'Титан Матрицы'), icon: '⚡', badgeClass: 'league-badge titan', frameClass: 'avatar-frame-titan', minScore: 250000 };
+  if (totalScore >= 100000) return { id: 'grandmaster', name: lang === 'en' ? 'Cyber Master' : (lang === 'tr' ? 'Siber Büyük Usta' : 'Кибер-Мастер'), icon: '👑', badgeClass: 'league-badge grandmaster', frameClass: 'avatar-frame-grandmaster', minScore: 100000 };
+  if (totalScore >= 50000) return { id: 'platinum', name: lang === 'en' ? 'Platinum' : (lang === 'tr' ? 'Platin' : 'Платиновая'), icon: '💎', badgeClass: 'league-badge platinum', frameClass: 'avatar-frame-platinum', minScore: 50000 };
+  if (totalScore >= 20000) return { id: 'gold', name: lang === 'en' ? 'Gold' : (lang === 'tr' ? 'Altın' : 'Золотая'), icon: '🥇', badgeClass: 'league-badge gold', frameClass: 'avatar-frame-gold', minScore: 20000 };
+  if (totalScore >= 7000) return { id: 'silver', name: lang === 'en' ? 'Silver' : (lang === 'tr' ? 'Gümüş' : 'Серебряная'), icon: '🥈', badgeClass: 'league-badge silver', frameClass: 'avatar-frame-silver', minScore: 7000 };
   return { id: 'bronze', name: lang === 'en' ? 'Bronze' : (lang === 'tr' ? 'Bronz' : 'Бронзовая'), icon: '🥉', badgeClass: 'league-badge bronze', frameClass: 'avatar-frame-bronze', minScore: 0 };
 }
 
 export const BOARD_SKINS_CONFIG: Record<string, { minScore: number; leagueRu: string; leagueEn: string; leagueTr: string; nameRu: string; nameEn: string; nameTr: string; icon: string; isVipOnly?: boolean }> = {
   neon: { minScore: 0, leagueRu: 'Бронза', leagueEn: 'Bronze', leagueTr: 'Bronz', nameRu: 'Кибер', nameEn: 'Cyber', nameTr: 'Siber', icon: '⚡' },
   synthwave: { minScore: 5000, leagueRu: 'Серебро', leagueEn: 'Silver', leagueTr: 'Gümüş', nameRu: 'Синтвейв', nameEn: 'Synth', nameTr: 'Synth', icon: '🌆' },
-  aqua: { minScore: 15000, leagueRu: 'Аква', leagueEn: 'Aqua', leagueTr: 'Aqua', nameRu: 'Аква', nameEn: 'Aqua', nameTr: 'Aqua', icon: '🌊' },
+  aqua: { minScore: 15000, leagueRu: 'Золото', leagueEn: 'Gold', leagueTr: 'Altın', nameRu: 'Аква', nameEn: 'Aqua', nameTr: 'Aqua', icon: '🌊' },
   matrix: { minScore: 30000, leagueRu: 'Золото', leagueEn: 'Gold', leagueTr: 'Altın', nameRu: 'Матрица', nameEn: 'Matrix', nameTr: 'Matris', icon: '🟢' },
-  crimson: { minScore: 50000, leagueRu: 'Рубин', leagueEn: 'Ruby', leagueTr: 'Yakut', nameRu: 'Багровый', nameEn: 'Crimson', nameTr: 'Kızıl', icon: '🩸' },
+  crimson: { minScore: 50000, leagueRu: 'Платина', leagueEn: 'Platinum', leagueTr: 'Platin', nameRu: 'Багровый', nameEn: 'Crimson', nameTr: 'Kızıl', icon: '🩸' },
   hologram: { minScore: 75000, leagueRu: 'Платина', leagueEn: 'Platinum', leagueTr: 'Platin', nameRu: 'Голограмма', nameEn: 'Hologram', nameTr: 'Hologram', icon: '💎' },
-  retro: { minScore: 100000, leagueRu: 'Алмаз', leagueEn: 'Diamond', leagueTr: 'Elmas', nameRu: 'Ретро', nameEn: 'Retro', nameTr: 'Retro', icon: '👾' },
-  obsidian: { minScore: 150000, leagueRu: 'Мастер', leagueEn: 'Master', leagueTr: 'Usta', nameRu: 'Обсидиан', nameEn: 'Obsidian', nameTr: 'Obsidyen', icon: '👑' },
+  retro: { minScore: 100000, leagueRu: 'Кибер-Мастер', leagueEn: 'Cyber Master', leagueTr: 'Siber Usta', nameRu: 'Ретро', nameEn: 'Retro', nameTr: 'Retro', icon: '👾' },
+  obsidian: { minScore: 150000, leagueRu: 'Титан', leagueEn: 'Titan', leagueTr: 'Titan', nameRu: 'Обсидиан', nameEn: 'Obsidian', nameTr: 'Obsidyen', icon: '🔮' },
+  supernova: { minScore: 250000, leagueRu: 'Оверлорд', leagueEn: 'Overlord', leagueTr: 'Hükümdar', nameRu: 'Сверхновая', nameEn: 'Supernova', nameTr: 'Supernova', icon: '🌌' },
   cyber_gold: { minScore: -1, isVipOnly: true, leagueRu: 'VIP Pass', leagueEn: 'VIP Pass', leagueTr: 'VIP Kart', nameRu: 'Cyber Gold', nameEn: 'Gold VIP', nameTr: 'Altın VIP', icon: '👑' },
 };
 
@@ -1383,6 +1386,13 @@ export class SudokuUI {
         this.closeTutorial();
       });
     }
+    const btnSkipTut = document.getElementById('btn-tutorial-skip');
+    if (btnSkipTut) {
+      btnSkipTut.addEventListener('click', () => {
+        soundManager.playSelect();
+        this.closeTutorial();
+      });
+    }
 
     if (this.btnTutorialPrev) {
       this.btnTutorialPrev.addEventListener('click', () => {
@@ -2564,7 +2574,7 @@ export class SudokuUI {
 
   private renderPerkDraft() {
     this.perksListContainer.innerHTML = '';
-    const perks = getRandomPerks(3);
+    const perks = getRandomPerks(3, [], this.selectedMode);
     const lang = i18n.getLanguage();
 
     perks.forEach((perk) => {
@@ -3274,7 +3284,7 @@ export class SudokuUI {
       this.playAgainBtn.classList.add('hidden');
 
       this.runPerksDraft.innerHTML = '';
-      const drafted = getRandomPerks(3, this.game.activePerks);
+      const drafted = getRandomPerks(3, this.game.activePerks, 'run');
       drafted.forEach((perk) => {
         const card = document.createElement('div');
         card.className = 'perk-card';
@@ -4543,7 +4553,7 @@ export class SudokuUI {
       this.addSeasonTrophy(trophy);
 
       const badgeTier: 'gold' | 'silver' | 'bronze' | 'champion' | 'veteran' =
-        finalLeague.id === 'grandmaster' ? 'champion' :
+        finalLeague.id === 'apex' || finalLeague.id === 'titan' || finalLeague.id === 'grandmaster' ? 'champion' :
         finalLeague.id === 'platinum' ? 'gold' :
         finalLeague.id === 'gold' ? 'silver' :
         finalLeague.id === 'silver' ? 'bronze' : 'veteran';
@@ -6722,13 +6732,13 @@ export class SudokuUI {
   // 7-DAY DAILY LOGIN REWARDS SYSTEM
   // ==========================================
   private readonly DAILY_REWARDS_CONFIG = [
-    { day: 1, icon: '💡', titleRu: '+1 Подсказка', titleEn: '+1 Hint', titleTr: '+1 İpucu', type: 'hint', count: 1 },
-    { day: 2, icon: '⚡', titleRu: '+150 Pulse очков', titleEn: '+150 Pulse Score', titleTr: '+150 Pulse Puanı', type: 'score', count: 150 },
-    { day: 3, icon: '🛡️', titleRu: 'Щит от ошибок (+1 жизнь)', titleEn: 'Mistake Shield (+1 Life)', titleTr: 'Hata Kalkanı (+1 Can)', type: 'shield', count: 1 },
-    { day: 4, icon: '💡💡', titleRu: '+2 Подсказки', titleEn: '+2 Hints', titleTr: '+2 İpucu', type: 'hint', count: 2 },
-    { day: 5, icon: '⚡⚡', titleRu: '+300 Pulse очков', titleEn: '+300 Pulse Score', titleTr: '+300 Pulse Puanı', type: 'score', count: 300 },
-    { day: 6, icon: '🛡️⚡', titleRu: 'Щит + 200 очков', titleEn: 'Shield + 200 Score', titleTr: 'Kalkan + 200 Puan', type: 'combo', count: 200 },
-    { day: 7, icon: '👑', titleRu: 'Трофей + 500 очков + 3 подсказки', titleEn: 'Grand Trophy + 500 Score + 3 Hints', titleTr: 'Büyük Kupa + 500 Puan + 3 İpucu', type: 'grand', count: 500 },
+    { day: 1, icon: '💡', titleRu: '+2 Подсказки', titleEn: '+2 Hints', titleTr: '+2 İpucu', type: 'hint', count: 2 },
+    { day: 2, icon: '⚡💡', titleRu: '+2 500 очков + 1 подсказка', titleEn: '+2,500 Score + 1 Hint', titleTr: '+2.500 Puan + 1 İpucu', type: 'combo', count: 2500 },
+    { day: 3, icon: '🛡️', titleRu: 'Неоновый щит (+1 жизнь) + 1 подсказка', titleEn: 'Neon Shield (+1 Life) + 1 Hint', titleTr: 'Neon Kalkanı (+1 Can) + 1 İpucu', type: 'shield', count: 1 },
+    { day: 4, icon: '💡💡', titleRu: '+3 Подсказки', titleEn: '+3 Hints', titleTr: '+3 İpucu', type: 'hint', count: 3 },
+    { day: 5, icon: '⚡⚡', titleRu: '+5 000 Pulse очков', titleEn: '+5,000 Pulse Score', titleTr: '+5.000 Pulse Puanı', type: 'score', count: 5000 },
+    { day: 6, icon: '🛡️⚡', titleRu: 'Щит + 3 000 очков + 1 подсказка', titleEn: 'Shield + 3,000 Score + 1 Hint', titleTr: 'Kalkan + 3.000 Puan + 1 İpucu', type: 'combo', count: 3000 },
+    { day: 7, icon: '👑', titleRu: 'Трофей + 10 000 очков + 5 подсказок + 2 щита', titleEn: 'Grand Trophy + 10,000 Score + 5 Hints + 2 Shields', titleTr: 'Büyük Kupa + 10.000 Puan + 5 İpucu + 2 Kalkan', type: 'grand', count: 10000 },
   ];
 
   private getDailyRewardTitle(cfg: { titleRu: string; titleEn: string; titleTr?: string }): string {
@@ -6854,6 +6864,22 @@ export class SudokuUI {
     const cfg = this.DAILY_REWARDS_CONFIG[(day - 1) % 7];
     if (cfg.type === 'hint') {
       for (let i = 0; i < cfg.count; i++) this.game.addBonusHint();
+    } else if (cfg.type === 'score') {
+      stats.totalScore += cfg.count;
+    } else if (cfg.type === 'shield') {
+      this.game.addBonusHint();
+      this.game.shieldCharges = Math.max(1, (this.game.shieldCharges || 0) + 1);
+      this.game.shieldActive = true;
+    } else if (cfg.type === 'combo') {
+      stats.totalScore += cfg.count;
+      this.game.addBonusHint();
+      this.game.shieldCharges = Math.max(1, (this.game.shieldCharges || 0) + 1);
+      this.game.shieldActive = true;
+    } else if (cfg.type === 'grand') {
+      stats.totalScore += cfg.count;
+      for (let i = 0; i < 5; i++) this.game.addBonusHint();
+      this.game.shieldCharges = Math.max(1, (this.game.shieldCharges || 0) + 2);
+      this.game.shieldActive = true;
     } else if (cfg.type === 'score') {
       stats.totalScore += cfg.count;
     } else if (cfg.type === 'shield') {

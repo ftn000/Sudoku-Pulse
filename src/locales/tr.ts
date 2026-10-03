@@ -242,6 +242,7 @@ export const tr: LocaleDefinition = {
   "rotate_device_desc": "En iyi deneyim için Sudoku Pulse dikey modda optimize edilmiştir.",
   "tutorial_prev": "◀ Geri",
   "tutorial_next": "İleri ▶",
+  "tutorial_skip": "Atla ve Oyna ⚡",
   "menu_shop_title": "Siber Mağaza",
   "menu_shop_sub": "Reklamsız • VIP Kart • İpuçları",
   "settings_open_shop_btn": "Siber Mağaza (Reklamsız / VIP)",

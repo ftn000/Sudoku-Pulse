@@ -275,6 +275,7 @@ export const en: LocaleDefinition = {
   // Tutorial
   tutorial_prev: '◀ Back',
   tutorial_next: 'Next ▶',
+  tutorial_skip: 'Skip & Play ⚡',
 
   // Cyber Shop & Monetization
   menu_shop_title: 'Cyber Market',
